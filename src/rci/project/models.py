@@ -372,6 +372,78 @@ class ImplementationGoalContract(FrozenModel):
         return self
 
 
+class ImplementationGoalCandidate(FrozenModel):
+    """Inert deterministic derivation of one possible implementation Goal."""
+
+    schema_version: Literal[1] = 1
+    id: Identifier
+    compiler_version: Literal["implementation-goal-compiler-v1"] = "implementation-goal-compiler-v1"
+    status: Literal["inert_candidate"] = "inert_candidate"
+    question_candidate_id: Identifier
+    question_candidate_fingerprint: Sha256Digest
+    question_decision_id: Identifier
+    question_decision_fingerprint: Sha256Digest
+    compiled_question_id: Identifier
+    compiled_question_fingerprint: Sha256Digest
+    source_obligation_id: Identifier
+    source_obligation_fingerprint: Sha256Digest
+    effect_request_id: Identifier
+    accepted_decode_id: Identifier
+    accepted_decode_fingerprint: Sha256Digest
+    source_claim_id: Identifier
+    source_claim_fingerprint: Sha256Digest
+    downstream_obligation_id: Identifier
+    downstream_obligation_fingerprint: Sha256Digest
+    matched_return_class_id: Literal["goal-derivation-required"]
+    anchor_id: Identifier
+    anchor_fingerprint: Sha256Digest
+    limitation_id: Identifier
+    limitation_fingerprint: Sha256Digest
+    frontier_id: Identifier
+    frontier_fingerprint: Sha256Digest
+    selected_candidate_id: Identifier
+    selected_candidate_fingerprint: Sha256Digest
+    binding_revision: Identifier
+    scope_fingerprint: Sha256Digest
+    protected_horizon_id: Identifier
+    acceptance_registry_version: Literal["project-gate-registry-v1"] = "project-gate-registry-v1"
+    mutation_registry_version: Literal["project-mutation-registry-v1"] = (
+        "project-mutation-registry-v1"
+    )
+    goal: ImplementationGoalContract
+    goal_fingerprint: Sha256Digest
+
+    @model_validator(mode="after")
+    def validate_candidate(self) -> ImplementationGoalCandidate:
+        if (
+            self.goal.anchor_id != self.anchor_id
+            or self.goal.frontier_id != self.frontier_id
+            or self.goal.candidate_id != self.selected_candidate_id
+        ):
+            raise ValueError("derived Goal must preserve its exact project inputs")
+        return self
+
+
+class GoalAdmissionDecision(FrozenModel):
+    """One total controller decision over an exact inert Goal candidate."""
+
+    schema_version: Literal[1] = 1
+    id: Identifier
+    candidate_id: Identifier
+    candidate_fingerprint: Sha256Digest
+    outcome: AdmissionOutcome
+    controller_policy_version: Literal["goal-admission-policy-v1"] = "goal-admission-policy-v1"
+    evidence_record_ids: tuple[Identifier, ...]
+    admitted_goal_id: Identifier | None = None
+
+    @model_validator(mode="after")
+    def validate_decision(self) -> GoalAdmissionDecision:
+        _canonical(self.evidence_record_ids, "Goal admission evidence", nonempty=True)
+        if (self.outcome is AdmissionOutcome.ADMIT) != (self.admitted_goal_id is not None):
+            raise ValueError("only Goal admission may name the derived Goal")
+        return self
+
+
 class CandidateEnvironmentManifest(FrozenModel):
     schema_version: Literal[1] = 1
     id: Identifier

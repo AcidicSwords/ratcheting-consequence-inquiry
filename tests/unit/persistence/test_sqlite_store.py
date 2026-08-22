@@ -442,9 +442,10 @@ def test_v1_snapshot_is_discarded_and_rebuilt_without_changing_ledger_or_project
         "rci.inquiry-state.v2",
         "rci.inquiry-state.v3",
         "rci.inquiry-state.v4",
+        "rci.inquiry-state.v5",
     ),
 )
-def test_old_fold_snapshot_is_rebuilt_as_v5_without_changing_events(
+def test_old_fold_snapshot_is_rebuilt_as_v6_without_changing_events(
     tmp_path: Path, old_fold_schema: str
 ) -> None:
     artifacts = ArtifactStore(tmp_path / "artifacts")
@@ -476,7 +477,7 @@ def test_old_fold_snapshot_is_rebuilt_as_v5_without_changing_events(
     assert reopened.rebuild_state("inquiry-1") == states[-1]
     assert reopened.export_stream("inquiry-1") == original_export
     rebuilt = reopened.save_snapshot("inquiry-1", states[-1])
-    assert rebuilt.fold_schema_version == "rci.inquiry-state.v5"
+    assert rebuilt.fold_schema_version == "rci.inquiry-state.v6"
 
 
 def test_failed_batch_rolls_back_and_resume_is_consistent(tmp_path: Path) -> None:

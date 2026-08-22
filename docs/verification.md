@@ -984,3 +984,36 @@ The protection read-back required all seven strict current checks with linear hi
 owner enforcement and denied force pushes and deletion. This seals the selection only:
 G3G is the next no-budget Goal at exact anchor
 `60ff25635f94fb004e6419a09293c5e0fc023074`, but no G3G implementation was performed.
+
+## Active G3G local verification
+
+G3G preserves `60ff25635f94fb004e6419a09293c5e0fc023074` as its selection
+anchor and begins implementation from protected development anchor
+`defeb5c2dad32b86cc1861d4f3c35522a3f0497f`.
+
+Focused command:
+
+```text
+uv run pytest -q tests/acceptance/test_goal_synthesis.py
+```
+
+Local results on the G3G candidate worktree:
+
+- `uv lock --check`: passed, 40 packages resolved;
+- `uv sync --dev`: passed;
+- `uv run python -c "import rci"`: passed;
+- `uv run pytest -q -m "not optional"`: 194 passed, one intentional platform
+  skip, four optional tests deselected;
+- `uv sync --all-extras --dev`: passed;
+- `uv run ruff format --check .`: 160 files formatted;
+- `uv run ruff check .`: passed;
+- `uv run mypy src/rci tests`: 118 source files passed;
+- `uv run pytest -q`: 198 passed, one intentional platform skip;
+- `uv run pytest -q tests/acceptance`: 35 passed;
+- `uv run rci --help`: passed and exposed no execution authority;
+- `uv build`: source distribution and wheel built successfully;
+- `uv run pytest -q tests/acceptance/test_goal_synthesis.py`: 3 passed.
+
+The folded-state schema advanced from v5 to v6. Versions v1 through v5 are discarded
+as derived snapshots and rebuilt from the unchanged authoritative event ledger. Hosted
+exact-head conclusions remain pending.

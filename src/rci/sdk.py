@@ -43,6 +43,7 @@ from rci.compression import (
 from rci.core.commands import (
     AcceptEffectResult,
     AdmitClaim,
+    DecideGoalAdmission,
     DecideMethodAdmission,
     DecideProjectSuccessor,
     DecideQuestionRepertoire,
@@ -66,6 +67,7 @@ from rci.core.commands import (
     RecordConsolidationCheckpoint,
     RecordDecodeOutcome,
     RecordDevelopmentEvidence,
+    RecordImplementationGoalCandidate,
     RecordIndependentReview,
     RecordLearnedProbeCandidate,
     RecordMemoryPatchCandidate,
@@ -160,6 +162,9 @@ from rci.project import (
     CapabilityLimitation,
     CapabilitySuccessorCandidate,
     DevelopmentEvidence,
+    GoalAdmissionDecision,
+    GoalSynthesisUnknown,
+    ImplementationGoalCandidate,
     ImplementationGoalContract,
     IndependentReview,
     MethodAdmissionDecision,
@@ -171,6 +176,7 @@ from rci.project import (
     QuestionRepertoireDecision,
     RecursiveCycleCheckpoint,
     RecursiveStopDisposition,
+    compile_implementation_goal_candidate,
 )
 from rci.questions import bind_answer, get_contract, render_question
 from rci.questions.catalog import CATALOG_V0_3, CATALOG_V0_4, CORE_V1
@@ -1928,6 +1934,62 @@ class RCI:
                 frontier=frontier,
             )
         )
+
+    def derive_implementation_goal_candidate(
+        self,
+        inquiry_id: str,
+        *,
+        source_obligation_id: str,
+        downstream_obligation_id: str,
+        frontier_id: str,
+    ) -> ImplementationGoalCandidate | GoalSynthesisUnknown:
+        return compile_implementation_goal_candidate(
+            self.inspect(inquiry_id),
+            source_obligation_id=source_obligation_id,
+            downstream_obligation_id=downstream_obligation_id,
+            frontier_id=frontier_id,
+        )
+
+    def record_implementation_goal_candidate(
+        self, inquiry_id: str, candidate: ImplementationGoalCandidate
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordImplementationGoalCandidate(
+                event_id=_stable_id("evt", inquiry_id, candidate.id, "goal-candidate"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                candidate=candidate,
+            )
+        )
+
+    def decide_goal_admission(
+        self, inquiry_id: str, decision: GoalAdmissionDecision
+    ) -> InquiryState:
+        return self.dispatch(
+            DecideGoalAdmission(
+                event_id=_stable_id("evt", inquiry_id, decision.id, "goal-admission"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                decision=decision,
+            )
+        )
+
+    def seal_admitted_implementation_goal(
+        self, inquiry_id: str, *, candidate_id: str
+    ) -> InquiryState:
+        state = self.inspect(inquiry_id)
+        candidate = next(
+            (item for item in state.implementation_goal_candidates if item.id == candidate_id),
+            None,
+        )
+        if candidate is None or not any(
+            decision.candidate_id == candidate.id
+            and decision.outcome.value == "admit"
+            and decision.admitted_goal_id == candidate.goal.id
+            for decision in state.goal_admission_decisions
+        ):
+            raise ValueError("implementation Goal candidate is not admitted")
+        return self.seal_implementation_goal(inquiry_id, candidate.goal)
 
     def seal_implementation_goal(
         self, inquiry_id: str, goal: ImplementationGoalContract

@@ -19,6 +19,7 @@ from rci.claims.models import (
     ObligationDisposition,
     ObligationStatus,
     Residual,
+    content_fingerprint,
 )
 from rci.compression.models import (
     BindingCarrierManifest,
@@ -90,6 +91,8 @@ from rci.project.models import (
     CyclePhase,
     DevelopmentEvidence,
     EvidenceOutcome,
+    GoalAdmissionDecision,
+    ImplementationGoalCandidate,
     ImplementationGoalContract,
     IndependentReview,
     MethodAdmissionDecision,
@@ -215,6 +218,8 @@ class InquiryState(FrozenModel):
     method_admission_decisions: tuple[MethodAdmissionDecision, ...] = ()
     capability_successor_candidates: tuple[CapabilitySuccessorCandidate, ...] = ()
     capability_frontiers: tuple[CapabilityFrontier, ...] = ()
+    implementation_goal_candidates: tuple[ImplementationGoalCandidate, ...] = ()
+    goal_admission_decisions: tuple[GoalAdmissionDecision, ...] = ()
     implementation_goals: tuple[ImplementationGoalContract, ...] = ()
     candidate_environments: tuple[CandidateEnvironmentManifest, ...] = ()
     development_evidence: tuple[DevelopmentEvidence, ...] = ()
@@ -1255,6 +1260,8 @@ class InquiryState(FrozenModel):
             self.method_admission_decisions,
             self.capability_successor_candidates,
             self.capability_frontiers,
+            self.implementation_goal_candidates,
+            self.goal_admission_decisions,
             self.implementation_goals,
             self.candidate_environments,
             self.development_evidence,
@@ -1274,6 +1281,7 @@ class InquiryState(FrozenModel):
         method_candidates = {item.id: item for item in self.method_binding_candidates}
         candidates = {item.id: item for item in self.capability_successor_candidates}
         frontiers = {item.id: item for item in self.capability_frontiers}
+        goal_candidates = {item.id: item for item in self.implementation_goal_candidates}
         goals = {item.id: item for item in self.implementation_goals}
         environments = {item.id: item for item in self.candidate_environments}
         project_evidence = {item.id: item for item in self.development_evidence}
@@ -1395,6 +1403,41 @@ class InquiryState(FrozenModel):
             for item in self.capability_frontiers
         ):
             raise ValueError("project frontiers require owned anchors, limitations, and candidates")
+        from rci.project.goal_synthesis import (
+            GoalSynthesisUnknown,
+            compile_implementation_goal_candidate,
+            goal_admission_evidence_ids,
+        )
+
+        for compiled_goal_candidate in self.implementation_goal_candidates:
+            recomputed = compile_implementation_goal_candidate(
+                self,
+                source_obligation_id=compiled_goal_candidate.source_obligation_id,
+                downstream_obligation_id=compiled_goal_candidate.downstream_obligation_id,
+                frontier_id=compiled_goal_candidate.frontier_id,
+            )
+            if (
+                isinstance(recomputed, GoalSynthesisUnknown)
+                or recomputed != compiled_goal_candidate
+            ):
+                raise ValueError("implementation Goal candidate must equal pure compilation")
+        decision_candidate_ids = tuple(item.candidate_id for item in self.goal_admission_decisions)
+        if len(decision_candidate_ids) != len(set(decision_candidate_ids)):
+            raise ValueError("each Goal candidate permits one total admission decision")
+        for goal_decision in self.goal_admission_decisions:
+            admission_candidate = goal_candidates.get(goal_decision.candidate_id)
+            if (
+                admission_candidate is None
+                or goal_decision.candidate_fingerprint
+                != content_fingerprint("rci.implementation-goal-candidate.v1", admission_candidate)
+                or goal_decision.evidence_record_ids
+                != goal_admission_evidence_ids(admission_candidate)
+                or (
+                    goal_decision.outcome is AdmissionOutcome.ADMIT
+                    and goal_decision.admitted_goal_id != admission_candidate.goal.id
+                )
+            ):
+                raise ValueError("Goal admission requires its exact owned candidate and evidence")
         if any(
             item.anchor_id not in anchor_ids
             or item.frontier_id not in frontier_ids
@@ -1404,6 +1447,21 @@ class InquiryState(FrozenModel):
             for item in self.implementation_goals
         ):
             raise ValueError("implementation goals require owned frontier inputs")
+        for goal in self.implementation_goals:
+            generated = tuple(
+                item for item in self.implementation_goal_candidates if item.goal.id == goal.id
+            )
+            if generated and (
+                len(generated) != 1
+                or generated[0].goal != goal
+                or not any(
+                    decision.candidate_id == generated[0].id
+                    and decision.outcome is AdmissionOutcome.ADMIT
+                    and decision.admitted_goal_id == goal.id
+                    for decision in self.goal_admission_decisions
+                )
+            ):
+                raise ValueError("generated implementation Goals require exact admission")
         if any(
             item.goal_id not in goal_ids
             or anchors[goals[item.goal_id].anchor_id].commit_sha != item.base_commit_sha

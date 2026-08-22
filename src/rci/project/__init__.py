@@ -1,5 +1,18 @@
-"""Recursive project-inquiry records and pure selection policy."""
+"""Recursive project-inquiry records and pure selection/Goal policies."""
 
+from rci.project.goal_synthesis import (
+    GOAL_ACCEPTANCE_REGISTRY_VERSION,
+    GOAL_ADMISSION_POLICY_VERSION,
+    GOAL_COMPILER_VERSION,
+    GOAL_MUTATION_REGISTRY_VERSION,
+    GOAL_SYNTHESIS_COMMAND,
+    PREDECESSOR_GATE_COMMANDS,
+    PROPOSED_GATE_COMMANDS,
+    GoalSynthesisError,
+    GoalSynthesisUnknown,
+    compile_implementation_goal_candidate,
+    goal_admission_evidence_ids,
+)
 from rci.project.models import (
     AdmissionOutcome,
     CandidateEnvironmentManifest,
@@ -12,6 +25,8 @@ from rci.project.models import (
     DevelopmentEvidence,
     EvidenceKind,
     EvidenceOutcome,
+    GoalAdmissionDecision,
+    ImplementationGoalCandidate,
     ImplementationGoalContract,
     IndependentReview,
     LimitationKind,
@@ -35,6 +50,13 @@ from rci.project.models import (
 from rci.project.selection import candidate_dominates, derive_capability_frontier
 
 __all__ = [
+    "GOAL_ACCEPTANCE_REGISTRY_VERSION",
+    "GOAL_ADMISSION_POLICY_VERSION",
+    "GOAL_COMPILER_VERSION",
+    "GOAL_MUTATION_REGISTRY_VERSION",
+    "GOAL_SYNTHESIS_COMMAND",
+    "PREDECESSOR_GATE_COMMANDS",
+    "PROPOSED_GATE_COMMANDS",
     "AdmissionOutcome",
     "CandidateEnvironmentManifest",
     "CapabilityFrontier",
@@ -46,6 +68,10 @@ __all__ = [
     "DevelopmentEvidence",
     "EvidenceKind",
     "EvidenceOutcome",
+    "GoalAdmissionDecision",
+    "GoalSynthesisError",
+    "GoalSynthesisUnknown",
+    "ImplementationGoalCandidate",
     "ImplementationGoalContract",
     "IndependentReview",
     "LimitationKind",
@@ -66,5 +92,7 @@ __all__ = [
     "StopReason",
     "SuccessorKind",
     "candidate_dominates",
+    "compile_implementation_goal_candidate",
     "derive_capability_frontier",
+    "goal_admission_evidence_ids",
 ]

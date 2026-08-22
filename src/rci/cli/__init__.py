@@ -38,6 +38,8 @@ from rci.project import (
     CapabilityLimitation,
     CapabilitySuccessorCandidate,
     DevelopmentEvidence,
+    GoalAdmissionDecision,
+    GoalSynthesisUnknown,
     ImplementationGoalContract,
     IndependentReview,
     MethodAdmissionDecision,
@@ -829,6 +831,55 @@ def project_goal(
 
     goal = ImplementationGoalContract.model_validate_json(record.read_bytes(), strict=True)
     state = _sdk(root).seal_implementation_goal(inquiry_id, goal)
+    typer.echo(_json(state.implementation_goals[-1]))
+
+
+@project_app.command("goal-candidate")
+def project_goal_candidate(
+    inquiry_id: str,
+    source_obligation_id: Annotated[str, typer.Option("--source-obligation-id")],
+    downstream_obligation_id: Annotated[str, typer.Option("--downstream-obligation-id")],
+    frontier_id: Annotated[str, typer.Option("--frontier-id")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Derive and record one confined inert implementation-Goal candidate."""
+
+    sdk = _sdk(root)
+    derived = sdk.derive_implementation_goal_candidate(
+        inquiry_id,
+        source_obligation_id=source_obligation_id,
+        downstream_obligation_id=downstream_obligation_id,
+        frontier_id=frontier_id,
+    )
+    if isinstance(derived, GoalSynthesisUnknown):
+        typer.echo(_json(derived))
+        raise typer.Exit(code=2)
+    state = sdk.record_implementation_goal_candidate(inquiry_id, derived)
+    typer.echo(_json(state.implementation_goal_candidates[-1]))
+
+
+@project_app.command("goal-decision")
+def project_goal_decision(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record one total controller decision over an exact Goal candidate."""
+
+    decision = GoalAdmissionDecision.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).decide_goal_admission(inquiry_id, decision)
+    typer.echo(_json(state.goal_admission_decisions[-1]))
+
+
+@project_app.command("goal-seal-admitted")
+def project_goal_seal_admitted(
+    inquiry_id: str,
+    candidate_id: Annotated[str, typer.Option("--candidate-id")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Seal the immutable Goal owned by one admitted generated candidate."""
+
+    state = _sdk(root).seal_admitted_implementation_goal(inquiry_id, candidate_id=candidate_id)
     typer.echo(_json(state.implementation_goals[-1]))
 
 

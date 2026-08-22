@@ -74,6 +74,8 @@ from rci.project.models import (
     CapabilityLimitation,
     CapabilitySuccessorCandidate,
     DevelopmentEvidence,
+    GoalAdmissionDecision,
+    ImplementationGoalCandidate,
     ImplementationGoalContract,
     IndependentReview,
     MethodAdmissionDecision,
@@ -451,6 +453,16 @@ class RecordCapabilityFrontier(CommandBase):
     frontier: CapabilityFrontier
 
 
+class RecordImplementationGoalCandidate(CommandBase):
+    kind: Literal["record_implementation_goal_candidate"] = "record_implementation_goal_candidate"
+    candidate: ImplementationGoalCandidate
+
+
+class DecideGoalAdmission(CommandBase):
+    kind: Literal["decide_goal_admission"] = "decide_goal_admission"
+    decision: GoalAdmissionDecision
+
+
 class SealImplementationGoal(CommandBase):
     kind: Literal["seal_implementation_goal"] = "seal_implementation_goal"
     goal: ImplementationGoalContract
@@ -556,6 +568,8 @@ DomainCommand = Annotated[
     | DecideMethodAdmission
     | RecordCapabilitySuccessorCandidate
     | RecordCapabilityFrontier
+    | RecordImplementationGoalCandidate
+    | DecideGoalAdmission
     | SealImplementationGoal
     | RecordCandidateEnvironment
     | RecordDevelopmentEvidence
