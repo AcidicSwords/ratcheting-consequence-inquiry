@@ -934,6 +934,53 @@ Exact local returns after the governance edits:
 - root `AGENTS.md`: 22,302 bytes, below 32 KiB;
 - ADR inventory: 14, including pending implementation decision ADR-0014.
 
-Hosted exact-head review, all seven protected pull-request checks, protected linear merge,
-post-merge checks, and the resulting exact G3G anchor remain pending at this local
-checkpoint. They must not be inferred from the local returns.
+At this local checkpoint, exact-head review, protected promotion, and post-merge checks
+remained pending. The following section records their later exact returns and supersedes
+that provisional disposition.
+
+## Post-G3Q selection hosted verification and protected promotion — 2026-08-22
+
+The exact candidate was `faf5c8b5f5a54b1598e8af03b71cf8f39c36d054` from base
+`4d89bb776181dd0b7885b0e0dd1042426d0456ca`. Pull request
+[#10](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/10) merged by
+protected linear rebase as `60ff25635f94fb004e6419a09293c5e0fc023074`.
+Both commits have exact parent `4d89bb776181dd0b7885b0e0dd1042426d0456ca`, exact tree
+`9dc374a47c8d58f5edea3dd8cd937287f1cfa2c5`, and an empty pairwise diff.
+
+Hosted Codex quota, GitHub Copilot pull-request-review nonavailability, exhausted Copilot
+CLI quota, and an invalid configured OpenAI API credential were preserved as independent
+`Indeterminate` returns. A fresh stateless local `qwen3.5:9b` context reviewed the exact
+base/head, ADR-0013 contract, immutable cycle report, and complete committed patch. Its
+JSON-schema-constrained return pinned both exact commits, reported `Valid` with no
+findings, and made no repository change. The prompt contained 27,059 tokens and the
+bounded return 297 tokens. The full summary and limitations are preserved in
+[PR comment 5382180753](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/10#issuecomment-5382180753).
+
+Exact-head pull-request
+[run 32592149739](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32592149739)
+passed:
+
+- `base (ubuntu-latest)`: job `97077535928`, success;
+- `base (windows-latest)`: job `97077535749`, success;
+- `extras (ubuntu-latest)`: job `97077535889`, success;
+- `extras (windows-latest)`: job `97077535862`, success;
+- `docker`: job `97077535895`, success;
+- `recursive (ubuntu-latest)`: job `97077535870`, success;
+- `regenerative (ubuntu-latest)`: job `97077535839`, success.
+
+Protected-main post-merge
+[run 32593669603](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32593669603)
+at exact SHA `60ff25635f94fb004e6419a09293c5e0fc023074` passed:
+
+- `base (ubuntu-latest)`: job `97081242554`, success;
+- `base (windows-latest)`: job `97081242524`, success;
+- `extras (ubuntu-latest)`: job `97081242487`, success;
+- `extras (windows-latest)`: job `97081242527`, success;
+- `docker`: job `97081242441`, success;
+- `recursive (ubuntu-latest)`: job `97081242394`, success;
+- `regenerative (ubuntu-latest)`: job `97081242472`, success.
+
+The protection read-back required all seven strict current checks with linear history and
+owner enforcement and denied force pushes and deletion. This seals the selection only:
+G3G is the next no-budget Goal at exact anchor
+`60ff25635f94fb004e6419a09293c5e0fc023074`, but no G3G implementation was performed.

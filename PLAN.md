@@ -454,8 +454,10 @@ G3G was selected by the permutation-stable `frontier-post-g3q-v1` dogfood compar
 All five candidates remain nondominated because their gain kinds differ. G3G is the
 componentwise cost-minimal reversible discriminator under two bounded inventory axes; it
 does not totally rank or reject G3A-L, native-method binding, isolated actuation, or G4.
-Implementation begins only after the selection record is protected, its exact main anchor
-is written into `docs/goals/G3G.md`, and a new no-budget Goal is activated.
+The selection record is protected at exact main anchor
+`60ff25635f94fb004e6419a09293c5e0fc023074`, which is written into
+`docs/goals/G3G.md`. Implementation has not begun and may start only after the separate
+no-budget G3G Goal is activated.
 
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 

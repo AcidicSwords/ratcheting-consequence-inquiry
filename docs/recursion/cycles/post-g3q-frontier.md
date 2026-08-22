@@ -133,9 +133,40 @@ counterexample-guided synthesis, and typed algorithm selection were consulted on
 their native relations and assumptions; their sources and transport limits are recorded
 in ADR-0014. No imported method warrants the selected architecture by itself.
 
+## Independent review and protected promotion
+
+Candidate commit `faf5c8b5f5a54b1598e8af03b71cf8f39c36d054` preserved exact base
+`4d89bb776181dd0b7885b0e0dd1042426d0456ca`. Pull request
+[#10](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/10) contained one
+documentation-only commit and no runtime, dependency, schema, workflow, or authority
+change.
+
+Three requested hosted routes remained `Indeterminate`: hosted Codex and Copilot CLI had
+exhausted account quota, GitHub's documented Copilot pull-request-review request produced
+no review for this repository, and the configured OpenAI API credential returned an
+authentication error. None contributed warrant. A fresh stateless local `qwen3.5:9b`
+review instead received the independently checked exact base/head, ADR-0013 review
+contract, immutable cycle report, and complete committed patch. Its schema-constrained
+return pinned both exact commits, covered the anchor, inactive Goal, preserved frontier,
+no-budget and authority boundaries, returned `Valid` with no findings, and changed no
+file. The return and its limitations are preserved in
+[PR comment 5382180753](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/10#issuecomment-5382180753).
+The model assertion was then compared with the actual diff, requirement parity, branch
+protection, and exact GitHub returns rather than treated as self-warrant.
+
+The exact-head pull-request
+[run 32592149739](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32592149739)
+passed all seven jobs. Protected linear rebase promoted the selection as
+`60ff25635f94fb004e6419a09293c5e0fc023074`. Candidate and promoted commits have exact
+parent `4d89bb776181dd0b7885b0e0dd1042426d0456ca`, exact tree
+`9dc374a47c8d58f5edea3dd8cd937287f1cfa2c5`, and an empty pairwise diff. Protected-main
+[run 32593669603](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32593669603)
+then passed all seven jobs. Strict current checks, linear history, owner enforcement, and
+force-push/delete denial were read back before promotion.
+
 ## Consequential residue
 
-G3G is selected but cannot start until this selection record is reviewed, passes all
-seven protected checks, merges through protected linear history, receives post-merge CI,
-and is assigned that exact protected-main anchor. The current cycle implements no G3G
-code and introduces no dependency, event/schema change, or authority expansion.
+G3G is selected at the exact protected-main anchor above, but this cycle implements no
+G3G code and introduces no dependency, event/schema change, or authority expansion. A
+separate no-budget G3G Goal is required before implementation. G3A-L, native-method
+binding, isolated candidate actuation, and G4 remain nondominated future work.

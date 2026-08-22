@@ -1,9 +1,10 @@
 # Goal G3G: Confined implementation-Goal synthesis
 
-- Status: selected; activation requires the protected promotion of the post-G3Q
-  selection cycle and an exact protected-main anchor
-- Exact anchor: pending protected promotion; no implementation may begin from this
-  placeholder
+- Status: selected and ready for a separate active Goal; implementation not begun
+- Exact anchor: protected `main` at
+  `60ff25635f94fb004e6419a09293c5e0fc023074`
+- Activation boundary: no implementation may begin except under the distinct no-budget
+  G3G Goal activated after the selection closeout
 - Authority: RCI v0.5, PLAN, ADR-0012 through ADR-0014, and
   `frontier-post-g3q-v1`
 - Token budget: none

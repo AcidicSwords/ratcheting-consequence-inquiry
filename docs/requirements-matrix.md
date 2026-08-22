@@ -7,9 +7,10 @@ host lacked file-symlink privilege (`WinError 1314`), so the adversarial symlink
 case remains live for Linux CI and privileged Windows while the implementation's
 other link/reparse-point and bounds checks passed. G2A is sealed and verified.
 G2B, G3A-H, G3R, and G3Q are sealed and verified. The post-G3Q frontier selected
-confined Goal synthesis as G3G; implementation remains inactive until the selection
-cycle is protected and assigned an exact anchor. G3A-L and later phases remain outside
-the selected implementation boundary.
+confined Goal synthesis as G3G; the selection is protected at exact anchor
+`60ff25635f94fb004e6419a09293c5e0fc023074`, while implementation remains unbegun pending
+its separate active Goal. G3A-L and later phases remain outside the selected implementation
+boundary.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
 
@@ -155,7 +156,7 @@ Status vocabulary:
 | G3A-H | Verified exact history-state carriers, quotient validation, recovery licence, residue, reopening, and representation ratchet | No SymPy linear binding, approximation, native adapter, or control |
 | G3R | Verified recursive project inquiry, repertoire/frontier succession, sealed Goals, isolated candidate evidence, fresh review, and externally observed promotion | No runtime source/Git authority |
 | G3Q | Verified confined regenerative question scheduling | No arbitrary code, general planner, source authority, or automatic warrant |
-| G3G | Selected confined implementation-Goal synthesis | No implementation until exact anchor; no free-form commands/paths, planner, actuator, or authority expansion |
+| G3G | Selected confined implementation-Goal synthesis; exact selection anchor `60ff25635f94fb004e6419a09293c5e0fc023074` | Implementation unbegun; no free-form commands/paths, planner, actuator, or authority expansion |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |
