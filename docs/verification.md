@@ -385,3 +385,30 @@ The Docker job built the pinned image and ran it with networking disabled, a
 read-only root filesystem, all Linux capabilities dropped, and
 `no-new-privileges`. The four native jobs independently exercised both dependency
 profiles on hosted Windows and Linux.
+
+## G2A governance activation — 2026-08-22
+
+G2A and G2B were introduced as internal gates under stable requirement RCI-058.
+ADR-0009 makes G2A recovery routes provisional and unlicensed and retains
+`RecoveryLicense` enforcement for G3A. No stable requirement was added or
+renumbered, and the frozen G1 gate remains unchanged.
+
+Read-only document audits exited `0` and returned:
+
+```text
+PASS: G1 gate parity in AGENTS, PLAN, G1, and G2A.
+PASS: focused G2A command parity in AGENTS, PLAN, G2A, CI, and verification.
+PASS: RCI-001 through RCI-068 remain exact; G2A/G2B split appears in every live architecture authority.
+PASS: ADR-0009 and architecture stage provisional G2A routes before G3 licensing.
+PASS: AGENTS.md=15635 bytes; live Markdown fences and git diff check pass.
+```
+
+The focused G2A command is frozen as:
+
+```text
+uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
+```
+
+This section records governance and command parity only. A passing G2A test
+return is intentionally not claimed until the implementation and complete gate
+have run; exact returns will be appended here.

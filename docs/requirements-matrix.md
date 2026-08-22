@@ -5,7 +5,9 @@ verified on 2026-08-22 by the complete frozen native gate recorded with exact
 returns in `docs/verification.md`. Its sole Windows skip is preserved there: the
 host lacked file-symlink privilege (`WinError 1314`), so the adversarial symlink
 case remains live for Linux CI and privileged Windows while the implementation's
-other link/reparse-point and bounds checks passed. Later-phase rows are deliberately
+other link/reparse-point and bounds checks passed. G2A is now the active bounded
+slice under RCI-058; **active G2A** means acceptance evidence is still required,
+not that the row has passed. G2B and later-phase rows remain deliberately
 **deferred**, not failed and not implemented by an interface-shaped stub.
 
 Status vocabulary:
@@ -14,7 +16,9 @@ Status vocabulary:
 - **verified G1** — the cited implementation/evidence exists and the frozen G1
   gate passed; a bounded qualifier names the deliberately limited G1 slice and
   does not claim a later milestone;
-- **deferred Gx** — outside G1 and assigned to that milestone;
+- **active G2A** — inside the current Goal, with the cited contract and planned
+  evidence required before this disposition may become verified;
+- **deferred Gx** — outside the active Goal and assigned to that milestone;
 - **research** — requires a later explicit Goal and warranted method choice.
 
 ## Constitution and semantic kernel
@@ -49,7 +53,7 @@ Status vocabulary:
 | RCI-021 | Raw return precedes interpretation | verified G1 | `ArtifactRef` pins digest, size, media type, and encoding; `ExternalReturn` separately pins capture boundary, capture encoding, UTC capture time, attempt, route, and optional reported source identity before any decode. Exact byte and null/empty/string/zero/false tests, orphan recovery, dangling-ref rejection, tamper detection, and the vertical slice cover the lifecycle. |
 | RCI-022 | Decode, check, warrant, promotion are separate | verified G1 | distinct event-owned `ExternalReturn`, `DecodeOutcome`/canonical result, inert `Evidence`, `CheckerVerdictRecord`, `WarrantDecisionRecord`, and `PromotionLink` stages. `test_evidence_check_warrant_and_promotion_are_separate_owned_stages` rejects self-authorizing/mismatched material; malformed decode/reification and exhaustive/Z3 tests cover fail-closed outcomes and soft solver-only evidence. |
 | RCI-023 | Prediction seal precedes return; actual mismatch only | verified G1 | `SealPrediction` rejects post-return sealing; `RecordMismatch` requires a returned, successfully decoded observation from the linked plan; `test_cognitive_history_reconstruction_mismatch_and_semantics_have_distinct_owners` and lifecycle failure tests |
-| RCI-024 | `M_E/M_S/M_P/M_L/W/A/Pi` have one owner; views derive | verified G1 bounded spine; deferred G2/G3 full memory | ADR-0002; disjoint `InquiryState` owner collections and derived `warranted_lemmas`; cognitive owner regression distinguishes raw return, reconstruction, mismatch, and semantic delta; `M_L` execution remains absent as required |
+| RCI-024 | `M_E/M_S/M_P/M_L/W/A/Pi` have one owner; views derive | verified G1 bounded spine; active G2A `M_L` slice | ADR-0002 and ADR-0009; G1's disjoint owners remain fixed while G2A assigns retention packages, provisional routes/scaffolds/protocols, and recovery observations to `M_L`; replay/owner-separation acceptance is required |
 
 ## Claims, formalization, support, and warrant
 
@@ -87,9 +91,9 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-047 | Exact/approximate, source/consequence, and recovery modes do not collapse | accepted G0 semantics; deferred G2/G3 execution | spec, ADR-0005, ADR-0006 |
+| RCI-047 | Exact/approximate, source/consequence, and recovery modes do not collapse | active G2A recovery-mode slice; compression deferred G3 | ADR-0005, ADR-0006, ADR-0009; G2A route-separation and generated-detail-containment tests; exact/approximate compression remains absent |
 | RCI-048 | Contract/validation/license/application separate; exact union | deferred G3A/G3B | discriminated schemas and policy tests |
-| RCI-049 | Independent route-specific retention capabilities and licences | deferred G2/G3 | route/scaffold/license tests |
+| RCI-049 | Independent route-specific retention capabilities and licences | active G2A provisional route records; licensed capability deferred G3A | ADR-0009; G2A proves route identity/no-collapse but treats every route as unlicensed and non-capability; G3A must add `RecoveryLicense`, licensed `ObjectRegenerationRoute`, policy enforcement, and capability tests |
 | RCI-050 | Residue, debt, ancestry, fallback, reopening preserved | deferred G3 | compression/reopening fixtures |
 | RCI-051 | Correct exact finite linear-family theorem | deferred G3A | rational quotient/kernel proof tests |
 | RCI-052 | Distributional/vector corollaries with almost-sure scope | deferred G3A | symbolic/finite distribution fixtures |
@@ -103,7 +107,7 @@ Status vocabulary:
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
 | RCI-057 | G1 is Foundation + Phases 1–2 + bounded cognitive spine | verified G1 | `docs/goals/G1.md`, Python packaging, native Windows/Linux CI, pinned supplementary Docker image, and the implementation evidence itemized above. The frozen 12-command native gate is recorded with all commands exiting 0 in `docs/verification.md`; later retrieval/compression/formal-control/release capabilities remain absent or inert as assigned. |
-| RCI-058 | G2 adds retrieval/consolidation/retention/probes/reacquisition | deferred G2 | future bounded Goal and acceptance suite |
+| RCI-058 | G2 adds retrieval/consolidation/retention/probes/reacquisition | active G2A retrieval/reconstruction/recovery; G2B deferred | ADR-0009 and `docs/goals/G2A.md`; focused retrieval/recovery acceptance plus the frozen G1 gate. Consolidation, reconsolidation, semantic-field evaluation, and learned probes remain a separate future G2B Goal; RCI-058 is not complete until both gates pass. |
 | RCI-059 | G3A/B/C gate exact, approximate, then native compression | deferred G3 | future three bounded Goals |
 | RCI-060 | G4–G7 remain separately gated | deferred G4–G7 | later Goals; no G1 stubs |
 | RCI-061 | Backlog policy is human-owned and close proposal-only | verified G1 | tracked `.rci/config.toml`; pure reconciliation/apply allowlist; dedicated `BacklogEffectRecorded` ledger ownership rather than synthetic external-return evidence; shadow non-mutation, close proposal-only, checked-evidence, repeat-apply, out-of-order mutation, and linked-recurrence tests |
@@ -115,9 +119,9 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-065 | Use, reconstruction, direct evaluation, and reacquisition are relations | accepted G0 semantics; deferred G2 execution | ADR-0006; route-independence tests |
-| RCI-066 | Reacquisition advantage uses pinned baseline and cost frontier | deferred G2/G3 | reproducible baseline/frontier fixtures and ordering tests |
-| RCI-067 | Recovery licence/scaffold; forgetting is reduced capacity; reopening can relearn | deferred G2/G3 | scaffold ablation, licensed recovery, and reopening tests |
+| RCI-065 | Use, reconstruction, direct evaluation, and reacquisition are relations | active G2A unlicensed relation slice | ADR-0006 and ADR-0009; separate route records, ambiguous reconstruction, generated-detail containment, and no-collapse acceptance tests |
+| RCI-066 | Reacquisition advantage uses pinned baseline and cost frontier | active G2A provisional comparison; licensed budgets deferred G3 | exact-axis/Pareto unit tests and paired circuit fixture pin competence, universe, binding, horizon, evaluator, evidence access, budget, protocol, and policy; negative fixtures cover eventual success, incomparability, and pin mismatches |
+| RCI-067 | Recovery licence/scaffold; forgetting is reduced capacity; reopening can relearn | active G2A scaffold/saga; licence and checked forgetting deferred G3 | ADR-0009; scaffold registration, parent/child crash-resume, and comparison non-promotion tests. G2A cannot claim retained learning or mint `RecoveryLicense`. |
 | RCI-068 | Opaque controlled-memory environment is staged G7 benchmark | research G4–G6; deferred end-to-end G7 | staged capability rows below |
 
 ### RCI-068 staged capability evidence
@@ -125,7 +129,8 @@ Status vocabulary:
 | Stage | Capability delivered independently | What it does not yet claim |
 |---|---|---|
 | G1 | Verified raw-return authority, attempt alignment, sealed predictions, and basic probe records under the frozen G1 gate | No learned opaque state or benchmark pass |
-| G2 | Temporal/derived probe inquiry, relational reconstruction, retained methods, reacquisition scaffolds | No certified quotient or control |
+| G2A | Deterministic structural retrieval, candidate reconstruction, provisional retention routes, reacquisition scaffold/saga, and soft Pareto comparison | No consolidation, learned probe, recovery licence, certified quotient, or control |
+| G2B | Consolidation/reconsolidation, semantic-field evaluation, and candidate learned probes after G2A | No recovery licence, certified quotient, or control |
 | G3 | Consequence quotient, recovery licence, compression, reopening, reacquisition-frontier measurement | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

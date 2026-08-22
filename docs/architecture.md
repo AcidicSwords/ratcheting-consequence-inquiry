@@ -48,7 +48,7 @@ is its canonical logical owner; it does not mean a second writable database.
 | `M_E` | Episodic records and artifact/event references | Copies of ledger events, generalized knowledge |
 | `M_S` | Immutable `LemmaVersion` semantic records | Support routes and warrant decisions |
 | `M_P` | Admitted procedures, probes, contracts, and method manifests | Runtime attempts and returns |
-| `M_L` | Later retention packages, recovery routes/licences, reacquisition scaffolds, residue, and compression-application references | Source history, duplicated support graphs, runtime attempts |
+| `M_L` | G2A retention packages, provisional route/scaffold/protocol records, and recovery observations; later licensed capability/residue/compression references | Source history, duplicated support graphs, runtime attempts |
 | `W` | Support environments/routes, open dependencies, checks, nogoods, warrant decisions | Semantic proposition versions |
 | `A` | Effect requests, attempts, routes, raw returns, decode outcomes, reconstructions | Semantic promotion |
 | `Pi` | Prediction seals and warranted mismatch records | Raw return mutation |
@@ -353,8 +353,10 @@ attempt/return -> episodic record -> candidate reconstruction
 ```
 
 Reconstruction detail is not history. Episodic recurrence is not a generalized
-semantic invariant. Full memory retrieval, consolidation, reconsolidation,
-retention policy, and learned probes are G2.
+semantic invariant. G2A adds deterministic structural retrieval, ambiguous
+candidate reconstruction, non-compressive retention registration, and measured
+reacquisition. G2B separately adds consolidation, reconsolidation,
+semantic-field evaluation, and candidate learned probes.
 
 ## Compression architecture (specified now, executable later)
 
@@ -375,13 +377,20 @@ G3 separates `CompressionContract`, independent `CompressionValidation`,
 policy `CompressionLicense`, and `CompressionApplication`. Exact and approximate
 licenses are tagged variants. A reported or empirical loss of zero is not exact.
 
-A `RetentionPackage` references CAS representation artifacts and any explicit
-compression application. Its independent capabilities are
-`DirectUseRoute`, `ObjectRegenerationRoute`,
-`ConsequenceEvaluationRoute`, and `ReacquisitionRoute`. Each carries a
-`RecoveryLicense`, its competence/query and fidelity contract, implementation
-version, dependencies, support route, provenance, failure semantics, and
-fallback. Combined modes are derived from the routes that exist.
+In G2A, a `RetentionPackage` references owned typed artifacts and may reference
+separate provisional `DirectUseRoute`, `ReconstructionRoute`,
+`ConsequenceEvaluationRoute`, and `ReacquisitionRoute` declarations. These are
+unlicensed candidates, not exposed protected capabilities under RCI-049.
+`ReconstructionRoute` describes reconstruction without substantial new external
+learning and is not the licensed G3 `ObjectRegenerationRoute`. Their presence
+cannot establish retained learning, support, warrant, or promotion.
+
+G3 joins versioned route declarations to a `RecoveryLicense`, fidelity/loss and
+protected competence/query contracts, implementation version, dependencies,
+support route, provenance, failure behavior, and fallback. Only that licensed
+view is a retention capability. Combined capability is derived from the licensed
+routes that exist. ADR-0009 amends ADR-0006's premature statement that every G2
+route already carries a license.
 
 `ReacquisitionRoute` points to a `ReacquisitionScaffold` that may retain cues,
 probes, representations, methods, known boundaries/failure regions,
@@ -389,12 +398,21 @@ prerequisites, and provenance. The scaffold does not contain or warrant the
 target competence. Activating it creates an ordinary inquiry whose eventual
 return/check/warrant path can establish recovery.
 
-Recovery evaluation pins the target competence, protected horizon, context,
-baseline state or cohort, protocol, evaluator, and a multidimensional cost
-vector such as latency, interactions, computation, new evidence, and risk.
-`ReacquisitionAdvantage` is a checked improvement in the attainable frontier
-relative to that pinned baseline. There is no repository-wide scalar score;
-bindings may register an explicit ordering or scalarization.
+Recovery evaluation pins the target competence, protected horizon, finite
+universe, binding, context, baseline state or cohort, protocol, evaluator,
+evidence access, budget, and comparison policy. A cost vector has matching named
+axes and exact nonnegative values. The derived `RecoveryFrontier` keeps
+nondominated observations. A G2A `RecoveryComparison` can report strict Pareto
+improvement only when every retained cost is no worse and at least one is better;
+incomparable vectors establish no advantage. Independent checking leaves the
+comparison provisional/soft. There is no repository-wide scalar score, and G2A
+cannot create hard warrant or a `RecoveryLicense`.
+
+Reacquisition uses the existing effect protocol. New version-1 events represent
+the parent request and parent/child linkage as a resumable saga; every partial
+prefix stays open. G1 event schemas remain unchanged. Folded-state, snapshot,
+and projection schemas may advance, while incompatible derived state rebuilds
+from the ledger and archived G1 streams retain their G1 semantics.
 
 Compression transports open dependencies and authoritative ancestry into residue.
 Reopening is triggered by horizon, query distribution, loss, bound, budget,
@@ -408,10 +426,12 @@ The corrected linear theorem is a G3A binding, not a core vector assumption.
 Exact tests use rational/symbolic evidence. Thresholded numerical rank is an
 approximate license candidate only.
 
-G2 makes non-compressive retention, reconstruction, scaffold activation, and
-reacquisition inquiry executable. G3 adds exact/approximate compression,
-route-specific recovery licences, frontier budgets, residue, and reopening.
-Neither is a G1 deliverable.
+G2A makes structural retrieval, candidate reconstruction, non-compressive
+retention registration, scaffold activation, and measured reacquisition inquiry
+executable. G2B later adds consolidation/reconsolidation, semantic-field
+evaluation, and candidate learned probes. G3 adds exact/approximate compression,
+route-specific recovery licences, licensed frontier budgets, residue, and
+reopening. None is part of the sealed G1 baseline.
 
 ## Future opaque controlled-memory benchmark
 
@@ -423,7 +443,8 @@ support routes, predictions, retention, and compression through a binding.
 | Stage | Reusable capability | Benchmark status |
 |---|---|---|
 | G1 | Immutable raw returns, attempt alignment, inert interpretation, prediction sealing, basic probes | Building blocks only; no opaque benchmark claim |
-| G2 | Temporal/derived probe inquiry, relational reconstruction, retained procedures, reacquisition scaffolds | Individually testable capabilities |
+| G2A | Structural retrieval, candidate reconstruction, provisional retained routes, reacquisition scaffolds and soft comparison | Individually testable candidate relations; no licensed capability |
+| G2B | Consolidation/reconsolidation, semantic-field evaluation, candidate learned procedures/probes | Hypotheses only; no licensed recovery |
 | G3 | Consequence-relative quotient, recovery licences, compression, reopening, relearning-frontier measurement | Individually testable capabilities |
 | G4 | Richer formal identification and a versioned PSR/system-identification native binding | Research-gated |
 | G5 | Independently checked control synthesis/actualization | Research-gated |
@@ -478,6 +499,8 @@ src/rci/
   generators/    manual, scripted, optional OpenAI
   backends/      exhaustive, optional Z3, later container adapters
   bindings/      circuit, route graph, later linear/compression bindings
+  memory/        structural retrieval and non-compressive retention records
+  recovery/      reacquisition saga, exact costs, frontier/comparison
   evaluation/    deterministic traces and nonblocking live evaluations
   backlog/       governed shadow reconciliation
   cli/           Typer surface over the SDK

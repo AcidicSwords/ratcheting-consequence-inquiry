@@ -60,7 +60,9 @@ migrations before real legacy data exists.
 - `M_E` owns episodic records and artifact references, not copies of ledger events.
 - `M_S` owns immutable `LemmaVersion` semantic records.
 - `M_P` owns admitted procedures, probes, contracts, and method manifests.
-- `M_L` owns retention-package, residue, and compression-application references.
+- `M_L` owns G2A retention packages, provisional recovery-route descriptions,
+  reacquisition scaffolds/protocols, and recovery observations. G3 adds licensed
+  capability views, residue, and compression-application references.
 - `W` owns support environments/routes, dependency boundaries, checks, nogoods, and
   warrant decisions.
 - `A` owns effect requests, attempts, route snapshots, raw returns, decode outcomes, and
@@ -171,17 +173,19 @@ undetermined, and warranted-irrelevant regions. A model's relevance judgment nev
 suppresses inquiry. Fresh observation may withhold prior answers until the external
 return is captured; comparison happens afterward.
 
-### Cognitive spine
+### Cognitive spine and G2A recovery slice
 
-The first executable slice implements stable versioned recurrent-probe identity,
+The verified G1 slice implements stable versioned recurrent-probe identity,
 ordered comparable `ProbeTrace`, optional immutable prediction sealed before an attempt,
 raw return capture, candidate decode/reconstruction, independently warranted
 `SemanticDelta`, and separate episodic and semantic projections. Prediction never
 rewrites the return; return never rewrites prediction; reconstruction is neither history
 nor knowledge.
 
-Full reconstructive memory, relational retrieval, consolidation, reconsolidation,
-self-cleaning, retention economics, and learned-probe promotion are G2 work.
+Active G2A adds deterministic structural retrieval, explicit reconstruction candidates,
+non-compressive retention registration, and measured reacquisition. G2B separately owns
+consolidation, reconsolidation, semantic-field evaluation, and learned-probe candidates;
+self-cleaning and mature retention economics remain later work.
 
 Retention is relational rather than a nominal memory-object type. Keep four recovery
 relations distinct: present use, reconstruction without substantial new evidence,
@@ -196,6 +200,26 @@ prerequisites, search order, or provenance that deform later inquiry. Reopening 
 reactivate, reconstruct, launch reacquisition, or retrieve provenance. Forgetting is a
 reduction in protected future recovery capacity, not synonymous with deleting content.
 
+G2A retrieval is a pure structural match over owned typed references. A versioned policy
+pins scope and binding compatibility, exact rank components, stable-ID tie breaking,
+deduplication, bounds, and stale-reference rejection. It uses no embedding, floating
+relevance score, model suppression, network, or new dependency. Ambiguous reconstruction
+remains an ordered candidate set.
+
+A reacquisition request creates a resumable parent/child inquiry saga through new
+version-1 events. The parent request, child creation, and parent linkage remain separate;
+every partial prefix is open. Runtime work reuses the existing persisted effect protocol.
+G1 event schemas do not change. Folded-state, snapshot, and projection schemas may
+advance, while unsupported derived snapshots rebuild from the ledger and archived G1
+streams retain their G1 meaning.
+
+Recovery observations pin target competence, finite universe, binding, horizon,
+evaluator, evidence access, budget, protocol, and comparison policy. `CostVector` uses
+matching named axes and exact nonnegative values. Strict Pareto advantage requires every
+retained cost to be no worse and at least one to be better; incomparable vectors establish
+no advantage. `RecoveryFrontier` is derived. An independently checked
+`RecoveryComparison` is provisional/soft and creates no hard lemma or license.
+
 ### Consequence quotient and compression
 
 Core semantics permanently distinguish exact consequence quotient from licensed
@@ -206,18 +230,25 @@ from direct consequence evaluation.
 QUOTIENT -> REPARAMETERIZE -> APPROXIMATE -> RESIDUE -> REOPEN
 ```
 
-Future types are specified but not implemented in G1: `CompressionContract`,
-`CompressionValidation`, `ExactCompressionLicense`, `ApproximateCompressionLicense`,
-`CompressionApplication`, `ObjectRegenerationRoute`, `ConsequenceEvaluationRoute`,
-`ReacquisitionRoute`, `ReacquisitionScaffold`, `RecoveryFrontier`, `RecoveryLicense`,
-`RetentionPackage`, and `ConsequenceEstimate`. Combined capability is derived from
-present routes, not stored as an optional-field mode bag. A license pins the protected
-horizon, scope/binding/distribution versions, equivalence or separating loss, bound
-semantics, confidence, resource/recovery budgets, baseline, validation, support,
-residual/fallback, and reopening policy. A license references warrant; it is not its own
-warrant. Compression may preserve a licensed path to reacquisition rather than immediate
-recall, but only when future consequence fidelity and recovery cost remain inside the
-explicit license.
+G2A implements `RetentionPackage`, `DirectUseRoute`, `ReconstructionRoute`,
+`ConsequenceEvaluationRoute`, `ReacquisitionRoute`, `ReacquisitionScaffold`,
+`RecoveryProtocol`, recovery observations, and a derived `RecoveryFrontier`. Its route
+records are provisional, unlicensed descriptions and cannot be selected as protected
+capabilities. `ReconstructionRoute` is not the G3 licensed `ObjectRegenerationRoute`.
+This staged interpretation is fixed by ADR-0009 and prevents ADR-0006's earlier wording
+from pulling `RecoveryLicense` into G2A.
+
+G3 implements `CompressionContract`, `CompressionValidation`,
+`ExactCompressionLicense`, `ApproximateCompressionLicense`, `CompressionApplication`,
+licensed `ObjectRegenerationRoute` and other capability views, `RecoveryLicense`, and
+`ConsequenceEstimate`. Combined capability is derived from licensed routes, not stored as
+an optional-field mode bag. A license pins the protected horizon,
+scope/binding/distribution versions, equivalence or separating loss, bound semantics,
+confidence, resource/recovery budgets, baseline, validation, support, residual/fallback,
+and reopening policy. A license references warrant; it is not its own warrant.
+Compression may preserve a licensed path to reacquisition rather than immediate recall,
+but only when future consequence fidelity and recovery cost remain inside the explicit
+license.
 
 The Phase 3A linear binding uses the corrected theorems:
 
@@ -243,7 +274,7 @@ DRIVE, TurboQuant, and QJL are catalogued native candidates, not RCI primitives.
 src/rci/
   core/ persistence/ questions/ claims/ orchestration/
   formal/ warrant/ probes/ generators/ backends/ bindings/
-  evaluation/ backlog/ cli/
+  memory/ recovery/ evaluation/ backlog/ cli/
 tests/
   unit/ property/ model/ integration/ replay/ acceptance/ evaluation/ security/
 examples/
@@ -280,13 +311,38 @@ The route binding uses `start -> gate -> target` and
 `start -> bypass -> {target, dead_end}`. The bypass refutes gate prerequisite; its
 nondeterminism yields may-reachability and never must-control.
 
-### G2 — cognitive expansion
+### G2A — deterministic retrieval, reconstruction, and recovery (active)
 
-Add relational retrieval, reconstruction policy, consolidation/reconsolidation,
-route-based use/reconstruction/consequence-evaluation/reacquisition, baseline and
-recovery-frontier measurement, retention without compression, semantic-field evaluation,
-and candidate learned probes. Learned automata and claimed reacquisition advantages
-remain hypotheses until checked and cannot self-promote.
+Deliver strict `RetrievalQuery`/`RetrievalHit`/`RetrievalResult` records, a versioned
+structural policy, ambiguous candidate reconstruction, and non-compressive
+`RetentionPackage` registration with separate provisional direct-use, reconstruction,
+direct-consequence, and reacquisition routes. Add a `ReacquisitionScaffold`, a resumable
+parent/child inquiry saga, exact typed multidimensional cost observations, a derived
+Pareto frontier, and independently checked but soft recovery comparisons.
+
+The SDK exposes retrieval, retention registration, reacquisition start/link, observation,
+and comparison. The CLI adds canonical-JSON `memory retrieve`, `recovery start`,
+`recovery inspect`, and `recovery compare`. The paired circuit reference stores cues,
+probe order, boundaries, and failures without storing the target answer and compares it
+with a no-scaffold baseline under identical competence, universe, binding, horizon,
+evaluator, evidence access, budget, protocol, and comparison policy.
+
+G2A adds only new event kinds; G1 event schemas are immutable. Snapshot/projection
+versions advance when required and old derived state rebuilds. Archived G1 streams must
+replay with unchanged G1 semantics. Recovery routes remain provisional and unlicensed;
+no comparison can create warrant or a `RecoveryLicense`.
+
+### G2B — consolidation and learned-probe candidates (deferred)
+
+After G2A passes, add explicit consolidation checkpoints selecting recent episodes,
+older exceptions, and counterexamples. Consolidation creates ordinary claims, attacks,
+and obligations rather than semantic facts. Reconsolidation appends corrections and
+successor lemma versions. Semantic-field evaluation and candidate learned probes or
+automata require holdout evaluation, attacks, controller admission, and independent
+warrant. AALpy remains optional and absent unless a later dependency ADR proves need.
+
+G2A and G2B are internal delivery gates under the existing RCI-058; stable requirement
+IDs are not renumbered. RCI-058 finishes only after G2B's bounded Goal passes.
 
 ### G3A/G3B/G3C — compression
 
@@ -349,7 +405,7 @@ packaging, deployment, release, or authority-expansion port exists.
 
 ## Verification
 
-The identical G1 gate in AGENTS and the active Goal is:
+The verified G1 gate remains identical in AGENTS, this plan, and both Goal artifacts:
 
 ```text
 uv lock --check
@@ -366,6 +422,13 @@ uv run rci --help
 uv build
 ```
 
+Active G2A also requires this focused acceptance command, identically present in AGENTS,
+the G2A Goal, CI, and the verification record:
+
+```text
+uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
+```
+
 Synchronization may fetch locked packages; test execution is credential-free,
 network-denied, deterministic, and replay-safe. CI has independent base and all-extras
 Windows/Linux lanes. Docker/GPU/live-model checks are nonblocking.
@@ -378,6 +441,13 @@ realizability; support/ancestry cycles; guard deactivation; probe comparability 
 observation isolation; prediction-before-return; reconstruction/history/knowledge
 separation; unwarranted relevance preservation; both reference findings; CLI/SDK parity;
 and backlog non-mutation/authority limits.
+
+Blocking G2A evidence covers retrieval permutation stability, scope/binding isolation,
+deduplication, bounds, and stale references; model-relevance non-suppression; ambiguous
+reconstruction; separation of all four recovery relations; generated-detail containment;
+every parent/child crash-resume boundary; exact Pareto and mismatched-pin negative cases;
+comparison non-promotion; the paired circuit cost improvement; archived G1 replay; both
+existing reference conclusions; and unchanged backlog authority.
 
 Phase 3 adds exact theorem, numeric non-promotion, direct-consequence evaluation,
 license/reopening, residue, budget-composition, and isolated-container adversarial tests.
