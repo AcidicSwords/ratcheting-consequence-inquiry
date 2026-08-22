@@ -1,4 +1,4 @@
-# RCI v0.4 requirements matrix
+# RCI v0.5 requirements matrix
 
 This matrix covers every numbered requirement in `RCI_Project_Spec.tex`. G1 was
 verified on 2026-08-22 by the complete frozen native gate recorded with exact
@@ -6,7 +6,7 @@ returns in `docs/verification.md`. Its sole Windows skip is preserved there: the
 host lacked file-symlink privilege (`WinError 1314`), so the adversarial symlink
 case remains live for Linux CI and privileged Windows while the implementation's
 other link/reparse-point and bounds checks passed. G2A is sealed and verified.
-G2B and G3A-H are sealed and verified. G3A-L and later phases remain outside any active
+G2B and G3A-H are sealed and verified. G3R is active. G3A-L and later phases remain outside any active
 Goal.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
@@ -21,10 +21,13 @@ Status vocabulary:
   Windows/Linux/Docker verification exist;
 - **verified G2B** — local, protected pull-request, and post-merge Windows/Linux/Docker
   verification pass;
-- **accepted v0.4** — normalized semantic/architecture evidence exists while executable
+- **accepted v0.4/v0.5** — normalized semantic/architecture evidence exists while executable
   evidence remains assigned to G3A-H or later;
 - **verified G3A-H** — bounded exact history-state code and local, protected
   pull-request, and protected-main post-merge evidence pass;
+- **locally verified G3R; hosted review pending** — the recursive project-inquiry code,
+  adversarial acceptance, predecessor gate, and compatibility checks pass locally while
+  fresh exact-head review and protected hosted CI remain outstanding;
 - **deferred Gx** — outside the active Goal and assigned to that milestone;
 - **research** — requires a later explicit Goal and warranted method choice.
 
@@ -32,7 +35,7 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-001 | Authority and complete traceability | accepted v0.4 | `docs/source-manifest.md`, ADR-0001, ADR-0011, this matrix, and the RCI-001--RCI-071 coverage check in `docs/verification.md` |
+| RCI-001 | Authority and complete traceability | accepted v0.5 | `docs/source-manifest.md`, ADR-0001, ADR-0011–0013, this matrix, and the RCI-001--RCI-078 coverage check in `docs/verification.md` |
 | RCI-002 | Pinned binding, scope, guard, universe, policy, and explicit carrier roles | verified G3A-H | sealed `InquiryContext`/`Scope` remain unchanged; `BindingCarrierManifest` declares exact carrier roles without mutating `InquiryStarted` |
 | RCI-003 | Questions create provisional claims, not facts | verified G1 | `QuestionContract` pins role, `AnswerShape`, `answer_schema_id`, binding policy, and lawful follow-ups; `bind_answer` fails closed on an unregistered shape/schema/policy and produces only a provisional L0 claim. `test_only_core_v1_is_schedulable_and_rendering_is_literal` and the Phase 1 vertical slice cover the typed path. |
 | RCI-004 | Arbitrary payloads remain inert L0 data | verified G1 | `freeze_json`, `InertPayload`, CAS-backed bytes; `test_arbitrary_l0_payload_is_inert_and_artifacts_are_references`, `test_nested_payloads_are_snapshot_immutable`, and replay of binary L0 bytes |
@@ -133,6 +136,13 @@ Status vocabulary:
 | RCI-069 | Aggregate fold and retained-state representation never collapse | verified G3A-H | frozen G1/G2B stream replay, explicit carriers, five-byte history to one-byte retained state, complete ledger replay, and derived-only view |
 | RCI-070 | Executable retained state requires continuation compatibility | verified G3A-H | unbounded unary base/step congruence, present-answer/future-continuation counterexample, and lawful answer-only scope narrowing |
 | RCI-071 | Representation replacement requires preserve + gain + warrant or frontier | verified G3A-H | positive warranted successor, atomic predecessor-capability-loss rejection, novelty-only rejection, and explicit incomparability |
+| RCI-072 | Repository inquiry pins an exact clean project anchor without creating a second source history | locally verified G3R; hosted review pending | strict `ProjectAnchor`, exact commit propagation, candidate-environment anchor checks, and Git/ledger ownership rules in ADR-0012/0013 |
+| RCI-073 | A project limitation requires a protected consequential boundary | locally verified G3R; hosted review pending | `CapabilityLimitation` requires current/desired consequence and a separating observation; empty dissatisfaction and novelty cannot enter the frontier |
+| RCI-074 | Question repertoire succession is typed, inert, attacked, and independently admitted | locally verified G3R; hosted review pending | `QuestionContractCandidate`, distinct-return validation, owned exact-review evidence for `QuestionRepertoireDecision`, recursive-project-only admission, and inert/suppression acceptance tests |
+| RCI-075 | Method repertoire succession binds native assumptions and does not install itself | locally verified G3R; hosted review pending | `MethodBindingCandidate`, preserved primary-source/applicability/license pins, exact independently reviewed evidence, separate `MethodAdmissionDecision`, and exact Goal linkage when an adapter is absent |
+| RCI-076 | Project successors use a partial-order frontier and immutable discriminator-first Goal | locally verified G3R; hosted review pending | exact `CapabilitySuccessorCandidate`, permutation-stable six-candidate dogfood frontier, preservation/gain/cost comparison, and immutable `ImplementationGoalContract` |
+| RCI-077 | Candidate actualization, evidence, review, successor decision, and promotion remain separate | locally verified G3R; hosted review pending | `CandidateEnvironmentManifest`, exact-head evidence, different-context review, exact reviewed-evidence successor and promotion stages, complete SDK/CLI recording surface, and absence of runtime source/Git ports |
+| RCI-078 | Recursive project inquiry has append-only continuity and typed stopping | locally verified G3R; hosted review pending | `RecursiveCycleCheckpoint`, predecessor/phase monotonicity, `RecursiveStopDisposition`, `Unknown` paths, durable cycle handoff/report, and bounded blocker rule |
 
 ### RCI-068 staged capability evidence
 
@@ -142,6 +152,7 @@ Status vocabulary:
 | G2A | Verified deterministic structural retrieval, candidate reconstruction, provisional retention routes, reacquisition scaffold/saga, and soft Pareto comparison on local and hosted Windows/Linux/Docker gates | No consolidation, learned probe, recovery licence, certified quotient, or control |
 | G2B | Verified deterministic consolidation/reconsolidation, conservative semantic-field evaluation, and checked learned probes | No recovery licence, certified quotient, automaton dependency, or control |
 | G3A-H | Verified exact history-state carriers, quotient validation, recovery licence, residue, reopening, and representation ratchet | No SymPy linear binding, approximation, native adapter, or control |
+| G3R | Active recursive project inquiry, repertoire/frontier succession, sealed Goals, isolated candidate evidence, fresh review, and externally observed promotion | No runtime source/Git authority and no successor implementation before this Goal seals |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

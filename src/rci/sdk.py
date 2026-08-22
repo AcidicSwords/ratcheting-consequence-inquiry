@@ -43,6 +43,9 @@ from rci.compression import (
 from rci.core.commands import (
     AcceptEffectResult,
     AdmitClaim,
+    DecideMethodAdmission,
+    DecideProjectSuccessor,
+    DecideQuestionRepertoire,
     DecideRepresentationSuccessor,
     DomainCommand,
     GrantExactCompressionLicense,
@@ -53,20 +56,32 @@ from rci.core.commands import (
     PlanEffectAttempt,
     RecordAttemptOutcome,
     RecordBacklogEffect,
+    RecordCandidateEnvironment,
+    RecordCapabilityFrontier,
+    RecordCapabilityLimitation,
+    RecordCapabilitySuccessorCandidate,
     RecordCompressionApplication,
     RecordCompressionValidation,
     RecordConsolidationCandidate,
     RecordConsolidationCheckpoint,
     RecordDecodeOutcome,
+    RecordDevelopmentEvidence,
+    RecordIndependentReview,
     RecordLearnedProbeCandidate,
     RecordMemoryPatchCandidate,
+    RecordMethodBindingCandidate,
     RecordObligationDisposition,
     RecordProbeAdmissionDecision,
     RecordProbeEvaluation,
+    RecordProjectAnchor,
+    RecordPromotionDecision,
+    RecordQuestionContractCandidate,
     RecordRealizedHistoryDerivation,
     RecordReconsolidationLink,
     RecordRecoveryComparison,
     RecordRecoveryObservation,
+    RecordRecursiveCycleCheckpoint,
+    RecordRecursiveStopDisposition,
     RecordRepresentationGap,
     RecordSemanticFieldEvaluation,
     RecordStepPlan,
@@ -77,6 +92,7 @@ from rci.core.commands import (
     RequestEffect,
     RequestReacquisition,
     RunRetrieval,
+    SealImplementationGoal,
     StartEffectAttempt,
     StartInquiry,
 )
@@ -138,6 +154,24 @@ from rci.orchestration import (
     plan_next,
 )
 from rci.persistence import ArtifactStore, SQLiteEventStore
+from rci.project import (
+    CandidateEnvironmentManifest,
+    CapabilityFrontier,
+    CapabilityLimitation,
+    CapabilitySuccessorCandidate,
+    DevelopmentEvidence,
+    ImplementationGoalContract,
+    IndependentReview,
+    MethodAdmissionDecision,
+    MethodBindingCandidate,
+    ProjectAnchor,
+    ProjectSuccessorDecision,
+    PromotionDecision,
+    QuestionContractCandidate,
+    QuestionRepertoireDecision,
+    RecursiveCycleCheckpoint,
+    RecursiveStopDisposition,
+)
 from rci.questions import bind_answer, get_contract, render_question
 from rci.questions.catalog import CATALOG_V0_3, CATALOG_V0_4, CORE_V1
 from rci.questions.models import QuestionContract
@@ -1523,6 +1557,196 @@ class RCI:
                 inquiry_id=inquiry_id,
                 occurred_at=self.clock(),
                 reopening=reopening,
+            )
+        )
+
+    def record_project_anchor(self, inquiry_id: str, anchor: ProjectAnchor) -> InquiryState:
+        return self.dispatch(
+            RecordProjectAnchor(
+                event_id=_stable_id("evt", inquiry_id, anchor.id, "project-anchor"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                anchor=anchor,
+            )
+        )
+
+    def record_capability_limitation(
+        self, inquiry_id: str, limitation: CapabilityLimitation
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordCapabilityLimitation(
+                event_id=_stable_id("evt", inquiry_id, limitation.id, "capability-limitation"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                limitation=limitation,
+            )
+        )
+
+    def record_question_contract_candidate(
+        self, inquiry_id: str, candidate: QuestionContractCandidate
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordQuestionContractCandidate(
+                event_id=_stable_id("evt", inquiry_id, candidate.id, "question-candidate"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                candidate=candidate,
+            )
+        )
+
+    def decide_question_repertoire(
+        self, inquiry_id: str, decision: QuestionRepertoireDecision
+    ) -> InquiryState:
+        return self.dispatch(
+            DecideQuestionRepertoire(
+                event_id=_stable_id("evt", inquiry_id, decision.id, "question-decision"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                decision=decision,
+            )
+        )
+
+    def record_method_binding_candidate(
+        self, inquiry_id: str, candidate: MethodBindingCandidate
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordMethodBindingCandidate(
+                event_id=_stable_id("evt", inquiry_id, candidate.id, "method-candidate"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                candidate=candidate,
+            )
+        )
+
+    def decide_method_admission(
+        self, inquiry_id: str, decision: MethodAdmissionDecision
+    ) -> InquiryState:
+        return self.dispatch(
+            DecideMethodAdmission(
+                event_id=_stable_id("evt", inquiry_id, decision.id, "method-decision"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                decision=decision,
+            )
+        )
+
+    def record_capability_successor_candidate(
+        self, inquiry_id: str, candidate: CapabilitySuccessorCandidate
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordCapabilitySuccessorCandidate(
+                event_id=_stable_id("evt", inquiry_id, candidate.id, "successor-candidate"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                candidate=candidate,
+            )
+        )
+
+    def record_capability_frontier(
+        self, inquiry_id: str, frontier: CapabilityFrontier
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordCapabilityFrontier(
+                event_id=_stable_id("evt", inquiry_id, frontier.id, "capability-frontier"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                frontier=frontier,
+            )
+        )
+
+    def seal_implementation_goal(
+        self, inquiry_id: str, goal: ImplementationGoalContract
+    ) -> InquiryState:
+        return self.dispatch(
+            SealImplementationGoal(
+                event_id=_stable_id("evt", inquiry_id, goal.id, "implementation-goal"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                goal=goal,
+            )
+        )
+
+    def record_candidate_environment(
+        self, inquiry_id: str, manifest: CandidateEnvironmentManifest
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordCandidateEnvironment(
+                event_id=_stable_id("evt", inquiry_id, manifest.id, "candidate-environment"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                manifest=manifest,
+            )
+        )
+
+    def record_development_evidence(
+        self, inquiry_id: str, evidence: DevelopmentEvidence
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordDevelopmentEvidence(
+                event_id=_stable_id("evt", inquiry_id, evidence.id, "development-evidence"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                evidence=evidence,
+            )
+        )
+
+    def record_independent_review(self, inquiry_id: str, review: IndependentReview) -> InquiryState:
+        return self.dispatch(
+            RecordIndependentReview(
+                event_id=_stable_id("evt", inquiry_id, review.id, "independent-review"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                review=review,
+            )
+        )
+
+    def decide_project_successor(
+        self, inquiry_id: str, decision: ProjectSuccessorDecision
+    ) -> InquiryState:
+        return self.dispatch(
+            DecideProjectSuccessor(
+                event_id=_stable_id("evt", inquiry_id, decision.id, "project-successor"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                decision=decision,
+            )
+        )
+
+    def record_promotion_decision(
+        self, inquiry_id: str, decision: PromotionDecision
+    ) -> InquiryState:
+        """Record an externally observed promotion fact; never perform Git mutation."""
+
+        return self.dispatch(
+            RecordPromotionDecision(
+                event_id=_stable_id("evt", inquiry_id, decision.id, "promotion-decision"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                decision=decision,
+            )
+        )
+
+    def record_recursive_cycle_checkpoint(
+        self, inquiry_id: str, checkpoint: RecursiveCycleCheckpoint
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordRecursiveCycleCheckpoint(
+                event_id=_stable_id("evt", inquiry_id, checkpoint.id, "cycle-checkpoint"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                checkpoint=checkpoint,
+            )
+        )
+
+    def record_recursive_stop_disposition(
+        self, inquiry_id: str, disposition: RecursiveStopDisposition
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordRecursiveStopDisposition(
+                event_id=_stable_id("evt", inquiry_id, disposition.id, "recursive-stop"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                disposition=disposition,
             )
         )
 

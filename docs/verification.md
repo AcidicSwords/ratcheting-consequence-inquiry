@@ -679,3 +679,51 @@ required jobs:
 
 This seals the bounded G3A-H implementation. G3A-L, G3B, G3C, and all later milestones
 remain deferred and unclaimed.
+
+## G3R local candidate verification — 2026-08-22
+
+RCI v0.5 adds RCI-072–RCI-078 and the bounded recursive-project binding in ADR-0012 and
+ADR-0013. All predecessor event classes remain version 1 and retain their frozen schema
+manifest. New G3R event kinds are version 1; folded state advances to v5 and rebuilds
+v1–v4 snapshots from the ledger. The runtime records candidate-development evidence but
+still has no source-writing, arbitrary-command, Git, merge, push, credential, policy,
+release, deployment, or authority-expansion port.
+
+The checked six-candidate roadmap frontier remains a partial order. It selects
+regenerative question-contract synthesis only as the smallest reversible discriminator;
+G3A-L, native-method binding, autonomous Goal synthesis, isolated candidate actuation,
+and G4 remain nondominated. `docs/goals/G3Q.md` is sealed next but inactive.
+
+Exact local returns after the self-warrant audit and hardening pass:
+
+- requirements parity: exactly RCI-001 through RCI-078 in the spec and matrix;
+- recursive source archive: 2,613 bytes, SHA-256
+  `2ef54c70faeca5e4091f96e081a35ce12e990d4719453bcd175b2ba2cd696c8b`;
+- root `AGENTS.md`: 20,642 bytes, below 32 KiB;
+- `uv lock --check`: exit 0, 40 packages resolved;
+- `uv sync --dev`: exit 0;
+- `uv run python -c "import rci"`: exit 0, package version 0.5.0;
+- `uv run pytest -q -m "not optional"`: 183 passed, 1 skipped, 4 deselected;
+- `uv sync --all-extras --dev`: exit 0;
+- `uv run ruff format --check .`: 152 files formatted;
+- `uv run ruff check .`: all checks passed;
+- `uv run mypy src/rci tests`: success across 114 source files;
+- `uv run pytest -q`: 187 passed, 1 skipped;
+- `uv run pytest -q tests/acceptance`: 25 passed;
+- `uv run rci --help`: exit 0 and lists the `project` group;
+- `uv build`: exit 0; 0.5.0 sdist and universal wheel built;
+- `uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py`: 7 passed;
+- archived G1/G2 schema, replay, and v1–v4 snapshot rebuild focus: 5 passed,
+  15 deselected.
+
+The focused acceptance proves permutation-stable partial-order selection, all-six
+nondominated roadmap dogfooding, inert generated questions, two consequential return
+classes, unowned-evidence rejection, exact reviewed question/method admission, immutable
+Goals, exact anchor/candidate pins, self-review rejection, failing-evidence rejection,
+unreviewed-evidence substitution rejection, separate successor/promotion records,
+effect-free replay, and a deterministic canonical-JSON CLI inspection surface.
+
+The sole skip remains the disclosed native-Windows symlink-privilege fixture. Fresh
+exact-head independent review, pull-request CI including the unique
+`recursive (ubuntu-latest)` job, protected merge, and post-merge main CI remain pending;
+this local record does not claim them.

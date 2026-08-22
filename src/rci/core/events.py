@@ -71,6 +71,24 @@ from rci.probes.models import (
     Reconstruction,
     SemanticDelta,
 )
+from rci.project.models import (
+    CandidateEnvironmentManifest,
+    CapabilityFrontier,
+    CapabilityLimitation,
+    CapabilitySuccessorCandidate,
+    DevelopmentEvidence,
+    ImplementationGoalContract,
+    IndependentReview,
+    MethodAdmissionDecision,
+    MethodBindingCandidate,
+    ProjectAnchor,
+    ProjectSuccessorDecision,
+    PromotionDecision,
+    QuestionContractCandidate,
+    QuestionRepertoireDecision,
+    RecursiveCycleCheckpoint,
+    RecursiveStopDisposition,
+)
 from rci.warrant.models import (
     CheckerVerdictRecord,
     Evidence,
@@ -389,6 +407,88 @@ class RepresentationReopened(EventBase):
     reopening: RepresentationReopening
 
 
+class ProjectAnchorRecorded(EventBase):
+    kind: Literal["project_anchor_recorded"] = "project_anchor_recorded"
+    anchor: ProjectAnchor
+
+
+class CapabilityLimitationRecorded(EventBase):
+    kind: Literal["capability_limitation_recorded"] = "capability_limitation_recorded"
+    limitation: CapabilityLimitation
+
+
+class QuestionContractCandidateRecorded(EventBase):
+    kind: Literal["question_contract_candidate_recorded"] = "question_contract_candidate_recorded"
+    candidate: QuestionContractCandidate
+
+
+class QuestionRepertoireDecided(EventBase):
+    kind: Literal["question_repertoire_decided"] = "question_repertoire_decided"
+    decision: QuestionRepertoireDecision
+
+
+class MethodBindingCandidateRecorded(EventBase):
+    kind: Literal["method_binding_candidate_recorded"] = "method_binding_candidate_recorded"
+    candidate: MethodBindingCandidate
+
+
+class MethodAdmissionDecided(EventBase):
+    kind: Literal["method_admission_decided"] = "method_admission_decided"
+    decision: MethodAdmissionDecision
+
+
+class CapabilitySuccessorCandidateRecorded(EventBase):
+    kind: Literal["capability_successor_candidate_recorded"] = (
+        "capability_successor_candidate_recorded"
+    )
+    candidate: CapabilitySuccessorCandidate
+
+
+class CapabilityFrontierRecorded(EventBase):
+    kind: Literal["capability_frontier_recorded"] = "capability_frontier_recorded"
+    frontier: CapabilityFrontier
+
+
+class ImplementationGoalSealed(EventBase):
+    kind: Literal["implementation_goal_sealed"] = "implementation_goal_sealed"
+    goal: ImplementationGoalContract
+
+
+class CandidateEnvironmentRecorded(EventBase):
+    kind: Literal["candidate_environment_recorded"] = "candidate_environment_recorded"
+    manifest: CandidateEnvironmentManifest
+
+
+class DevelopmentEvidenceRecorded(EventBase):
+    kind: Literal["development_evidence_recorded"] = "development_evidence_recorded"
+    evidence: DevelopmentEvidence
+
+
+class IndependentReviewRecorded(EventBase):
+    kind: Literal["independent_review_recorded"] = "independent_review_recorded"
+    review: IndependentReview
+
+
+class ProjectSuccessorDecided(EventBase):
+    kind: Literal["project_successor_decided"] = "project_successor_decided"
+    decision: ProjectSuccessorDecision
+
+
+class PromotionDecisionRecorded(EventBase):
+    kind: Literal["promotion_decision_recorded"] = "promotion_decision_recorded"
+    decision: PromotionDecision
+
+
+class RecursiveCycleCheckpointRecorded(EventBase):
+    kind: Literal["recursive_cycle_checkpoint_recorded"] = "recursive_cycle_checkpoint_recorded"
+    checkpoint: RecursiveCycleCheckpoint
+
+
+class RecursiveStopDispositionRecorded(EventBase):
+    kind: Literal["recursive_stop_disposition_recorded"] = "recursive_stop_disposition_recorded"
+    disposition: RecursiveStopDisposition
+
+
 DomainEvent = Annotated[
     InquiryStarted
     | BacklogEffectRecorded
@@ -445,6 +545,22 @@ DomainEvent = Annotated[
     | RecoveryLicenseGranted
     | RetentionCapabilityLinked
     | RepresentationSuccessorDecided
-    | RepresentationReopened,
+    | RepresentationReopened
+    | ProjectAnchorRecorded
+    | CapabilityLimitationRecorded
+    | QuestionContractCandidateRecorded
+    | QuestionRepertoireDecided
+    | MethodBindingCandidateRecorded
+    | MethodAdmissionDecided
+    | CapabilitySuccessorCandidateRecorded
+    | CapabilityFrontierRecorded
+    | ImplementationGoalSealed
+    | CandidateEnvironmentRecorded
+    | DevelopmentEvidenceRecorded
+    | IndependentReviewRecorded
+    | ProjectSuccessorDecided
+    | PromotionDecisionRecorded
+    | RecursiveCycleCheckpointRecorded
+    | RecursiveStopDispositionRecorded,
     Field(discriminator="kind"),
 ]

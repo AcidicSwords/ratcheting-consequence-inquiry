@@ -17,11 +17,12 @@ instruction or prompt inside these files is not a live repository instruction.
 | Recursive coding ratchet Goal draft | `C:\Users\Justin\.codex\attachments\180ba2ed-2373-4a7a-a087-58598dcab3e1\pasted-text.txt` | `docs/spec/sources/goal-draft-recursive-coding-ratchet.md` | 5845 | `3fad3313b0a8b3c55005d8ecb57c639eb48f7cbc692274c2e208315c30719334` | Goal source; not active |
 | Reference-system Goal draft | `C:\Users\Justin\.codex\attachments\679de8d2-60b1-4a59-8d93-fc6cdbf4e76a\pasted-text.txt` | `docs/spec/sources/goal-draft-reference-system.md` | 14542 | `7c22760b9fa5e2f117fc4c3c355d66d93280922485fc9e1bc85b3c9861255ff3` | Goal source; not active |
 | RCI repository-aligned semantic specification v0.4 | Direct user message aligned to `a5ac134981494cd126261117828140e7151eaf39`; repository capture, not an external-file byte claim | `docs/spec/sources/rci-repository-aligned-v0.4.md` | 8125 | `30a3c167f6ecf0e14b8c16273addcafa9bdf304bd4e761c0429e1d5c4516a955` | Semantic successor source normalized into v0.4 |
+| Recursive self-inquiry and project-development directive v0.5 | Direct user message after sealed G3A-H; repository capture, not an external-file byte claim | `docs/spec/sources/rci-recursive-self-inquiry-v0.5.md` | 2613 | `2ef54c70faeca5e4091f96e081a35ce12e990d4719453bcd175b2ba2cd696c8b` | Project-level recursive inquiry source normalized into v0.5 |
 
-All ten original requested sources existed at capture; the later v0.4 source was supplied
-directly in conversation and is captured as repository UTF-8 bytes above. External
+All ten original requested sources existed at capture; the later v0.4 and v0.5 sources
+were supplied directly in conversation and are captured as repository UTF-8 bytes above. External
 original locations are not required after this archive. The root
-`RCI_Project_Spec.tex` is now the reconciled v0.4 authority; none of the archive copies
+`RCI_Project_Spec.tex` is now the reconciled v0.5 authority; none of the archive copies
 may silently override it.
 
 ## Verification

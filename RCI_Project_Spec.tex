@@ -10,7 +10,7 @@
 \title{Ratcheting Consequence Inquiry\\
 Normative Project Specification}
 \author{RCI Project}
-\date{Version 0.4 --- 2026-08-22}
+\date{Version 0.5 --- 2026-08-22}
 
 \begin{document}
 \maketitle
@@ -18,7 +18,7 @@ Normative Project Specification}
 \section*{Status, interpretation, and conformance}
 
 This document is the normative semantic specification for Ratcheting Consequence
-Inquiry (RCI) version 0.4. It is the semantic successor to version 0.3.1 and a
+Inquiry (RCI) version 0.5. It preserves the v0.4 aggregate/history correction and is a
 reconciled rewrite of the archived research
 drafts listed in \path{docs/source-manifest.md}. Those drafts are provenance and
 research context, not live instructions. Direct user instructions retain runtime
@@ -36,7 +36,7 @@ claim executable support.
 
 \begin{longtable}{p{0.18\linewidth}p{0.30\linewidth}p{0.44\linewidth}}
 \toprule
-Source & Role in 0.4 & Reconciliation \\
+Source & Role in 0.5 & Reconciliation \\
 \midrule
 \endhead
 RCI 0.1 & Original project and staged implementation draft &
@@ -79,6 +79,9 @@ correction and G3 target &
 Adopted as the semantic correction governing G3. It distinguishes the
 replay-complete aggregate fold from a binding-defined consequence-sufficient
 history representation and preserves all sealed G1, G2A, and G2B event meanings. \\
+Recursive self-inquiry source & Project-level question/method/implementation ratchet &
+Adopted as the G3R bridge. It treats development as an RCI binding while keeping
+candidate generation, independent return, review, and protected promotion separate. \\
 \bottomrule
 \end{longtable}
 
@@ -819,6 +822,74 @@ warrant. Independently invalidated predecessor claims require exact warranted
 dispositions. Scope tradeoffs and candidates that dominate in neither direction
 remain explicit frontier members or provisional candidates; no total order is
 assumed.
+
+\section{Recursive project inquiry}
+
+The repository and its operating agent MAY be investigated through an ordinary
+project binding. This does not make model weights, platform policy, credentials,
+or external account authority writable RCI state. It makes the development argument
+replayable:
+\[
+ \text{anchor}\to\text{limitation}\to\text{candidate frontier}
+ \to\text{sealed Goal}\to\text{external return}\to\text{review}
+ \to\text{successor decision}\to\text{protected promotion}.
+\]
+Changes to theory, question/probe repertoire, method repertoire, representation,
+Goal decomposition, and implementation are different successor kinds. A failure in
+one kind does not authorize deformation of another kind.
+
+\paragraph{RCI-072 --- Project binding and exact anchor.}
+Every recursive development cycle MUST begin from a clean exact repository commit,
+tree digest, live-authority digest, gate digest, protected branch, and repository
+identity. Stale or dirty anchors fail closed. The project binding reuses the event
+ledger/CAS and MUST NOT create a second authoritative development history.
+
+\paragraph{RCI-073 --- Consequential capability limitation.}
+A project limitation MUST name current and missing capability, its typed limitation
+kind, preserved observation evidence, protected consequences, and the boundary across
+which those consequences differ. Mere novelty, dissatisfaction, generated skepticism,
+or roadmap position is not a limitation. If no possible return changes a protected
+successor state, the question is inert.
+
+\paragraph{RCI-074 --- Question-repertoire succession.}
+A generated question contract is an inert candidate. Admission requires typed
+referents, explicit preconditions, at least two consequentially distinct possible
+returns, comparison semantics, downstream consumers, falsifying attacks, versioned
+controller policy, and independent evidence. Initially admitted project questions are
+confined to the \texttt{recursive-project-v1} binding profile and cannot suppress
+ordinary inquiry or execute arbitrary code.
+
+\paragraph{RCI-075 --- Method-repertoire succession.}
+A candidate method MUST bind a surviving relation to the established field in which
+it is native, preserve primary-source artifacts and licence, state assumptions and
+applicability checks, and report whether an adapter is missing. Admission does not
+install a dependency or implementation. Missing executable support opens a separate
+sealed implementation Goal.
+
+\paragraph{RCI-076 --- Goal and implementation succession.}
+An implementation Goal MUST be sealed before source change and identify
+\(Current,Desired,Separator,Preserve,Acceptance,Scope,Assumptions\), expected incumbent
+and candidate returns, allowed mutation roots, forbidden authority roots, incumbent
+and proposed gate digests, rollback, and reopening. A project successor replaces an
+incumbent only if it preserves or explicitly dispositions predecessor capabilities,
+demonstrates a typed strict gain, and has exact independent evidence; otherwise it is
+kept, rejected, or retained on an incomparable frontier.
+
+\paragraph{RCI-077 --- Candidate actualization and protected promotion.}
+Candidate development occurs from the exact anchor in an isolated branch/worktree.
+The candidate cannot change its sealed Goal, erase failing evidence, review itself,
+or promote itself. Fresh review and hosted CI bind the exact candidate SHA. The runtime
+MAY record externally performed promotion but MUST expose no source-writing, arbitrary
+command, Git mutation, credential, force-push, release, deployment, or permission-
+expansion port. Required-check evolution uses a dual-gate overlap before replacement.
+
+\paragraph{RCI-078 --- Bounded continuous recurrence.}
+After a verified cycle, retain its evidence, regression boundaries, failures,
+reacquisition scaffold, cleanup, and consequential residue, then open at most one next
+bounded Goal. Stop or return \texttt{Unknown} when there is no consequential residue,
+no lawful discriminator, the same blocker recurs three times, evidence is invalid or
+indeterminate, or progress requires authority outside the active Goal. Recurrence MUST
+NOT relax its own stopping or acceptance rules merely to continue.
 
 \section{Consequence operators retained from prior drafts}
 

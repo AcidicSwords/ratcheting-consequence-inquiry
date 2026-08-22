@@ -7,10 +7,14 @@ consequence-sensitive inquiry. Verified milestones G1, G2A, G2B, and G3A-H imple
 foundation, finite formalization and warrant, a bounded cognitive spine, deterministic
 structural retrieval, provisional retention routes, measured reacquisition,
 consolidation, versioned repair, semantic-field evaluation, and learned-probe admission.
-RCI v0.4 makes the replay-complete aggregate distinct from a protected
+RCI v0.5 preserves the v0.4 distinction between the replay-complete aggregate and a protected
 consequence-sufficient retained state. G3A-H adds bounded exact history-state contracts,
 finite transition fixtures, licensed retained-capability joins, path residue, reopening,
-and a warranted representation ratchet. Later research phases remain explicitly deferred.
+and a warranted representation ratchet. Active G3R applies the same discipline to project
+development: consequential limitations, inert question/method candidates, partial-order
+successor frontiers, sealed implementation Goals, isolated exact-head evidence, fresh
+review, and externally observed protected promotion. Later research phases remain
+explicitly deferred until that recursion selects one.
 
 The package includes immutable records, pure `decide`/`evolve` transitions, deterministic
 replay, an append-only SQLite WAL ledger, content-addressed artifacts, finite reference

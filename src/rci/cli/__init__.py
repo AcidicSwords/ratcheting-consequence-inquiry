@@ -33,6 +33,24 @@ from rci.learning import (
 )
 from rci.memory import MemoryOwner, OwnedRecordType, RecoveryBranch
 from rci.persistence import DATABASE_SCHEMA_VERSION
+from rci.project import (
+    CandidateEnvironmentManifest,
+    CapabilityLimitation,
+    CapabilitySuccessorCandidate,
+    DevelopmentEvidence,
+    ImplementationGoalContract,
+    IndependentReview,
+    MethodAdmissionDecision,
+    MethodBindingCandidate,
+    ProjectAnchor,
+    ProjectSuccessorDecision,
+    PromotionDecision,
+    QuestionContractCandidate,
+    QuestionRepertoireDecision,
+    RecursiveCycleCheckpoint,
+    RecursiveStopDisposition,
+    derive_capability_frontier,
+)
 from rci.questions.catalog import CATALOG_V0_4
 from rci.sdk import RCI
 from rci.warrant import CheckReference
@@ -47,6 +65,7 @@ recovery_app = typer.Typer(no_args_is_help=True, help="Measured reacquisition re
 field_app = typer.Typer(no_args_is_help=True, help="Conservative semantic-field diagnostics")
 probes_app = typer.Typer(no_args_is_help=True, help="Governed learned-probe evaluation")
 compression_app = typer.Typer(no_args_is_help=True, help="Exact retained-state contracts")
+project_app = typer.Typer(no_args_is_help=True, help="Recursive repository inquiry")
 app.add_typer(contracts_app, name="contracts")
 app.add_typer(evaluation_app, name="eval")
 app.add_typer(database_app, name="db")
@@ -56,6 +75,7 @@ app.add_typer(recovery_app, name="recovery")
 app.add_typer(field_app, name="field")
 app.add_typer(probes_app, name="probes")
 app.add_typer(compression_app, name="compression")
+app.add_typer(project_app, name="project")
 
 _MAX_WORKSPACE_FILES = 10_000
 _MAX_WORKSPACE_FILE_BYTES = 16 * 1024 * 1024
@@ -664,6 +684,244 @@ def compression_fixture(
     else:
         raise typer.BadParameter("fixture must be unary-parity or order-sensitive")
     typer.echo(_json(result.__dict__))
+
+
+@project_app.command("anchor")
+def project_anchor(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record one exact clean protected repository anchor."""
+
+    anchor = ProjectAnchor.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_project_anchor(inquiry_id, anchor)
+    typer.echo(_json(state.project_anchors[-1]))
+
+
+@project_app.command("limitation")
+def project_limitation(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record a preserved consequential limitation at an owned anchor."""
+
+    limitation = CapabilityLimitation.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_capability_limitation(inquiry_id, limitation)
+    typer.echo(_json(state.capability_limitations[-1]))
+
+
+@project_app.command("question-candidate")
+def project_question_candidate(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record one inert generated question-contract candidate."""
+
+    candidate = QuestionContractCandidate.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_question_contract_candidate(inquiry_id, candidate)
+    typer.echo(_json(state.question_contract_candidates[-1]))
+
+
+@project_app.command("question-decision")
+def project_question_decision(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record an independently evidenced question-repertoire decision."""
+
+    decision = QuestionRepertoireDecision.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).decide_question_repertoire(inquiry_id, decision)
+    typer.echo(_json(state.question_repertoire_decisions[-1]))
+
+
+@project_app.command("method-candidate")
+def project_method_candidate(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record one inert native-method binding candidate."""
+
+    candidate = MethodBindingCandidate.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_method_binding_candidate(inquiry_id, candidate)
+    typer.echo(_json(state.method_binding_candidates[-1]))
+
+
+@project_app.command("method-decision")
+def project_method_decision(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record an independently evidenced method-repertoire decision."""
+
+    decision = MethodAdmissionDecision.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).decide_method_admission(inquiry_id, decision)
+    typer.echo(_json(state.method_admission_decisions[-1]))
+
+
+@project_app.command("frontier")
+def project_frontier(
+    inquiry_id: str,
+    frontier_id: Annotated[str, typer.Option("--frontier-id")],
+    candidate: Annotated[list[Path], typer.Option("--candidate")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record candidates and their deterministic nondominated frontier."""
+
+    candidates = tuple(
+        CapabilitySuccessorCandidate.model_validate_json(path.read_bytes(), strict=True)
+        for path in candidate
+    )
+    sdk = _sdk(root)
+    for item in candidates:
+        sdk.record_capability_successor_candidate(inquiry_id, item)
+    frontier = derive_capability_frontier(frontier_id=frontier_id, candidates=candidates)
+    state = sdk.record_capability_frontier(inquiry_id, frontier)
+    typer.echo(_json(state.capability_frontiers[-1]))
+
+
+@project_app.command("goal")
+def project_goal(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Seal an immutable discriminator-first implementation Goal."""
+
+    goal = ImplementationGoalContract.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).seal_implementation_goal(inquiry_id, goal)
+    typer.echo(_json(state.implementation_goals[-1]))
+
+
+@project_app.command("candidate")
+def project_candidate(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record an externally created isolated candidate environment."""
+
+    manifest = CandidateEnvironmentManifest.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_candidate_environment(inquiry_id, manifest)
+    typer.echo(_json(state.candidate_environments[-1]))
+
+
+@project_app.command("evidence")
+def project_evidence(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record one exact-head external development return."""
+
+    evidence = DevelopmentEvidence.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_development_evidence(inquiry_id, evidence)
+    typer.echo(_json(state.development_evidence[-1]))
+
+
+@project_app.command("review")
+def project_review(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record a fresh exact-head independent review."""
+
+    review = IndependentReview.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_independent_review(inquiry_id, review)
+    typer.echo(_json(state.independent_reviews[-1]))
+
+
+@project_app.command("successor")
+def project_successor(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record the preserve/gain disposition for an exact reviewed candidate."""
+
+    decision = ProjectSuccessorDecision.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).decide_project_successor(inquiry_id, decision)
+    typer.echo(_json(state.project_successor_decisions[-1]))
+
+
+@project_app.command("promote")
+def project_promote(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record externally performed protected promotion; never mutate Git."""
+
+    decision = PromotionDecision.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_promotion_decision(inquiry_id, decision)
+    typer.echo(_json(state.promotion_decisions[-1]))
+
+
+@project_app.command("checkpoint")
+def project_checkpoint(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Append one monotone recursive-cycle checkpoint."""
+
+    checkpoint = RecursiveCycleCheckpoint.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_recursive_cycle_checkpoint(inquiry_id, checkpoint)
+    typer.echo(_json(state.recursive_cycle_checkpoints[-1]))
+
+
+@project_app.command("stop")
+def project_stop(
+    inquiry_id: str,
+    record: Annotated[Path, typer.Option("--record")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record one typed bounded-recursion stop disposition."""
+
+    disposition = RecursiveStopDisposition.model_validate_json(record.read_bytes(), strict=True)
+    state = _sdk(root).record_recursive_stop_disposition(inquiry_id, disposition)
+    typer.echo(_json(state.recursive_stop_dispositions[-1]))
+
+
+@project_app.command("inspect")
+def project_inspect(
+    inquiry_id: str,
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Emit only the immutable G3R project-inquiry records."""
+
+    state = _sdk(root).inspect(inquiry_id)
+    typer.echo(
+        _json(
+            {
+                name: [item.model_dump(mode="json") for item in getattr(state, name)]
+                for name in (
+                    "project_anchors",
+                    "capability_limitations",
+                    "question_contract_candidates",
+                    "question_repertoire_decisions",
+                    "method_binding_candidates",
+                    "method_admission_decisions",
+                    "capability_successor_candidates",
+                    "capability_frontiers",
+                    "implementation_goals",
+                    "candidate_environments",
+                    "development_evidence",
+                    "independent_reviews",
+                    "project_successor_decisions",
+                    "promotion_decisions",
+                    "recursive_cycle_checkpoints",
+                    "recursive_stop_dispositions",
+                )
+            }
+        )
+    )
 
 
 def _backlog_policy(root: Path) -> BacklogPolicy:
