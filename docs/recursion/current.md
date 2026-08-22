@@ -1,16 +1,16 @@
 # Current recursive project inquiry
 
-- Active cycle: `post-g3q-frontier-recurrence`
-- Anchor: `4d89bb776181dd0b7885b0e0dd1042426d0456ca` on protected `main`
-- Completed Goal: `docs/goals/G3Q.md`
+- Last completed cycle: `post-g3q-frontier-recurrence`
+- Anchor: `60ff25635f94fb004e6419a09293c5e0fc023074` on protected `main`
+- Completed predecessor Goal: `docs/goals/G3Q.md`
 - Standing limitation: regenerative project questions are schedulable, but translating an
   admitted return and selected frontier candidate into an immutable implementation Goal
   remains an unrecorded external-orchestrator step.
 - Last sealed discriminator: `uv run pytest -q tests/acceptance/test_regenerative_questions.py`
-- Candidate branch: `codex/post-g3q-frontier` (documentation/evidence only)
-- Selected successor: G3G confined implementation-Goal synthesis
-- Status: selection evidence is under review; G3G implementation is not active until this
-  cycle is protected and `docs/goals/G3G.md` receives the resulting exact main anchor
+- Protected selection: PR #10, candidate `faf5c8b5f5a54b1598e8af03b71cf8f39c36d054`
+- Selected next Goal: `docs/goals/G3G.md`, confined implementation-Goal synthesis
+- Status: selection is protected and its seven-job post-merge run passed; G3G implementation
+  has not begun and requires a distinct active no-budget Goal
 
 This file is a replaceable derived handoff. Immutable completed-cycle reports belong in
 `docs/recursion/cycles/` and authoritative runtime evidence belongs in the ledger/CAS.

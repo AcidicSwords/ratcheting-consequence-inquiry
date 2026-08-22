@@ -250,9 +250,10 @@ successors distinct; a failure in one category does not authorize mutation in an
 ## Phase discipline
 
 G1, G2A, G2B, G3A-H, G3R, and G3Q are sealed verified baselines. The post-G3Q recursive
-frontier has selected G3G, but its implementation remains inactive until the selection
-cycle is protected and the Goal receives that exact main anchor. G3R added the recursive
-project-inquiry and candidate-development protocol described in
+frontier selection is protected at exact main anchor
+`60ff25635f94fb004e6419a09293c5e0fc023074`; G3G is the next no-budget implementation
+Goal, but no G3G code has begun. Work may start only under that separate active Goal.
+G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
 continuation checks, exact compression/recovery licensing, path residue, representation

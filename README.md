@@ -20,8 +20,9 @@ safely schedulable while every unadmitted candidate remains inert. Other nondomi
 roadmap successors remain explicit frontier members. The post-G3Q recurrence selected a
 confined Goal-synthesis discriminator: exact owned question returns may become inert,
 reviewable implementation-Goal candidates, while free-form commands, paths, execution,
-and promotion remain outside the runtime. Implementation is intentionally pending the
-selection cycle's protected promotion and exact anchor.
+and promotion remain outside the runtime. The selection is protected at exact main anchor
+`60ff25635f94fb004e6419a09293c5e0fc023074`; G3G implementation has not begun and requires
+its separate no-budget Goal.
 
 The package includes immutable records, pure `decide`/`evolve` transitions, deterministic
 replay, an append-only SQLite WAL ledger, content-addressed artifacts, finite reference
