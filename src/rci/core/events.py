@@ -28,6 +28,17 @@ from rci.core.effects import (
 )
 from rci.core.model import ArtifactRef, FrozenModel, Identifier, InquiryContext, require_utc
 from rci.core.planning import StepPlan
+from rci.learning.models import (
+    ConsolidationCandidate,
+    ConsolidationCheckpoint,
+    LearnedProbeCandidate,
+    MemoryPatchCandidate,
+    ProbeAdmissionDecision,
+    ProbeEvaluation,
+    ReconsolidationLink,
+    RepresentationGap,
+    SemanticFieldEvaluation,
+)
 from rci.memory.models import (
     ReacquisitionInquiryLink,
     ReacquisitionRequest,
@@ -268,6 +279,52 @@ class RecoveryComparisonRecorded(EventBase):
     comparison: RecoveryComparison
 
 
+class ConsolidationCheckpointRecorded(EventBase):
+    kind: Literal["consolidation_checkpoint_recorded"] = "consolidation_checkpoint_recorded"
+    checkpoint: ConsolidationCheckpoint
+
+
+class ConsolidationCandidateRecorded(EventBase):
+    kind: Literal["consolidation_candidate_recorded"] = "consolidation_candidate_recorded"
+    candidate: ConsolidationCandidate
+
+
+class MemoryPatchCandidateRecorded(EventBase):
+    kind: Literal["memory_patch_candidate_recorded"] = "memory_patch_candidate_recorded"
+    candidate: MemoryPatchCandidate
+
+
+class ReconsolidationLinked(EventBase):
+    kind: Literal["reconsolidation_linked"] = "reconsolidation_linked"
+    link: ReconsolidationLink
+
+
+class SemanticFieldEvaluationRecorded(EventBase):
+    kind: Literal["semantic_field_evaluation_recorded"] = "semantic_field_evaluation_recorded"
+    evaluation: SemanticFieldEvaluation
+    overflow_residual: Residual | None = None
+
+
+class RepresentationGapRecorded(EventBase):
+    kind: Literal["representation_gap_recorded"] = "representation_gap_recorded"
+    gap: RepresentationGap
+
+
+class LearnedProbeCandidateRecorded(EventBase):
+    kind: Literal["learned_probe_candidate_recorded"] = "learned_probe_candidate_recorded"
+    candidate: LearnedProbeCandidate
+
+
+class ProbeEvaluationRecorded(EventBase):
+    kind: Literal["probe_evaluation_recorded"] = "probe_evaluation_recorded"
+    evaluation: ProbeEvaluation
+
+
+class ProbeAdmissionDecisionRecorded(EventBase):
+    kind: Literal["probe_admission_decision_recorded"] = "probe_admission_decision_recorded"
+    decision: ProbeAdmissionDecision
+
+
 DomainEvent = Annotated[
     InquiryStarted
     | BacklogEffectRecorded
@@ -305,6 +362,15 @@ DomainEvent = Annotated[
     | ReacquisitionRequested
     | ReacquisitionInquiryLinked
     | RecoveryObservationRecorded
-    | RecoveryComparisonRecorded,
+    | RecoveryComparisonRecorded
+    | ConsolidationCheckpointRecorded
+    | ConsolidationCandidateRecorded
+    | MemoryPatchCandidateRecorded
+    | ReconsolidationLinked
+    | SemanticFieldEvaluationRecorded
+    | RepresentationGapRecorded
+    | LearnedProbeCandidateRecorded
+    | ProbeEvaluationRecorded
+    | ProbeAdmissionDecisionRecorded,
     Field(discriminator="kind"),
 ]

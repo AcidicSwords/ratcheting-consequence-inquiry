@@ -428,10 +428,20 @@ approximate license candidate only.
 
 G2A makes structural retrieval, candidate reconstruction, non-compressive
 retention registration, scaffold activation, and measured reacquisition inquiry
-executable. G2B later adds consolidation/reconsolidation, semantic-field
-evaluation, and candidate learned probes. G3 adds exact/approximate compression,
+executable. G2B adds deterministic consolidation/reconsolidation, conservative
+semantic-field evaluation, and checked candidate learned probes. G3 adds exact/approximate compression,
 route-specific recovery licences, licensed frontier budgets, residue, and
 reopening. None is part of the sealed G1 baseline.
+
+G2B uses four explicit pipelines. `consolidation-interleave-v1` records a source-
+prefix-pinned checkpoint before admitting an ordinary generalization claim and its
+attacks. `MemoryPatchCandidate` proposes versioned repair, while a separately checked
+application appends the successor lemma, correction, and dependency-preserving
+`ReconsolidationLink`. `conservative-question-field-v1` derives a bounded view and records
+only a diagnostic evaluation. A `RepresentationGap` may propose an inert learned probe;
+`finite-stratified-holdout-v1` and `g2b-probe-admission-v1` gate procedural admission.
+None of these paths writes a semantic fact, licence, control certificate, or writable
+semantic-field authority.
 
 ## Future opaque controlled-memory benchmark
 

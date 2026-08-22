@@ -36,10 +36,19 @@ from rci.core.commands import (
     PlanEffectAttempt,
     RecordAttemptOutcome,
     RecordBacklogEffect,
+    RecordConsolidationCandidate,
+    RecordConsolidationCheckpoint,
     RecordDecodeOutcome,
+    RecordLearnedProbeCandidate,
+    RecordMemoryPatchCandidate,
     RecordObligationDisposition,
+    RecordProbeAdmissionDecision,
+    RecordProbeEvaluation,
+    RecordReconsolidationLink,
     RecordRecoveryComparison,
     RecordRecoveryObservation,
+    RecordRepresentationGap,
+    RecordSemanticFieldEvaluation,
     RecordStepPlan,
     RegisterRetentionPackage,
     RequestEffect,
@@ -62,6 +71,23 @@ from rci.core.model import ArtifactRef, CapturedPayload, InquiryContext
 from rci.core.serialization import canonical_json_bytes, sha256_digest
 from rci.core.state import InquiryState
 from rci.core.transitions import decide, evolve
+from rci.learning import (
+    ConsolidationCandidate,
+    ConsolidationCheckpoint,
+    ConsolidationPolicy,
+    LearnedProbeCandidate,
+    MemoryPatchCandidate,
+    ProbeAdmissionDecision,
+    ProbeEvaluation,
+    ReconsolidationLink,
+    RepresentationGap,
+    SemanticFieldEvaluation,
+    SemanticFieldPolicy,
+    derive_conservative_field,
+    evaluate_conservative_field,
+    select_consolidation_checkpoint,
+    semantic_field_overflow_residual,
+)
 from rci.memory import (
     STRUCTURAL_EXACT_V1,
     MemoryOwner,
@@ -90,7 +116,7 @@ from rci.orchestration import (
 )
 from rci.persistence import ArtifactStore, SQLiteEventStore
 from rci.questions import bind_answer, get_contract, render_question
-from rci.questions.catalog import CATALOG_V0_3, CORE_V1
+from rci.questions.catalog import CATALOG_V0_3, CATALOG_V0_4, CORE_V1
 from rci.questions.models import QuestionContract
 from rci.warrant import CheckReference
 
@@ -221,15 +247,25 @@ class RCI:
             guard_ast=None,
             finite_universe_hash=scope.finite_universe_hash,
             closed_world=scope.closed_world,
-            catalog_manifest_digest=CATALOG_V0_3.digest,
+            catalog_manifest_digest=CATALOG_V0_4.digest,
             scheduler_policy_version="deterministic-scheduler-v1",
             warrant_policy_version="g1-warrant-v1",
             provenance_refs=("sdk-default-binding-v1",),
         )
 
     def _inquiry_manifest_artifact(self, context: InquiryContext) -> ArtifactRef:
+        catalog = next(
+            (
+                item
+                for item in (CATALOG_V0_3, CATALOG_V0_4)
+                if item.digest == context.catalog_manifest_digest
+            ),
+            None,
+        )
+        if catalog is None:
+            raise ValueError("inquiry context names an unsupported question catalog digest")
         catalog_ref = self.artifacts.put_bytes(
-            canonical_json_bytes(CATALOG_V0_3),
+            canonical_json_bytes(catalog),
             media_type="application/vnd.rci.question-catalog+json",
             encoding="utf-8",
         )
@@ -237,7 +273,7 @@ class RCI:
             {
                 "schema_version": 1,
                 "context": context.model_dump(mode="json"),
-                "question_catalog_digest": CATALOG_V0_3.digest,
+                "question_catalog_digest": catalog.digest,
                 "question_catalog_artifact": catalog_ref.model_dump(mode="json"),
             }
         )
@@ -466,12 +502,15 @@ class RCI:
             media_type="application/vnd.rci.question-contract+json",
             encoding="utf-8",
         )
+        inquiry_context = self.inspect(inquiry_id).context
+        if inquiry_context is None:
+            raise RuntimeError("manual request requires a started inquiry context")
         envelope = _QuestionEnvelope(
             obligation_id=obligation.id,
             obligation_fingerprint=obligation.fingerprint,
             contract_id=contract.id,
             contract_version=contract.version,
-            catalog_manifest_digest=CATALOG_V0_3.digest,
+            catalog_manifest_digest=inquiry_context.catalog_manifest_digest,
             contract_artifact=contract_ref,
             rendered_question=rendered,
         )
@@ -807,6 +846,218 @@ class RCI:
                     ),
                 ),
             ),
+        )
+
+    def consolidation_checkpoint(
+        self,
+        inquiry_id: str,
+        *,
+        checkpoint_id: str,
+        policy: ConsolidationPolicy | None = None,
+    ) -> ConsolidationCheckpoint:
+        """Select and persist the exact deterministic consolidation source prefix."""
+
+        state = self.inspect(inquiry_id)
+        if state.context is None:
+            raise RuntimeError("consolidation requires a started inquiry")
+        selected_policy = policy or ConsolidationPolicy()
+        checkpoint = select_consolidation_checkpoint(
+            checkpoint_id=checkpoint_id,
+            policy=selected_policy,
+            source_sequence=state.sequence,
+            scope_fingerprint=state.context.scope_fingerprint,
+            binding_revision=state.context.binding_revision,
+            protected_horizon_id=state.context.protected_horizon_id,
+            probe_observations=state.probe_observations,
+            claims=state.claims,
+            conflicts=state.conflicts,
+            mismatches=state.mismatches,
+            accepted_counterexample_requests={
+                item.request.id: item for item in state.effect_requests
+            },
+        )
+        self.dispatch(
+            RecordConsolidationCheckpoint(
+                event_id=_stable_id("evt", inquiry_id, checkpoint.id, "consolidated"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                checkpoint=checkpoint,
+            )
+        )
+        return checkpoint
+
+    def record_consolidation_candidate(
+        self, inquiry_id: str, candidate: ConsolidationCandidate
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordConsolidationCandidate(
+                event_id=_stable_id("evt", inquiry_id, candidate.id, "candidate"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                candidate=candidate,
+            )
+        )
+
+    def propose_consolidation(
+        self,
+        inquiry_id: str,
+        *,
+        claim: Claim,
+        challenge_obligations: tuple[Obligation, ...],
+        candidate: ConsolidationCandidate,
+    ) -> InquiryState:
+        """Atomically create only an ordinary claim, attacks, and a candidate boundary."""
+
+        now = self.clock()
+        commands: list[DomainCommand] = [
+            AdmitClaim(
+                event_id=_stable_id("evt", inquiry_id, claim.id, "consolidation-claim"),
+                inquiry_id=inquiry_id,
+                occurred_at=now,
+                claim=claim,
+            )
+        ]
+        commands.extend(
+            OpenObligation(
+                event_id=_stable_id("evt", inquiry_id, item.id, "consolidation-attack"),
+                inquiry_id=inquiry_id,
+                occurred_at=now,
+                obligation=item,
+            )
+            for item in challenge_obligations
+        )
+        commands.append(
+            RecordConsolidationCandidate(
+                event_id=_stable_id("evt", inquiry_id, candidate.id, "candidate"),
+                inquiry_id=inquiry_id,
+                occurred_at=now,
+                candidate=candidate,
+            )
+        )
+        return self.dispatch_batch(inquiry_id, commands)
+
+    def record_memory_patch(self, inquiry_id: str, candidate: MemoryPatchCandidate) -> InquiryState:
+        return self.dispatch(
+            RecordMemoryPatchCandidate(
+                event_id=_stable_id("evt", inquiry_id, candidate.id, "memory-patch"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                candidate=candidate,
+            )
+        )
+
+    def record_reconsolidation_link(
+        self, inquiry_id: str, link: ReconsolidationLink
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordReconsolidationLink(
+                event_id=_stable_id("evt", inquiry_id, link.id, "reconsolidated"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                link=link,
+            )
+        )
+
+    def evaluate_semantic_field(
+        self,
+        inquiry_id: str,
+        *,
+        evaluation_id: str,
+        probe_fingerprint: str,
+        safety_structure_ids: tuple[str, ...] = (),
+        exception_structure_ids: tuple[str, ...] = (),
+        dependency_structure_ids: tuple[str, ...] = (),
+        retrieval_structure_ids: tuple[str, ...] = (),
+        policy: SemanticFieldPolicy | None = None,
+    ) -> SemanticFieldEvaluation:
+        """Derive and persist one bounded conservative field diagnostic."""
+
+        state = self.inspect(inquiry_id)
+        probe = next(
+            (item for item in state.admitted_probes if item.fingerprint == probe_fingerprint),
+            None,
+        )
+        if probe is None:
+            raise ValueError("semantic-field evaluation requires an admitted probe")
+        selected_policy = policy or SemanticFieldPolicy()
+        field, required, overflow, source_index = derive_conservative_field(
+            probe_identity=probe,
+            source_sequence=state.sequence,
+            policy=selected_policy,
+            safety_structure_ids=safety_structure_ids,
+            exception_structure_ids=exception_structure_ids,
+            dependency_structure_ids=dependency_structure_ids,
+            retrieval_structure_ids=retrieval_structure_ids,
+        )
+        evaluation = evaluate_conservative_field(
+            evaluation_id=evaluation_id,
+            field=field,
+            policy=selected_policy,
+            source_sequence=state.sequence,
+            source_index_fingerprint=source_index,
+            probe_fingerprint=probe_fingerprint,
+            required_structure_ids=required,
+            overflow_structure_ids=overflow,
+        )
+        if state.context is None:
+            raise RuntimeError("semantic-field evaluation requires inquiry context")
+        overflow_residual = semantic_field_overflow_residual(
+            evaluation,
+            self._scope_from_context(state.context),
+        )
+        self.dispatch(
+            RecordSemanticFieldEvaluation(
+                event_id=_stable_id("evt", inquiry_id, evaluation.id, "field-evaluated"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                evaluation=evaluation,
+                overflow_residual=overflow_residual,
+            )
+        )
+        return evaluation
+
+    def record_representation_gap(self, inquiry_id: str, gap: RepresentationGap) -> InquiryState:
+        return self.dispatch(
+            RecordRepresentationGap(
+                event_id=_stable_id("evt", inquiry_id, gap.id, "gap"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                gap=gap,
+            )
+        )
+
+    def record_learned_probe_candidate(
+        self, inquiry_id: str, candidate: LearnedProbeCandidate
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordLearnedProbeCandidate(
+                event_id=_stable_id("evt", inquiry_id, candidate.id, "probe-candidate"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                candidate=candidate,
+            )
+        )
+
+    def record_probe_evaluation(self, inquiry_id: str, evaluation: ProbeEvaluation) -> InquiryState:
+        return self.dispatch(
+            RecordProbeEvaluation(
+                event_id=_stable_id("evt", inquiry_id, evaluation.id, "probe-evaluated"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                evaluation=evaluation,
+            )
+        )
+
+    def record_probe_admission(
+        self, inquiry_id: str, decision: ProbeAdmissionDecision
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordProbeAdmissionDecision(
+                event_id=_stable_id("evt", inquiry_id, decision.id, "probe-admission"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                decision=decision,
+            )
         )
 
     def register_retention_package(

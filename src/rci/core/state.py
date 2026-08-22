@@ -23,6 +23,17 @@ from rci.claims.models import (
 from rci.core.effects import EffectRequestState, ReturnedOutcome
 from rci.core.model import ArtifactRef, FrozenModel, Identifier, InquiryContext
 from rci.core.planning import PlanStatus, StepPlan
+from rci.learning.models import (
+    ConsolidationCandidate,
+    ConsolidationCheckpoint,
+    LearnedProbeCandidate,
+    MemoryPatchCandidate,
+    ProbeAdmissionDecision,
+    ProbeEvaluation,
+    ReconsolidationLink,
+    RepresentationGap,
+    SemanticFieldEvaluation,
+)
 from rci.memory.models import (
     ConsequenceEvaluationRoute,
     DirectUseRoute,
@@ -140,6 +151,15 @@ class InquiryState(FrozenModel):
     reacquisition_inquiry_links: tuple[ReacquisitionInquiryLink, ...] = ()
     recovery_observations: tuple[RecoveryObservation, ...] = ()
     recovery_comparisons: tuple[RecoveryComparison, ...] = ()
+    consolidation_checkpoints: tuple[ConsolidationCheckpoint, ...] = ()
+    consolidation_candidates: tuple[ConsolidationCandidate, ...] = ()
+    memory_patch_candidates: tuple[MemoryPatchCandidate, ...] = ()
+    reconsolidation_links: tuple[ReconsolidationLink, ...] = ()
+    semantic_field_evaluations: tuple[SemanticFieldEvaluation, ...] = ()
+    representation_gaps: tuple[RepresentationGap, ...] = ()
+    learned_probe_candidates: tuple[LearnedProbeCandidate, ...] = ()
+    probe_evaluations: tuple[ProbeEvaluation, ...] = ()
+    probe_admission_decisions: tuple[ProbeAdmissionDecision, ...] = ()
 
     @property
     def owned_memory_records(self) -> Mapping[str, object]:
@@ -336,6 +356,15 @@ class InquiryState(FrozenModel):
                     self.reacquisition_inquiry_links,
                     self.recovery_observations,
                     self.recovery_comparisons,
+                    self.consolidation_checkpoints,
+                    self.consolidation_candidates,
+                    self.memory_patch_candidates,
+                    self.reconsolidation_links,
+                    self.semantic_field_evaluations,
+                    self.representation_gaps,
+                    self.learned_probe_candidates,
+                    self.probe_evaluations,
+                    self.probe_admission_decisions,
                 )
             ):
                 raise ValueError("an unstarted inquiry cannot contain domain records")
@@ -425,6 +454,15 @@ class InquiryState(FrozenModel):
             tuple(item.id for item in self.reacquisition_inquiry_links),
             tuple(item.id for item in self.recovery_observations),
             tuple(item.id for item in self.recovery_comparisons),
+            tuple(item.id for item in self.consolidation_checkpoints),
+            tuple(item.id for item in self.consolidation_candidates),
+            tuple(item.id for item in self.memory_patch_candidates),
+            tuple(item.id for item in self.reconsolidation_links),
+            tuple(item.id for item in self.semantic_field_evaluations),
+            tuple(item.id for item in self.representation_gaps),
+            tuple(item.id for item in self.learned_probe_candidates),
+            tuple(item.id for item in self.probe_evaluations),
+            tuple(item.id for item in self.probe_admission_decisions),
         )
         for identifiers in identified_collections:
             if len(identifiers) != len(set(identifiers)):
@@ -432,6 +470,81 @@ class InquiryState(FrozenModel):
         probe_fingerprints = [probe.fingerprint for probe in self.admitted_probes]
         if len(probe_fingerprints) != len(set(probe_fingerprints)):
             raise ValueError("admitted recurrent probe identities must be unique")
+
+        checkpoint_ids = {item.id for item in self.consolidation_checkpoints}
+        claim_ids_for_learning = {item.id for item in self.claims}
+        obligation_ids_for_learning = {item.id for item in self.obligations}
+        for candidate in self.consolidation_candidates:
+            if (
+                candidate.checkpoint_id not in checkpoint_ids
+                or candidate.generalization_claim_id not in claim_ids_for_learning
+                or not set(
+                    (
+                        *candidate.challenge_obligation_ids,
+                        *candidate.boundary.open_dependency_obligation_ids,
+                    )
+                )
+                <= obligation_ids_for_learning
+            ):
+                raise ValueError("consolidation candidates require owned source records")
+        mismatch_ids = {item.id for item in self.mismatches}
+        captured_return_ids = self.captured_external_return_ids
+        lemma_ids_for_learning = {item.id for item in self.lemma_versions}
+        route_ids_for_learning = {
+            route.id for support in self.lemma_supports for route in support.all_support_routes
+        }
+        for patch in self.memory_patch_candidates:
+            if (
+                patch.target_lemma_id not in lemma_ids_for_learning
+                or patch.triggering_mismatch_id not in mismatch_ids
+                or patch.triggering_return_id not in captured_return_ids
+                or patch.proposed_claim_id not in claim_ids_for_learning
+                or not set(patch.predecessor_support_route_ids) <= route_ids_for_learning
+                or not set(patch.challenge_obligation_ids) <= obligation_ids_for_learning
+            ):
+                raise ValueError("memory patches require owned immutable predecessors")
+        patch_ids = {item.id for item in self.memory_patch_candidates}
+        correction_ids = {item.id for item in self.corrections}
+        warrant_ids_for_learning = {item.id for item in self.warrant_decisions}
+        for reconsolidation_link in self.reconsolidation_links:
+            if (
+                reconsolidation_link.memory_patch_id not in patch_ids
+                or reconsolidation_link.predecessor_lemma_id not in lemma_ids_for_learning
+                or reconsolidation_link.successor_lemma_id not in lemma_ids_for_learning
+                or reconsolidation_link.correction_id not in correction_ids
+                or reconsolidation_link.warrant_decision_id not in warrant_ids_for_learning
+            ):
+                raise ValueError("reconsolidation links require owned succession evidence")
+        gap_ids = {item.id for item in self.representation_gaps}
+        for gap in self.representation_gaps:
+            if gap.obligation_id not in obligation_ids_for_learning:
+                raise ValueError("representation gaps require an owned obligation")
+        candidate_probe_ids = {item.id for item in self.learned_probe_candidates}
+        for learned_candidate in self.learned_probe_candidates:
+            if (
+                learned_candidate.representation_gap_id not in gap_ids
+                or not set(learned_candidate.challenge_obligation_ids)
+                <= obligation_ids_for_learning
+            ):
+                raise ValueError("learned-probe candidates require owned gaps and attacks")
+        evaluation_ids = {item.id for item in self.probe_evaluations}
+        observation_ids_for_learning = {item.id for item in self.probe_observations}
+        for evaluation in self.probe_evaluations:
+            if (
+                evaluation.candidate_probe_id not in candidate_probe_ids
+                or not {
+                    *evaluation.training_observation_ids,
+                    *evaluation.holdout_observation_ids,
+                }
+                <= observation_ids_for_learning
+            ):
+                raise ValueError("probe evaluations require owned candidates and observations")
+        for admission_decision in self.probe_admission_decisions:
+            if (
+                admission_decision.candidate_probe_id not in candidate_probe_ids
+                or admission_decision.evaluation_id not in evaluation_ids
+            ):
+                raise ValueError("probe admission decisions require owned evaluations")
 
         claim_ids = {claim.id for claim in self.claims}
         if any(not set(conflict.claim_ids) <= claim_ids for conflict in self.conflicts):

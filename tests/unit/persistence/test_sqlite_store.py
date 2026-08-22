@@ -435,6 +435,41 @@ def test_v1_snapshot_is_discarded_and_rebuilt_without_changing_ledger_or_project
     assert rebuilt_snapshot.source_event_digest == snapshot.source_event_digest
 
 
+def test_g2a_fold_v2_snapshot_is_rebuilt_as_v3_without_changing_events(
+    tmp_path: Path,
+) -> None:
+    artifacts = ArtifactStore(tmp_path / "artifacts")
+    events, states, _ = build_history(artifacts)
+    database = tmp_path / "state.sqlite3"
+    store = SQLiteEventStore(database, artifact_store=artifacts)
+    store.append("inquiry-1", 0, events)
+    original_export = store.export_stream("inquiry-1")
+    store.save_snapshot("inquiry-1", states[-1])
+
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TRIGGER snapshots_forbid_update")
+        connection.execute(
+            "UPDATE snapshots SET fold_schema_version = ? WHERE stream_id = ?",
+            ("rci.inquiry-state.v2", "inquiry-1"),
+        )
+        connection.execute(
+            """
+            CREATE TRIGGER snapshots_forbid_update
+            BEFORE UPDATE ON snapshots
+            BEGIN
+                SELECT RAISE(ABORT, 'snapshots are immutable');
+            END
+            """
+        )
+
+    reopened = SQLiteEventStore(database, artifact_store=artifacts)
+    assert reopened.load_latest_snapshot("inquiry-1") is None
+    assert reopened.rebuild_state("inquiry-1") == states[-1]
+    assert reopened.export_stream("inquiry-1") == original_export
+    rebuilt = reopened.save_snapshot("inquiry-1", states[-1])
+    assert rebuilt.fold_schema_version == "rci.inquiry-state.v3"
+
+
 def test_failed_batch_rolls_back_and_resume_is_consistent(tmp_path: Path) -> None:
     artifacts = ArtifactStore(tmp_path / "artifacts")
     events, states, _ = build_history(artifacts)

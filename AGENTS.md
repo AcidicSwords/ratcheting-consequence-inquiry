@@ -183,9 +183,9 @@ license itself.
 
 ## Phase discipline
 
-G1 is a sealed verified baseline. The active G2A Goal adds only deterministic retrieval,
-candidate reconstruction, non-compressive retention registration, and measured
-reacquisition described in `PLAN.md` and ADR-0009.
+G1 and G2A are sealed verified baselines. The active G2B Goal adds only deterministic
+consolidation, versioned reconsolidation, conservative semantic-field evaluation, and
+checked learned-probe admission described in `PLAN.md`, ADR-0009, and ADR-0010.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
@@ -196,9 +196,10 @@ reacquisition described in `PLAN.md` and ADR-0009.
   equality, negation, conjunction, disjunction, implication, equivalence. No arbitrary
   code or quantifiers. Keep an independent interpreter/exhaustive enumerator beside the
   optional Z3 translator.
-- G2B consolidation/reconsolidation, semantic-field evaluation, learned probes, and
-  automata remain deferred. Exact/approximate compression, licensed recovery routes,
-  and the linear consequence quotient are G3. CHC/PDR is G4, control G5,
+- G2B may admit a learned probe only after deterministic holdout, redundancy,
+  protected-behavior, attack, and controller-policy checks. Learned automata remain
+  unnecessary. Exact/approximate compression, licensed recovery routes, and the linear
+  consequence quotient are G3. CHC/PDR is G4, control G5,
   multi-backend warrant G6, and the complete opaque-controlled-memory benchmark plus
   hardening/release is G7.
 - Future findings enter the requirements matrix/backlog without expanding the Goal.
@@ -208,6 +209,11 @@ reacquisition request, child inquiry creation, and parent linkage form a resumab
 every partial prefix stays open. Bump folded-state/snapshot/projection schemas only when
 needed, rebuild incompatible derived state from the ledger, and preserve archived G1
 stream semantics.
+
+G2B adds new version-1 event kinds without changing G1 or G2A event classes. A
+consolidation checkpoint is not knowledge; a memory patch is not its own repair; a field
+evaluation is not authority; and a generated probe is not procedural knowledge until the
+versioned admission policy and independent checks pass. Preserve sealed G1/G2A replay.
 
 Compression semantics are documented now but not executable in G1. Preserve exact
 quotient vs approximate license, reconstruction loss vs consequence loss, object
@@ -244,11 +250,18 @@ uv run rci --help
 uv build
 ```
 
-The active G2A gate adds this focused command, identically present in `PLAN.md`,
+The sealed G2A gate adds this focused command, identically present in `PLAN.md`,
 `docs/goals/G2A.md`, CI, and `docs/verification.md`:
 
 ```text
 uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
+```
+
+The active G2B gate adds this focused command, identically present in `PLAN.md`,
+`docs/goals/G2B.md`, CI, and `docs/verification.md`:
+
+```text
+uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
 ```
 
 Dependency sync is bootstrap and may fetch locked packages. Test execution is

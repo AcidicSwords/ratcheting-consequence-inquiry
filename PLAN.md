@@ -173,7 +173,7 @@ undetermined, and warranted-irrelevant regions. A model's relevance judgment nev
 suppresses inquiry. Fresh observation may withhold prior answers until the external
 return is captured; comparison happens afterward.
 
-### Cognitive spine and G2A recovery slice
+### Cognitive spine and G2 recovery slices
 
 The verified G1 slice implements stable versioned recurrent-probe identity,
 ordered comparable `ProbeTrace`, optional immutable prediction sealed before an attempt,
@@ -182,9 +182,9 @@ raw return capture, candidate decode/reconstruction, independently warranted
 rewrites the return; return never rewrites prediction; reconstruction is neither history
 nor knowledge.
 
-Active G2A adds deterministic structural retrieval, explicit reconstruction candidates,
-non-compressive retention registration, and measured reacquisition. G2B separately owns
-consolidation, reconsolidation, semantic-field evaluation, and learned-probe candidates;
+Verified G2A adds deterministic structural retrieval, explicit reconstruction candidates,
+non-compressive retention registration, and measured reacquisition. Active G2B owns
+consolidation, reconsolidation, semantic-field evaluation, and learned-probe admission;
 self-cleaning and mature retention economics remain later work.
 
 Retention is relational rather than a nominal memory-object type. Keep four recovery
@@ -311,7 +311,7 @@ The route binding uses `start -> gate -> target` and
 `start -> bypass -> {target, dead_end}`. The bypass refutes gate prerequisite; its
 nondeterminism yields may-reachability and never must-control.
 
-### G2A — deterministic retrieval, reconstruction, and recovery (active)
+### G2A — deterministic retrieval, reconstruction, and recovery (verified)
 
 Deliver strict `RetrievalQuery`/`RetrievalHit`/`RetrievalResult` records, a versioned
 structural policy, ambiguous candidate reconstruction, and non-compressive
@@ -332,14 +332,22 @@ versions advance when required and old derived state rebuilds. Archived G1 strea
 replay with unchanged G1 semantics. Recovery routes remain provisional and unlicensed;
 no comparison can create warrant or a `RecoveryLicense`.
 
-### G2B — consolidation and learned-probe candidates (deferred)
+### G2B — consolidation and learned-probe candidates (active)
 
-After G2A passes, add explicit consolidation checkpoints selecting recent episodes,
-older exceptions, and counterexamples. Consolidation creates ordinary claims, attacks,
-and obligations rather than semantic facts. Reconsolidation appends corrections and
-successor lemma versions. Semantic-field evaluation and candidate learned probes or
-automata require holdout evaluation, attacks, controller admission, and independent
-warrant. AALpy remains optional and absent unless a later dependency ADR proves need.
+Use `consolidation-interleave-v1` to create explicit checkpoints selecting up to four
+recent episodes, four older exceptions, and four accepted counterexamples from a pinned
+source prefix. Consolidation creates ordinary claims, attacks, candidate support
+boundaries, and obligations rather than semantic facts. One episode cannot self-
+consolidate and available defeating material cannot be silently omitted.
+
+Reconsolidation appends `MemoryPatchCandidate`, successor lemma, typed correction, and
+`ReconsolidationLink` records while preserving predecessor history and transporting open
+dependencies. `conservative-question-field-v1` derives and independently evaluates a
+stable maximum 32-item field; overflow remains undetermined. `finite-stratified-holdout-
+v1` and `g2b-probe-admission-v1` require positive nonredundant holdout discrimination,
+protected-behavior checks, completed attacks, and controller admission before a generated
+probe enters procedural memory. AALpy, learned automata, embeddings, compression,
+licensing, and control remain absent.
 
 G2A and G2B are internal delivery gates under the existing RCI-058; stable requirement
 IDs are not renumbered. RCI-058 finishes only after G2B's bounded Goal passes.
@@ -422,11 +430,18 @@ uv run rci --help
 uv build
 ```
 
-Active G2A also requires this focused acceptance command, identically present in AGENTS,
+Verified G2A also requires this focused acceptance command, identically present in AGENTS,
 the G2A Goal, CI, and the verification record:
 
 ```text
 uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
+```
+
+Active G2B also requires this focused acceptance command, identically present in AGENTS,
+the G2B Goal, CI, and the verification record:
+
+```text
+uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
 ```
 
 Synchronization may fetch locked packages; test execution is credential-free,

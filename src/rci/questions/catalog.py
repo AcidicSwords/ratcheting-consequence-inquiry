@@ -151,9 +151,39 @@ CATALOG_V0_3 = QuestionCatalog(
     profiles=(CORE_V1,),
 )
 
+LEARNED_RECURRENT_PROBE = QuestionContract(
+    id="learned-recurrent-probe",
+    version="1.0.0",
+    family="learned-recurrent-perceptual",
+    input_roles=("carrier",),
+    output_claim_role=ClaimRole.PATTERN,
+    precondition_policy_id="admitted-learned-probe-v1",
+    render_template="What protected distinction does the admitted probe reveal for {carrier}?",
+    next_obligation_rule_ids=("retain-provisional-pattern-or-record-unknown-v1",),
+    maturity=ContractMaturity.STABLE,
+    recurrent_probe=True,
+    comparison_semantics_id="candidate-bound-exact-v1",
+    canonical_probe_rendering="learned-recurrent-probe-v1",
+    applicability_guard_id="always",
+    history_policy_id="fresh-before-history-v1",
+)
+
+G2B_COGNITIVE_V1 = QuestionProfile(
+    id="g2b-cognitive-v1",
+    version="1.0.0",
+    contract_keys=(LEARNED_RECURRENT_PROBE.key,),
+)
+
+CATALOG_V0_4 = QuestionCatalog(
+    id="rci-question-catalog",
+    version="0.4.0",
+    contracts=(*CATALOG_V0_3.contracts, LEARNED_RECURRENT_PROBE),
+    profiles=(*CATALOG_V0_3.profiles, G2B_COGNITIVE_V1),
+)
+
 
 def get_contract(contract_id: str, version: str = "1.0.0") -> QuestionContract:
-    for contract in CATALOG_V0_3.contracts:
+    for contract in CATALOG_V0_4.contracts:
         if contract.id == contract_id and contract.version == version:
             return contract
     raise KeyError(f"unknown question contract {contract_id}@{version}")

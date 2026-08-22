@@ -11,7 +11,7 @@ from rci.core.serialization import canonical_json_bytes, decode_event, encode_ev
 from rci.persistence import SQLiteEventStore
 
 FIXTURE_ROOT = Path(__file__).parents[1] / "fixtures" / "g1"
-G2A_STATE_COLLECTIONS = (
+POST_G1_STATE_COLLECTIONS = (
     "direct_use_routes",
     "reconstruction_routes",
     "consequence_evaluation_routes",
@@ -26,6 +26,15 @@ G2A_STATE_COLLECTIONS = (
     "reacquisition_inquiry_links",
     "recovery_observations",
     "recovery_comparisons",
+    "consolidation_checkpoints",
+    "consolidation_candidates",
+    "memory_patch_candidates",
+    "reconsolidation_links",
+    "semantic_field_evaluations",
+    "representation_gaps",
+    "learned_probe_candidates",
+    "probe_evaluations",
+    "probe_admission_decisions",
 )
 
 
@@ -73,7 +82,7 @@ def test_archived_g1_stream_decodes_replays_and_reexports_byte_identically(
         sha256(canonical_json_bytes(g1_projection)).hexdigest()
         == manifest["g1_state_projection_sha256"]
     )
-    assert all(getattr(state, field_name) == () for field_name in G2A_STATE_COLLECTIONS)
+    assert all(getattr(state, field_name) == () for field_name in POST_G1_STATE_COLLECTIONS)
 
     store = SQLiteEventStore(tmp_path / "compatibility.sqlite3")
     store.append(manifest["stream_id"], 0, events)
