@@ -17,8 +17,8 @@ Status vocabulary:
   does not claim a later milestone;
 - **verified G2A** — the cited implementation and local plus hosted
   Windows/Linux/Docker verification exist;
-- **local-verified G2B** — the cited implementation and complete native gate pass, while
-  protected hosted verification remains pending;
+- **hosted-verified G2B PR** — local and protected pull-request Windows/Linux/Docker
+  verification pass; the post-merge `main` run remains the completion boundary;
 - **deferred Gx** — outside the active Goal and assigned to that milestone;
 - **research** — requires a later explicit Goal and warranted method choice.
 
@@ -108,7 +108,7 @@ Status vocabulary:
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
 | RCI-057 | G1 is Foundation + Phases 1–2 + bounded cognitive spine | verified G1 | `docs/goals/G1.md`, Python packaging, native Windows/Linux CI, pinned supplementary Docker image, and the implementation evidence itemized above. The frozen 12-command native gate is recorded with all commands exiting 0 in `docs/verification.md`; later retrieval/compression/formal-control/release capabilities remain absent or inert as assigned. |
-| RCI-058 | G2 adds retrieval/consolidation/retention/probes/reacquisition | verified G2A; local-verified G2B, hosted gate pending | ADR-0009, ADR-0010, and `docs/goals/G2B.md`; G2A is hosted-verified. G2B implements deterministic interleaved checkpoints, ordinary-claim consolidation with attacks, immutable repair records, recomputed bounded fields with overflow residuals, content-bound finite holdout checks, and controller-only probe admission. The complete local gate passed with 170 tests plus the focused circuit acceptance; RCI-058 completes only after protected hosted and post-merge checks pass. |
+| RCI-058 | G2 adds retrieval/consolidation/retention/probes/reacquisition | verified G2A; hosted-verified G2B PR, post-merge pending | ADR-0009, ADR-0010, and `docs/goals/G2B.md`; G2A is hosted-verified. G2B implements deterministic interleaved checkpoints, ordinary-claim consolidation with attacks, immutable repair records, recomputed bounded fields with overflow residuals, content-bound finite holdout checks, and controller-only probe admission. The complete local gate passed with 170 tests and the five protected pull-request jobs passed on Windows/Linux/Docker. RCI-058 completes only after the documentation checks and post-merge `main` workflow pass. |
 | RCI-059 | G3A/B/C gate exact, approximate, then native compression | deferred G3 | future three bounded Goals |
 | RCI-060 | G4–G7 remain separately gated | deferred G4–G7 | later Goals; no G1 stubs |
 | RCI-061 | Backlog policy is human-owned and close proposal-only | verified G1 | tracked `.rci/config.toml`; pure reconciliation/apply allowlist; dedicated `BacklogEffectRecorded` ledger ownership rather than synthetic external-return evidence; shadow non-mutation, close proposal-only, checked-evidence, repeat-apply, out-of-order mutation, and linked-recurrence tests |

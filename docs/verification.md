@@ -537,5 +537,19 @@ licence. Frozen G1 replay remains byte-identical, existing G2A acceptance remain
 and the G1/G2A event class definitions were not changed; G2B adds only new version-1
 event kinds and folded-state schema v3.
 
-Hosted Windows/Linux/extras/Docker and post-merge `main` conclusions remain pending until
-the G2B pull request is pushed and all protected checks complete.
+## G2B hosted pull-request verification — 2026-08-22
+
+Implementation commit `1154d67e7081db49aa206eea5f639dce2f963c48` was pushed in
+[pull request 2](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/2).
+The protected [pull-request workflow](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32576659315)
+completed successfully with all five unique jobs:
+
+- [`base (ubuntu-latest)`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32576659315/job/97039887350): success;
+- [`base (windows-latest)`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32576659315/job/97039887391): success;
+- [`extras (ubuntu-latest)`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32576659315/job/97039887397): success;
+- [`extras (windows-latest)`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32576659315/job/97039887364): success;
+- [`docker`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32576659315/job/97039887392): success.
+
+The independent [branch-push workflow](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32576657003)
+also completed all five jobs successfully. The documentation commit and its protected
+checks must pass before merge; the post-merge `main` run remains the final G2B gate.
