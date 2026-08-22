@@ -6,8 +6,9 @@ returns in `docs/verification.md`. Its sole Windows skip is preserved there: the
 host lacked file-symlink privilege (`WinError 1314`), so the adversarial symlink
 case remains live for Linux CI and privileged Windows while the implementation's
 other link/reparse-point and bounds checks passed. G2A is sealed and verified.
-G2B is sealed and verified. G3A-H is implemented and locally verified on its protected
-branch; hosted pull-request and post-merge verification remain the completion boundary.
+G2B is sealed and verified. G3A-H is implemented and locally plus pull-request verified
+on its protected branch; protected-main merge and post-merge verification remain the
+completion boundary.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
 
@@ -23,8 +24,9 @@ Status vocabulary:
   verification pass;
 - **accepted v0.4** — normalized semantic/architecture evidence exists while executable
   evidence remains assigned to G3A-H or later;
-- **implemented G3A-H; hosted gate pending** — bounded exact history-state code and local
-  evidence pass, while protected hosted and post-merge checks remain outstanding;
+- **implemented G3A-H; post-merge gate pending** — bounded exact history-state code and
+  local plus protected pull-request evidence pass, while protected-main and post-merge
+  checks remain outstanding;
 - **deferred Gx** — outside the active Goal and assigned to that milestone;
 - **research** — requires a later explicit Goal and warranted method choice.
 
@@ -33,13 +35,13 @@ Status vocabulary:
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
 | RCI-001 | Authority and complete traceability | accepted v0.4 | `docs/source-manifest.md`, ADR-0001, ADR-0011, this matrix, and the RCI-001--RCI-071 coverage check in `docs/verification.md` |
-| RCI-002 | Pinned binding, scope, guard, universe, policy, and explicit carrier roles | implemented G3A-H; hosted gate pending | sealed `InquiryContext`/`Scope` remain unchanged; `BindingCarrierManifest` declares exact carrier roles without mutating `InquiryStarted` |
+| RCI-002 | Pinned binding, scope, guard, universe, policy, and explicit carrier roles | implemented G3A-H; post-merge gate pending | sealed `InquiryContext`/`Scope` remain unchanged; `BindingCarrierManifest` declares exact carrier roles without mutating `InquiryStarted` |
 | RCI-003 | Questions create provisional claims, not facts | verified G1 | `QuestionContract` pins role, `AnswerShape`, `answer_schema_id`, binding policy, and lawful follow-ups; `bind_answer` fails closed on an unregistered shape/schema/policy and produces only a provisional L0 claim. `test_only_core_v1_is_schedulable_and_rendering_is_literal` and the Phase 1 vertical slice cover the typed path. |
 | RCI-004 | Arbitrary payloads remain inert L0 data | verified G1 | `freeze_json`, `InertPayload`, CAS-backed bytes; `test_arbitrary_l0_payload_is_inert_and_artifacts_are_references`, `test_nested_payloads_are_snapshot_immutable`, and replay of binary L0 bytes |
 | RCI-005 | Unknown and failure kinds remain distinct | verified G1 | closed effect/decode/check/result enums; `test_no_attempt_disposition_is_distinct_from_returned_null`, `test_no_attempt_and_cancelled_are_not_semantic_unknown`, `test_budget_exhaustion_is_unknown_not_impossibility`, OpenAI timeout/transport tests, and CAS null/empty distinctions |
 | RCI-006 | Description/may-reachability do not imply control | verified G1 bounded seam; control deferred G5 | `RouteDemonstration`; `test_two_route_graph_proves_may_reach_but_refutes_prerequisite_control`; no G1 control-promotion contract exists |
 | RCI-007 | Must/enough/prerequisite opens attack; conflicts do not explode | verified G1 | `_derive_claim_consequences` and `mandatory_attack_obligation` deduplicate by the exact explicit proposition/scope, and suppress an attack only for an exact active hard lemma; conflict consequences are localized in one atomic `ClaimAdmitted`. `test_claim_admission_atomically_opens_attacks_and_localized_conflict`, `test_modal_claim_creates_mandatory_attack`, and `test_modal_attack_closes_only_for_exact_active_hard_lemma`. |
-| RCI-008 | Immutable correction/succession; ledger order is not realized succession | implemented G3A-H; hosted gate pending | independently checked `RealizedHistoryDerivation` pins a verified committed prefix and binding-selected extension IDs; ledger order remains separate |
+| RCI-008 | Immutable correction/succession; ledger order is not realized succession | implemented G3A-H; post-merge gate pending | independently checked `RealizedHistoryDerivation` pins a verified committed prefix and binding-selected extension IDs; ledger order remains separate |
 | RCI-009 | Later contracts stay inactive behind phase gates | verified G1 | ADR-0001; `QuestionCatalog.schedulable_contracts`; `test_only_core_v1_is_schedulable_and_rendering_is_literal`; later families are inert draft data only |
 | RCI-010 | Active/unknown/irrelevant relevance states | verified G1 bounded view | `RelevanceStatus` keeps active, undetermined, and irrelevant distinct. `SemanticItem` requires both a warrant reference and reopening condition for irrelevance; `build_semantic_field` requires the warrant to be in the caller-resolved authorized set and the reopening condition to be pinned. The field is derived, is not stored in `InquiryState`, and has no scheduler-suppression path. `test_unknown_relevance_is_preserved_and_guarded_irrelevance_reopens`. |
 
@@ -60,7 +62,7 @@ Status vocabulary:
 | RCI-021 | Raw return precedes interpretation | verified G1 | `ArtifactRef` pins digest, size, media type, and encoding; `ExternalReturn` separately pins capture boundary, capture encoding, UTC capture time, attempt, route, and optional reported source identity before any decode. Exact byte and null/empty/string/zero/false tests, orphan recovery, dangling-ref rejection, tamper detection, and the vertical slice cover the lifecycle. |
 | RCI-022 | Decode, check, warrant, promotion are separate | verified G1 | distinct event-owned `ExternalReturn`, `DecodeOutcome`/canonical result, inert `Evidence`, `CheckerVerdictRecord`, `WarrantDecisionRecord`, and `PromotionLink` stages. `test_evidence_check_warrant_and_promotion_are_separate_owned_stages` rejects self-authorizing/mismatched material; malformed decode/reification and exhaustive/Z3 tests cover fail-closed outcomes and soft solver-only evidence. |
 | RCI-023 | Prediction seal precedes return and is a prospective consequence commitment | verified G1; accepted v0.4 interpretation | existing seal/mismatch schema already admits structured commitments and remains unchanged; temporal and actual-return tests remain authoritative |
-| RCI-024 | One owner; aggregate state and retained state do not collapse | implemented G3A-H; hosted gate pending | `InquiryState` remains replay-complete authority; `retained_state_views` is a deterministic join over licensed applications and cannot be written independently |
+| RCI-024 | One owner; aggregate state and retained state do not collapse | implemented G3A-H; post-merge gate pending | `InquiryState` remains replay-complete authority; `retained_state_views` is a deterministic join over licensed applications and cannot be written independently |
 
 ## Claims, formalization, support, and warrant
 
@@ -98,14 +100,14 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-047 | Configuration/history/retained carriers and recovery modes do not collapse | implemented G3A-H; hosted gate pending | explicit `CarrierRole`; unchanged G2 routes; parity/order fixtures; package existence yields no capability before the licensed join |
-| RCI-048 | Explicit carrier contract; validation/license/application separate | implemented G3A-H; hosted gate pending; deferred G3B approximate | strict `CompressionContract`/`CompressionValidation`/`ExactCompressionLicense`/`CompressionApplication` stages; property checks bind the exact contract fingerprint and property |
-| RCI-049 | Route-specific licensed capabilities join package/application/license | implemented G3A-H; hosted gate pending | unchanged G2 route schemas plus `RecoveryLicense` and `RetentionCapabilityLink`; derived capability remains empty until the complete join exists |
+| RCI-047 | Configuration/history/retained carriers and recovery modes do not collapse | implemented G3A-H; post-merge gate pending | explicit `CarrierRole`; unchanged G2 routes; parity/order fixtures; package existence yields no capability before the licensed join |
+| RCI-048 | Explicit carrier contract; validation/license/application separate | implemented G3A-H; post-merge gate pending; deferred G3B approximate | strict `CompressionContract`/`CompressionValidation`/`ExactCompressionLicense`/`CompressionApplication` stages; property checks bind the exact contract fingerprint and property |
+| RCI-049 | Route-specific licensed capabilities join package/application/license | implemented G3A-H; post-merge gate pending | unchanged G2 route schemas plus `RecoveryLicense` and `RetentionCapabilityLink`; derived capability remains empty until the complete join exists |
 | RCI-050 | Path residue differs from open dependency; debt/ancestry/fallback/reopening preserved | implemented G3A-H exact residue; deferred G3B debt | typed `PathResidue`, recoverable parity reopening, missing-residue `Unknown`, and successor lineage tests |
 | RCI-051 | Correct exact finite linear-family theorem | deferred G3A | rational quotient/kernel proof tests |
 | RCI-052 | Distributional/vector corollaries with almost-sure scope | deferred G3A | symbolic/finite distribution fixtures |
 | RCI-053 | Finite-probe rank and only linear minimality | deferred G3A | rational rank and redundant-probe tests |
-| RCI-054 | Generic factorization reopening; linear kernel is one instance | implemented G3A-H generic; hosted gate pending; G3A-L linear | exact factorization-failure check, parity horizon extension, recoverable residue, and lawful `Unknown`; kernel-shrink remains G3A-L |
+| RCI-054 | Generic factorization reopening; linear kernel is one instance | implemented G3A-H generic; post-merge gate pending; G3A-L linear | exact factorization-failure check, parity horizon extension, recoverable residue, and lawful `Unknown`; kernel-shrink remains G3A-L |
 | RCI-055 | Approximate geometry never establishes exact proof | deferred G3B | numerical near-zero/zero-loss non-promotion tests |
 | RCI-056 | Native methods remain isolated adapters | deferred G3C | ADR-0008; container-policy and provenance tests |
 
@@ -115,7 +117,7 @@ Status vocabulary:
 |---|---|---|---|
 | RCI-057 | G1 is Foundation + Phases 1–2 + bounded cognitive spine | verified G1 | `docs/goals/G1.md`, Python packaging, native Windows/Linux CI, pinned supplementary Docker image, and the implementation evidence itemized above. The frozen 12-command native gate is recorded with all commands exiting 0 in `docs/verification.md`; later retrieval/compression/formal-control/release capabilities remain absent or inert as assigned. |
 | RCI-058 | G2 retrieval/consolidation/retention/probes/reacquisition | verified G2A and G2B | ADR-0009/0010, sealed Goals, 170-test local gate, protected PR checks, and successful post-merge workflow 32576841848 |
-| RCI-059 | G3A-H/L then G3B/C gate exact history, exact linear, approximate, native | implemented G3A-H; hosted gate pending | v1 G3 events, folded-state v4 rebuild, exact finite transition checker, SDK/CLI, and focused acceptance; later sub-gates remain deferred |
+| RCI-059 | G3A-H/L then G3B/C gate exact history, exact linear, approximate, native | implemented G3A-H; post-merge gate pending | v1 G3 events, folded-state v4 rebuild, exact finite transition checker, SDK/CLI, and focused acceptance; later sub-gates remain deferred |
 | RCI-060 | G4–G7 remain separately gated | deferred G4–G7 | later Goals; no G1 stubs |
 | RCI-061 | Backlog policy is human-owned and close proposal-only | verified G1 | tracked `.rci/config.toml`; pure reconciliation/apply allowlist; dedicated `BacklogEffectRecorded` ledger ownership rather than synthetic external-return evidence; shadow non-mutation, close proposal-only, checked-evidence, repeat-apply, out-of-order mutation, and linked-recurrence tests |
 | RCI-062 | Evidence runners are bounded and lack mutation authority | verified G1 | explicit argv and captured-input models, digest-pinned isolated Docker plan, timeout/output/input bounds, read-only/network-none/capability-drop flags, and runner unit/integration/security tests rejecting mutation, Git, packaging, and release actions. The one Windows symlink-fixture privilege skip is explicitly qualified in `docs/verification.md` and remains live in native Linux CI. |
@@ -126,13 +128,13 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-065 | Use, reconstruction, direct evaluation, and reacquisition are typed relations | implemented G3A-H licensed join; hosted gate pending | unchanged G2A route separation plus application/route-specific recovery license and capability-link tests |
+| RCI-065 | Use, reconstruction, direct evaluation, and reacquisition are typed relations | implemented G3A-H licensed join; post-merge gate pending | unchanged G2A route separation plus application/route-specific recovery license and capability-link tests |
 | RCI-066 | Reacquisition advantage uses typed competence equivalence and pinned frontier | verified G2A provisional comparison; licensed budgets deferred G3B | existing exact-axis/Pareto tests; ADR-0011 forbids reusing history equivalence unless carrier typing permits it |
-| RCI-067 | Recovery licence/scaffold; forgetting is reduced capacity; reopening can relearn | implemented G3A-H recovery licence; hosted gate pending; checked forgetting later | G2A saga remains sealed; G3A-H adds separately warranted `RecoveryLicense` without allowing a scaffold/package to self-license |
+| RCI-067 | Recovery licence/scaffold; forgetting is reduced capacity; reopening can relearn | implemented G3A-H recovery licence; post-merge gate pending; checked forgetting later | G2A saga remains sealed; G3A-H adds separately warranted `RecoveryLicense` without allowing a scaffold/package to self-license |
 | RCI-068 | Opaque benchmark includes same-configuration/different-history consequence | research G4–G6; deferred end-to-end G7 | staged capability rows plus required v0.4 path-sensitive case |
-| RCI-069 | Aggregate fold and retained-state representation never collapse | implemented G3A-H; hosted gate pending | frozen G1/G2B stream replay, explicit carriers, five-byte history to one-byte retained state, complete ledger replay, and derived-only view |
-| RCI-070 | Executable retained state requires continuation compatibility | implemented G3A-H; hosted gate pending | unbounded unary base/step congruence, present-answer/future-continuation counterexample, and lawful answer-only scope narrowing |
-| RCI-071 | Representation replacement requires preserve + gain + warrant or frontier | implemented G3A-H; hosted gate pending | positive warranted successor, atomic predecessor-capability-loss rejection, novelty-only rejection, and explicit incomparability |
+| RCI-069 | Aggregate fold and retained-state representation never collapse | implemented G3A-H; post-merge gate pending | frozen G1/G2B stream replay, explicit carriers, five-byte history to one-byte retained state, complete ledger replay, and derived-only view |
+| RCI-070 | Executable retained state requires continuation compatibility | implemented G3A-H; post-merge gate pending | unbounded unary base/step congruence, present-answer/future-continuation counterexample, and lawful answer-only scope narrowing |
+| RCI-071 | Representation replacement requires preserve + gain + warrant or frontier | implemented G3A-H; post-merge gate pending | positive warranted successor, atomic predecessor-capability-loss rejection, novelty-only rejection, and explicit incomparability |
 
 ### RCI-068 staged capability evidence
 

@@ -639,5 +639,25 @@ validation, licence, application, and capability stages separate; records exact 
 residue; derives a licensed retained-state view; rejects predecessor capability loss;
 records a warranted strict successor; and reopens by checked factorization failure.
 
-Protected pull-request and post-merge hosted returns remain pending and are required
+## G3A-H hosted pull-request verification — 2026-08-22
+
+Pull request [#4](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/4)
+verified implementation commit
+`5a3297b9da975628c4dbd1ae0130267f1b1a5e0b`. The protected pull-request run
+[32581474989](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32581474989)
+completed successfully with all five unique required jobs:
+
+- `base (ubuntu-latest)`: success, job `97051397357`;
+- `base (windows-latest)`: success, job `97051397302`;
+- `extras (ubuntu-latest)`: success, job `97051397328`;
+- `extras (windows-latest)`: success, job `97051397190`;
+- `docker`: success, job `97051397283`.
+
+The branch push run
+[32581472468](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32581472468)
+also completed all five jobs successfully at the same commit. The pull-request jobs ran
+the frozen G1 gate and the focused G2A, G2B, and G3A-H commands on both native operating
+systems; the Docker job built and executed the pinned network-disabled, read-only image.
+
+Protected-main merge and post-merge hosted returns remain pending and are required
 before G3A-H is sealed or the active Goal is completed.
