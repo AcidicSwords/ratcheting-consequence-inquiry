@@ -390,7 +390,8 @@ def test_g2b_consolidation_field_and_checked_probe_admission(tmp_path: Path) -> 
     )
     assert learned_identity in final.admitted_probes
     assert final.lemma_versions == ()
-    assert not hasattr(final, "recovery_licenses")
+    assert final.recovery_licenses == ()
+    assert final.retained_state_views == ()
     assert sdk.replay(inquiry_id) == final
     assert sdk.export(inquiry_id) == sdk.export(inquiry_id)
 

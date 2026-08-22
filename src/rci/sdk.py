@@ -27,15 +27,34 @@ from rci.claims.models import (
     Provenance,
     Scope,
 )
+from rci.compression import (
+    BindingCarrierManifest,
+    CompressionApplication,
+    CompressionContract,
+    CompressionValidation,
+    ExactCompressionLicense,
+    PathResidue,
+    RealizedHistoryDerivation,
+    RecoveryLicense,
+    RepresentationReopening,
+    RepresentationSuccessorDecision,
+    RetentionCapabilityLink,
+)
 from rci.core.commands import (
     AcceptEffectResult,
     AdmitClaim,
+    DecideRepresentationSuccessor,
     DomainCommand,
+    GrantExactCompressionLicense,
+    GrantRecoveryLicense,
     LinkReacquisitionInquiry,
+    LinkRetentionCapability,
     OpenObligation,
     PlanEffectAttempt,
     RecordAttemptOutcome,
     RecordBacklogEffect,
+    RecordCompressionApplication,
+    RecordCompressionValidation,
     RecordConsolidationCandidate,
     RecordConsolidationCheckpoint,
     RecordDecodeOutcome,
@@ -44,13 +63,17 @@ from rci.core.commands import (
     RecordObligationDisposition,
     RecordProbeAdmissionDecision,
     RecordProbeEvaluation,
+    RecordRealizedHistoryDerivation,
     RecordReconsolidationLink,
     RecordRecoveryComparison,
     RecordRecoveryObservation,
     RecordRepresentationGap,
     RecordSemanticFieldEvaluation,
     RecordStepPlan,
+    RegisterBindingCarrierManifest,
+    RegisterCompressionContract,
     RegisterRetentionPackage,
+    ReopenRepresentation,
     RequestEffect,
     RequestReacquisition,
     RunRetrieval,
@@ -1377,6 +1400,131 @@ class RCI:
             comparison_check=comparison_check,
         )
         return comparison
+
+    def register_binding_carriers(
+        self, inquiry_id: str, manifest: BindingCarrierManifest
+    ) -> InquiryState:
+        return self.dispatch(
+            RegisterBindingCarrierManifest(
+                event_id=_stable_id("evt", inquiry_id, manifest.id, "carrier-manifest"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                manifest=manifest,
+            )
+        )
+
+    def record_realized_history(
+        self, inquiry_id: str, derivation: RealizedHistoryDerivation
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordRealizedHistoryDerivation(
+                event_id=_stable_id("evt", inquiry_id, derivation.id, "history-derived"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                derivation=derivation,
+            )
+        )
+
+    def register_compression_contract(
+        self, inquiry_id: str, contract: CompressionContract
+    ) -> InquiryState:
+        return self.dispatch(
+            RegisterCompressionContract(
+                event_id=_stable_id("evt", inquiry_id, contract.id, "compression-contract"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                contract=contract,
+            )
+        )
+
+    def record_compression_validation(
+        self, inquiry_id: str, validation: CompressionValidation
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordCompressionValidation(
+                event_id=_stable_id("evt", inquiry_id, validation.id, "compression-validation"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                validation=validation,
+            )
+        )
+
+    def grant_exact_compression_license(
+        self, inquiry_id: str, license_record: ExactCompressionLicense
+    ) -> InquiryState:
+        return self.dispatch(
+            GrantExactCompressionLicense(
+                event_id=_stable_id("evt", inquiry_id, license_record.id, "exact-license"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                license=license_record,
+            )
+        )
+
+    def record_compression_application(
+        self,
+        inquiry_id: str,
+        application: CompressionApplication,
+        *,
+        path_residues: tuple[PathResidue, ...] = (),
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordCompressionApplication(
+                event_id=_stable_id("evt", inquiry_id, application.id, "compressed"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                application=application,
+                path_residues=path_residues,
+            )
+        )
+
+    def grant_recovery_license(
+        self, inquiry_id: str, license_record: RecoveryLicense
+    ) -> InquiryState:
+        return self.dispatch(
+            GrantRecoveryLicense(
+                event_id=_stable_id("evt", inquiry_id, license_record.id, "recovery-license"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                license=license_record,
+            )
+        )
+
+    def link_retention_capability(
+        self, inquiry_id: str, link: RetentionCapabilityLink
+    ) -> InquiryState:
+        return self.dispatch(
+            LinkRetentionCapability(
+                event_id=_stable_id("evt", inquiry_id, link.id, "capability-linked"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                link=link,
+            )
+        )
+
+    def decide_representation_successor(
+        self, inquiry_id: str, decision: RepresentationSuccessorDecision
+    ) -> InquiryState:
+        return self.dispatch(
+            DecideRepresentationSuccessor(
+                event_id=_stable_id("evt", inquiry_id, decision.id, "successor-decided"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                decision=decision,
+            )
+        )
+
+    def reopen_representation(
+        self, inquiry_id: str, reopening: RepresentationReopening
+    ) -> InquiryState:
+        return self.dispatch(
+            ReopenRepresentation(
+                event_id=_stable_id("evt", inquiry_id, reopening.id, "representation-reopened"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                reopening=reopening,
+            )
+        )
 
     def append_local_effects(
         self,

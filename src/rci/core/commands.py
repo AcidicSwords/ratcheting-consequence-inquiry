@@ -18,6 +18,19 @@ from rci.claims.models import (
     Residual,
     Scope,
 )
+from rci.compression.models import (
+    BindingCarrierManifest,
+    CompressionApplication,
+    CompressionContract,
+    CompressionValidation,
+    ExactCompressionLicense,
+    PathResidue,
+    RealizedHistoryDerivation,
+    RecoveryLicense,
+    RepresentationReopening,
+    RepresentationSuccessorDecision,
+    RetentionCapabilityLink,
+)
 from rci.core.effects import (
     AttemptOutcome,
     DecodeOutcome,
@@ -329,6 +342,57 @@ class RecordProbeAdmissionDecision(CommandBase):
     decision: ProbeAdmissionDecision
 
 
+class RegisterBindingCarrierManifest(CommandBase):
+    kind: Literal["register_binding_carrier_manifest"] = "register_binding_carrier_manifest"
+    manifest: BindingCarrierManifest
+
+
+class RecordRealizedHistoryDerivation(CommandBase):
+    kind: Literal["record_realized_history_derivation"] = "record_realized_history_derivation"
+    derivation: RealizedHistoryDerivation
+
+
+class RegisterCompressionContract(CommandBase):
+    kind: Literal["register_compression_contract"] = "register_compression_contract"
+    contract: CompressionContract
+
+
+class RecordCompressionValidation(CommandBase):
+    kind: Literal["record_compression_validation"] = "record_compression_validation"
+    validation: CompressionValidation
+
+
+class GrantExactCompressionLicense(CommandBase):
+    kind: Literal["grant_exact_compression_license"] = "grant_exact_compression_license"
+    license: ExactCompressionLicense
+
+
+class RecordCompressionApplication(CommandBase):
+    kind: Literal["record_compression_application"] = "record_compression_application"
+    application: CompressionApplication
+    path_residues: tuple[PathResidue, ...] = ()
+
+
+class GrantRecoveryLicense(CommandBase):
+    kind: Literal["grant_recovery_license"] = "grant_recovery_license"
+    license: RecoveryLicense
+
+
+class LinkRetentionCapability(CommandBase):
+    kind: Literal["link_retention_capability"] = "link_retention_capability"
+    link: RetentionCapabilityLink
+
+
+class DecideRepresentationSuccessor(CommandBase):
+    kind: Literal["decide_representation_successor"] = "decide_representation_successor"
+    decision: RepresentationSuccessorDecision
+
+
+class ReopenRepresentation(CommandBase):
+    kind: Literal["reopen_representation"] = "reopen_representation"
+    reopening: RepresentationReopening
+
+
 DomainCommand = Annotated[
     StartInquiry
     | RecordBacklogEffect
@@ -375,6 +439,16 @@ DomainCommand = Annotated[
     | RecordRepresentationGap
     | RecordLearnedProbeCandidate
     | RecordProbeEvaluation
-    | RecordProbeAdmissionDecision,
+    | RecordProbeAdmissionDecision
+    | RegisterBindingCarrierManifest
+    | RecordRealizedHistoryDerivation
+    | RegisterCompressionContract
+    | RecordCompressionValidation
+    | GrantExactCompressionLicense
+    | RecordCompressionApplication
+    | GrantRecoveryLicense
+    | LinkRetentionCapability
+    | DecideRepresentationSuccessor
+    | ReopenRepresentation,
     Field(discriminator="kind"),
 ]

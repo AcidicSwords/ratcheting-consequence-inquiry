@@ -1,4 +1,4 @@
-# Proposed Goal G3A-H: Exact history-state foundation
+# Goal G3A-H: Exact history-state foundation
 
 - Status: active after v0.4 governance merge
 - Authority: RCI v0.4, PLAN, ADR-0011
@@ -66,4 +66,3 @@ hosted Windows/Linux/extras/Docker checks, and successful post-merge `main` CI.
 G3A-L linear geometry, G3B approximation, G3C native methods, G4 recursive
 formal engines, G5 control, G6 multi-backend warrant, G7 opaque benchmark and
 release hardening, UI, servers, deployment, tags, and releases.
-

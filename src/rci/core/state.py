@@ -20,6 +20,20 @@ from rci.claims.models import (
     ObligationStatus,
     Residual,
 )
+from rci.compression.models import (
+    BindingCarrierManifest,
+    CompressionApplication,
+    CompressionContract,
+    CompressionValidation,
+    ExactCompressionLicense,
+    PathResidue,
+    RealizedHistoryDerivation,
+    RecoveryLicense,
+    RepresentationReopening,
+    RepresentationSuccessorDecision,
+    RetainedStateView,
+    RetentionCapabilityLink,
+)
 from rci.core.effects import EffectRequestState, ReturnedOutcome
 from rci.core.model import ArtifactRef, FrozenModel, Identifier, InquiryContext
 from rci.core.planning import PlanStatus, StepPlan
@@ -160,6 +174,57 @@ class InquiryState(FrozenModel):
     learned_probe_candidates: tuple[LearnedProbeCandidate, ...] = ()
     probe_evaluations: tuple[ProbeEvaluation, ...] = ()
     probe_admission_decisions: tuple[ProbeAdmissionDecision, ...] = ()
+    binding_carrier_manifests: tuple[BindingCarrierManifest, ...] = ()
+    realized_history_derivations: tuple[RealizedHistoryDerivation, ...] = ()
+    compression_contracts: tuple[CompressionContract, ...] = ()
+    compression_validations: tuple[CompressionValidation, ...] = ()
+    exact_compression_licenses: tuple[ExactCompressionLicense, ...] = ()
+    path_residues: tuple[PathResidue, ...] = ()
+    compression_applications: tuple[CompressionApplication, ...] = ()
+    recovery_licenses: tuple[RecoveryLicense, ...] = ()
+    retention_capability_links: tuple[RetentionCapabilityLink, ...] = ()
+    representation_successor_decisions: tuple[RepresentationSuccessorDecision, ...] = ()
+    representation_reopenings: tuple[RepresentationReopening, ...] = ()
+
+    @property
+    def retained_state_views(self) -> tuple[RetainedStateView, ...]:
+        """Join licensed applications without creating a writable retained-state store."""
+
+        contracts = {item.id: item for item in self.compression_contracts}
+        licenses = {item.id: item for item in self.exact_compression_licenses}
+        links_by_application: dict[str, list[RetentionCapabilityLink]] = {}
+        for link in self.retention_capability_links:
+            links_by_application.setdefault(link.compression_application_id, []).append(link)
+        views: list[RetainedStateView] = []
+        for application in self.compression_applications:
+            license_record = licenses.get(application.license_id)
+            if license_record is None:
+                continue
+            contract = contracts.get(license_record.contract_id)
+            if contract is None:
+                continue
+            links = links_by_application.get(application.id, [])
+            capabilities = tuple(
+                sorted(
+                    {
+                        capability
+                        for link in links
+                        for capability in license_record.granted_capability_ids
+                    }
+                )
+            )
+            views.append(
+                RetainedStateView(
+                    compression_application_id=application.id,
+                    contract_id=contract.id,
+                    license_id=license_record.id,
+                    source_carrier_id=contract.source_carrier_id,
+                    target_carrier_id=contract.target_carrier.id,
+                    retained_state_artifact=application.retained_state_artifact,
+                    capability_ids=capabilities,
+                )
+            )
+        return tuple(sorted(views, key=lambda item: item.compression_application_id))
 
     @property
     def owned_memory_records(self) -> Mapping[str, object]:
@@ -365,6 +430,17 @@ class InquiryState(FrozenModel):
                     self.learned_probe_candidates,
                     self.probe_evaluations,
                     self.probe_admission_decisions,
+                    self.binding_carrier_manifests,
+                    self.realized_history_derivations,
+                    self.compression_contracts,
+                    self.compression_validations,
+                    self.exact_compression_licenses,
+                    self.path_residues,
+                    self.compression_applications,
+                    self.recovery_licenses,
+                    self.retention_capability_links,
+                    self.representation_successor_decisions,
+                    self.representation_reopenings,
                 )
             ):
                 raise ValueError("an unstarted inquiry cannot contain domain records")
@@ -1055,6 +1131,66 @@ class InquiryState(FrozenModel):
                 proposition_id=comparison.comparison_proposition_id,
                 scope_fingerprint=comparison.baseline_frontier.pins.scope_fingerprint,
             )
+
+        g3_collections = (
+            self.binding_carrier_manifests,
+            self.realized_history_derivations,
+            self.compression_contracts,
+            self.compression_validations,
+            self.exact_compression_licenses,
+            self.path_residues,
+            self.compression_applications,
+            self.recovery_licenses,
+            self.retention_capability_links,
+            self.representation_successor_decisions,
+            self.representation_reopenings,
+        )
+        for collection in g3_collections:
+            ids = tuple(item.id for item in collection)
+            if len(ids) != len(set(ids)):
+                raise ValueError("G3A record identities must be unique within their owner")
+        manifests = {item.id: item for item in self.binding_carrier_manifests}
+        derivations = {item.id: item for item in self.realized_history_derivations}
+        contracts = {item.id: item for item in self.compression_contracts}
+        validations = {item.id: item for item in self.compression_validations}
+        licenses = {item.id: item for item in self.exact_compression_licenses}
+        applications = {item.id: item for item in self.compression_applications}
+        recovery_licenses = {item.id: item for item in self.recovery_licenses}
+        residues = {item.id: item for item in self.path_residues}
+        packages = {item.id: item for item in self.retention_packages}
+        if any(item.carrier_manifest_id not in manifests for item in self.compression_contracts):
+            raise ValueError("compression contracts require an owned carrier manifest")
+        if any(
+            item.carrier_manifest_id not in manifests for item in self.realized_history_derivations
+        ):
+            raise ValueError("history derivations require an owned carrier manifest")
+        if any(item.contract_id not in contracts for item in self.compression_validations):
+            raise ValueError("compression validations require an owned contract")
+        if any(
+            item.contract_id not in contracts or item.validation_id not in validations
+            for item in self.exact_compression_licenses
+        ):
+            raise ValueError("exact licenses require an owned contract and validation")
+        if any(
+            item.license_id not in licenses
+            or item.source_history_derivation_id not in derivations
+            or any(residue_id not in residues for residue_id in item.path_residue_ids)
+            for item in self.compression_applications
+        ):
+            raise ValueError("compression applications require owned license, history, and residue")
+        if any(
+            item.compression_application_id not in applications
+            or item.retention_package_id not in packages
+            for item in self.recovery_licenses
+        ):
+            raise ValueError("recovery licenses require owned application and package")
+        if any(
+            item.compression_application_id not in applications
+            or item.recovery_license_id not in recovery_licenses
+            or item.retention_package_id not in packages
+            for item in self.retention_capability_links
+        ):
+            raise ValueError("retention capability links require owned records")
         return self
 
     def request_by_id(self, request_id: str) -> EffectRequestState | None:

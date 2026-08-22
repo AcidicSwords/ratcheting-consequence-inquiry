@@ -19,6 +19,19 @@ from rci.claims.models import (
     Residual,
     Scope,
 )
+from rci.compression.models import (
+    BindingCarrierManifest,
+    CompressionApplication,
+    CompressionContract,
+    CompressionValidation,
+    ExactCompressionLicense,
+    PathResidue,
+    RealizedHistoryDerivation,
+    RecoveryLicense,
+    RepresentationReopening,
+    RepresentationSuccessorDecision,
+    RetentionCapabilityLink,
+)
 from rci.core.effects import (
     AttemptOutcome,
     DecodeOutcome,
@@ -325,6 +338,57 @@ class ProbeAdmissionDecisionRecorded(EventBase):
     decision: ProbeAdmissionDecision
 
 
+class BindingCarrierManifestRegistered(EventBase):
+    kind: Literal["binding_carrier_manifest_registered"] = "binding_carrier_manifest_registered"
+    manifest: BindingCarrierManifest
+
+
+class RealizedHistoryDerivationRecorded(EventBase):
+    kind: Literal["realized_history_derivation_recorded"] = "realized_history_derivation_recorded"
+    derivation: RealizedHistoryDerivation
+
+
+class CompressionContractRegistered(EventBase):
+    kind: Literal["compression_contract_registered"] = "compression_contract_registered"
+    contract: CompressionContract
+
+
+class CompressionValidationRecorded(EventBase):
+    kind: Literal["compression_validation_recorded"] = "compression_validation_recorded"
+    validation: CompressionValidation
+
+
+class ExactCompressionLicenseGranted(EventBase):
+    kind: Literal["exact_compression_license_granted"] = "exact_compression_license_granted"
+    license: ExactCompressionLicense
+
+
+class CompressionApplicationRecorded(EventBase):
+    kind: Literal["compression_application_recorded"] = "compression_application_recorded"
+    application: CompressionApplication
+    path_residues: tuple[PathResidue, ...] = ()
+
+
+class RecoveryLicenseGranted(EventBase):
+    kind: Literal["recovery_license_granted"] = "recovery_license_granted"
+    license: RecoveryLicense
+
+
+class RetentionCapabilityLinked(EventBase):
+    kind: Literal["retention_capability_linked"] = "retention_capability_linked"
+    link: RetentionCapabilityLink
+
+
+class RepresentationSuccessorDecided(EventBase):
+    kind: Literal["representation_successor_decided"] = "representation_successor_decided"
+    decision: RepresentationSuccessorDecision
+
+
+class RepresentationReopened(EventBase):
+    kind: Literal["representation_reopened"] = "representation_reopened"
+    reopening: RepresentationReopening
+
+
 DomainEvent = Annotated[
     InquiryStarted
     | BacklogEffectRecorded
@@ -371,6 +435,16 @@ DomainEvent = Annotated[
     | RepresentationGapRecorded
     | LearnedProbeCandidateRecorded
     | ProbeEvaluationRecorded
-    | ProbeAdmissionDecisionRecorded,
+    | ProbeAdmissionDecisionRecorded
+    | BindingCarrierManifestRegistered
+    | RealizedHistoryDerivationRecorded
+    | CompressionContractRegistered
+    | CompressionValidationRecorded
+    | ExactCompressionLicenseGranted
+    | CompressionApplicationRecorded
+    | RecoveryLicenseGranted
+    | RetentionCapabilityLinked
+    | RepresentationSuccessorDecided
+    | RepresentationReopened,
     Field(discriminator="kind"),
 ]

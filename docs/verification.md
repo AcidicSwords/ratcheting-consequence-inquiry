@@ -604,3 +604,40 @@ Local governance and regression returns:
 The sole skip remains the documented native-Windows symlink privilege case. No
 G3A-H runtime claim is made by this normalization alone. Hosted PR and post-merge
 returns are recorded after the protected workflow completes.
+
+## G3A-H local implementation verification — 2026-08-22
+
+The bounded exact history-state implementation adds only new version-1 event kinds and
+advances the rebuildable folded-state schema to v4. Sealed G1/G2 event JSON schemas are
+unchanged. A frozen G2B stream extension at the `a5ac134` anchor now joins the archived
+G1 corpus; both replay and export identically with all G3 collections empty.
+
+Exact local returns after the implementation stabilized:
+
+- `uv lock --check`: exit 0; 40 locked packages resolved;
+- `uv sync --dev`: exit 0; base environment synchronized;
+- `uv run python -c "import rci"`: exit 0; package version 0.4.0;
+- `uv run pytest -q -m "not optional"`: 172 passed, 1 skipped, 4 deselected;
+- `uv sync --all-extras --dev`: exit 0; optional OpenAI/Z3 extras synchronized;
+- `uv run ruff format --check .`: 140 files formatted;
+- `uv run ruff check .`: all checks passed;
+- `uv run mypy src/rci tests`: success across 109 source files;
+- `uv run pytest -q`: 176 passed, 1 skipped;
+- `uv run pytest -q tests/acceptance`: 18 passed;
+- G2A/G2B focused acceptance: 4 passed;
+- `uv run pytest -q tests/acceptance/test_g3a_history_state.py`: 2 passed;
+- `uv run rci --help`: exit 0 and lists the `compression` group;
+- `uv build`: exit 0; version 0.4.0 sdist and universal wheel built.
+
+The sole skip remains the disclosed Windows symlink-privilege fixture. The G3A-H
+acceptance proves an unbounded unary-history carrier through finite base/transition
+congruence, exact factorization and recursive update; rejects the reopened singleton
+quotient; rejects count as an order-sensitive state; distinguishes present-answer
+sufficiency from continuation compatibility; independently checks realized-history
+derivation; rejects a forged prefix digest without a ledger write; keeps package,
+validation, licence, application, and capability stages separate; records exact path
+residue; derives a licensed retained-state view; rejects predecessor capability loss;
+records a warranted strict successor; and reopens by checked factorization failure.
+
+Protected pull-request and post-merge hosted returns remain pending and are required
+before G3A-H is sealed or the active Goal is completed.

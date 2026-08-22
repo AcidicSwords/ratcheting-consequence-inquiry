@@ -8,8 +8,9 @@ foundation, finite formalization and warrant, a bounded cognitive spine, determi
 structural retrieval, provisional retention routes, measured reacquisition,
 consolidation, versioned repair, semantic-field evaluation, and learned-probe admission.
 RCI v0.4 makes the replay-complete aggregate distinct from a protected
-consequence-sufficient retained state; G3A-H is the next bounded milestone. Later
-research phases remain explicitly deferred.
+consequence-sufficient retained state. The G3A-H branch implements the bounded exact
+history-state contracts and finite transition fixtures; hosted verification remains its
+completion boundary. Later research phases remain explicitly deferred.
 
 The package includes immutable records, pure `decide`/`evolve` transitions, deterministic
 replay, an append-only SQLite WAL ledger, content-addressed artifacts, finite reference

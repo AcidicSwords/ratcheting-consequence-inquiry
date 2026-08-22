@@ -23,6 +23,7 @@ from rci.backlog import (
     reconcile,
 )
 from rci.bindings import circuit_demonstration, route_demonstration
+from rci.compression import validate_order_sensitive_count, validate_unary_parity
 from rci.evaluation import evaluate_cases
 from rci.learning import (
     MemoryPatchCandidate,
@@ -45,6 +46,7 @@ memory_app = typer.Typer(no_args_is_help=True, help="Deterministic structural me
 recovery_app = typer.Typer(no_args_is_help=True, help="Measured reacquisition recovery")
 field_app = typer.Typer(no_args_is_help=True, help="Conservative semantic-field diagnostics")
 probes_app = typer.Typer(no_args_is_help=True, help="Governed learned-probe evaluation")
+compression_app = typer.Typer(no_args_is_help=True, help="Exact retained-state contracts")
 app.add_typer(contracts_app, name="contracts")
 app.add_typer(evaluation_app, name="eval")
 app.add_typer(database_app, name="db")
@@ -53,6 +55,7 @@ app.add_typer(memory_app, name="memory")
 app.add_typer(recovery_app, name="recovery")
 app.add_typer(field_app, name="field")
 app.add_typer(probes_app, name="probes")
+app.add_typer(compression_app, name="compression")
 
 _MAX_WORKSPACE_FILES = 10_000
 _MAX_WORKSPACE_FILE_BYTES = 16 * 1024 * 1024
@@ -608,6 +611,59 @@ def compare_recovery(
         ),
     )
     typer.echo(_json(comparison))
+
+
+@compression_app.command("inspect")
+def inspect_compression(
+    inquiry_id: str,
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Emit authoritative G3 records and the rebuildable retained-state view."""
+
+    state = _sdk(root).inspect(inquiry_id)
+    typer.echo(
+        _json(
+            {
+                "applications": [
+                    item.model_dump(mode="json") for item in state.compression_applications
+                ],
+                "carrier_manifests": [
+                    item.model_dump(mode="json") for item in state.binding_carrier_manifests
+                ],
+                "contracts": [item.model_dump(mode="json") for item in state.compression_contracts],
+                "licenses": [
+                    item.model_dump(mode="json") for item in state.exact_compression_licenses
+                ],
+                "retained_state_views": [
+                    item.model_dump(mode="json") for item in state.retained_state_views
+                ],
+                "sequence": state.sequence,
+                "validations": [
+                    item.model_dump(mode="json") for item in state.compression_validations
+                ],
+            }
+        )
+    )
+
+
+@compression_app.command("fixture")
+def compression_fixture(
+    name: Annotated[str, typer.Argument(help="unary-parity or order-sensitive")],
+    protect_parity: Annotated[bool, typer.Option("--protect-parity/--no-protect-parity")] = True,
+    singleton: Annotated[bool, typer.Option("--singleton/--parity-state")] = False,
+) -> None:
+    """Run one deterministic exact G3A-H reference checker."""
+
+    if name == "unary-parity":
+        result = validate_unary_parity(
+            protect_parity=protect_parity,
+            singleton_representation=singleton,
+        )
+    elif name == "order-sensitive":
+        result = validate_order_sensitive_count()
+    else:
+        raise typer.BadParameter("fixture must be unary-parity or order-sensitive")
+    typer.echo(_json(result.__dict__))
 
 
 def _backlog_policy(root: Path) -> BacklogPolicy:

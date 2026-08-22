@@ -35,6 +35,17 @@ POST_G1_STATE_COLLECTIONS = (
     "learned_probe_candidates",
     "probe_evaluations",
     "probe_admission_decisions",
+    "binding_carrier_manifests",
+    "realized_history_derivations",
+    "compression_contracts",
+    "compression_validations",
+    "exact_compression_licenses",
+    "path_residues",
+    "compression_applications",
+    "recovery_licenses",
+    "retention_capability_links",
+    "representation_successor_decisions",
+    "representation_reopenings",
 )
 
 
