@@ -1,6 +1,13 @@
 """Versioned question contracts and milestone profiles."""
 
-from rci.questions.catalog import CATALOG_V0_3, CORE_V1, get_contract
+from rci.questions.catalog import (
+    CATALOG_V0_3,
+    CATALOG_V0_4,
+    CORE_V1,
+    G2B_COGNITIVE_V1,
+    LEARNED_RECURRENT_PROBE,
+    get_contract,
+)
 from rci.questions.models import (
     AnswerShape,
     ContractMaturity,
@@ -13,7 +20,10 @@ from rci.questions.models import (
 
 __all__ = [
     "CATALOG_V0_3",
+    "CATALOG_V0_4",
     "CORE_V1",
+    "G2B_COGNITIVE_V1",
+    "LEARNED_RECURRENT_PROBE",
     "AnswerShape",
     "ContractMaturity",
     "QuestionCatalog",

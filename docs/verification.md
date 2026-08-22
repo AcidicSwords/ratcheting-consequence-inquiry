@@ -493,3 +493,49 @@ proved the base and optional dependency profiles on both hosted Windows and
 Linux. The branch remained subject to the protected-`main` pull-request and
 required-check boundary; no release, deployment, or authority expansion was
 performed.
+
+## G2B governance activation — 2026-08-22
+
+G2A is sealed at merged `main` commit `5d4d637`. ADR-0010 and
+`docs/goals/G2B.md` define the remaining RCI-058 boundary: deterministic consolidation,
+versioned reconsolidation, conservative semantic-field evaluation, and checked learned-
+probe admission.
+
+The focused G2B command is frozen as:
+
+```text
+uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
+```
+
+## G2B local verification — 2026-08-22
+
+The complete native G2B gate passed locally on Windows after the implementation. Exact
+returns were:
+
+- `uv lock --check`: exit 0; 40 locked packages resolved.
+- `uv sync --dev`: exit 0; base development environment synchronized.
+- `uv run python -c "import rci"`: exit 0.
+- `uv run pytest -q -m "not optional"`: 166 passed, 1 skipped, 4 deselected.
+- `uv sync --all-extras --dev`: exit 0; OpenAI and pinned Z3 extras synchronized.
+- `uv run ruff format --check .`: 131 files already formatted.
+- `uv run ruff check .`: all checks passed.
+- `uv run mypy src/rci tests`: success across 103 source files.
+- `uv run pytest -q`: 170 passed, 1 skipped.
+- `uv run pytest -q tests/acceptance`: 16 passed.
+- `uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py`: 3 passed.
+- `uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py`: 1 passed.
+- `uv run rci --help`: exit 0 and lists `memory`, `field`, and `probes` groups.
+- `uv build`: exit 0; sdist and wheel built.
+
+The sole skip remains the already disclosed native-Windows symlink privilege case
+(`WinError 1314`); Linux CI retains that adversarial path. The G2B acceptance proves an
+older circuit exception is interleaved with recent episodes, consolidation creates only
+an ordinary claim and open attacks, field overflow creates an ordinary residual, a
+tampered holdout score is rejected, generic learned-probe admission is rejected, and the
+checked controller path admits the backup-power separator without creating a lemma or
+licence. Frozen G1 replay remains byte-identical, existing G2A acceptance remains green,
+and the G1/G2A event class definitions were not changed; G2B adds only new version-1
+event kinds and folded-state schema v3.
+
+Hosted Windows/Linux/extras/Docker and post-merge `main` conclusions remain pending until
+the G2B pull request is pushed and all protected checks complete.

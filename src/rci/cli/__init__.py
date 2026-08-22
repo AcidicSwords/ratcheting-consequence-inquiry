@@ -24,9 +24,15 @@ from rci.backlog import (
 )
 from rci.bindings import circuit_demonstration, route_demonstration
 from rci.evaluation import evaluate_cases
+from rci.learning import (
+    MemoryPatchCandidate,
+    ProbeAdmissionDecision,
+    ProbeEvaluation,
+    ReconsolidationLink,
+)
 from rci.memory import MemoryOwner, OwnedRecordType, RecoveryBranch
 from rci.persistence import DATABASE_SCHEMA_VERSION
-from rci.questions.catalog import CATALOG_V0_3
+from rci.questions.catalog import CATALOG_V0_4
 from rci.sdk import RCI
 from rci.warrant import CheckReference
 
@@ -37,12 +43,16 @@ database_app = typer.Typer(no_args_is_help=True, help="Local event database")
 backlog_app = typer.Typer(no_args_is_help=True, help="Governed backlog reconciliation")
 memory_app = typer.Typer(no_args_is_help=True, help="Deterministic structural memory")
 recovery_app = typer.Typer(no_args_is_help=True, help="Measured reacquisition recovery")
+field_app = typer.Typer(no_args_is_help=True, help="Conservative semantic-field diagnostics")
+probes_app = typer.Typer(no_args_is_help=True, help="Governed learned-probe evaluation")
 app.add_typer(contracts_app, name="contracts")
 app.add_typer(evaluation_app, name="eval")
 app.add_typer(database_app, name="db")
 app.add_typer(backlog_app, name="backlog")
 app.add_typer(memory_app, name="memory")
 app.add_typer(recovery_app, name="recovery")
+app.add_typer(field_app, name="field")
+app.add_typer(probes_app, name="probes")
 
 _MAX_WORKSPACE_FILES = 10_000
 _MAX_WORKSPACE_FILE_BYTES = 16 * 1024 * 1024
@@ -333,11 +343,11 @@ def export_inquiry(
 
 @contracts_app.command("list")
 def list_contracts(profile: str = "core-v1", version: str = "1.0.0") -> None:
-    contracts = CATALOG_V0_3.schedulable_contracts(profile, version)
+    contracts = CATALOG_V0_4.schedulable_contracts(profile, version)
     typer.echo(
         _json(
             {
-                "catalog_digest": CATALOG_V0_3.digest,
+                "catalog_digest": CATALOG_V0_4.digest,
                 "contracts": [contract.model_dump(mode="json") for contract in contracts],
             }
         )
@@ -424,6 +434,94 @@ def retrieve_memory(
         limit=limit,
     )
     typer.echo(_json(result))
+
+
+@memory_app.command("consolidate")
+def consolidate_memory(
+    inquiry_id: str,
+    checkpoint_id: Annotated[str, typer.Option("--checkpoint-id")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Persist one deterministic consolidation source checkpoint."""
+
+    checkpoint = _sdk(root).consolidation_checkpoint(
+        inquiry_id,
+        checkpoint_id=checkpoint_id,
+    )
+    typer.echo(_json(checkpoint))
+
+
+@memory_app.command("patch")
+def record_memory_patch(
+    inquiry_id: str,
+    candidate: Annotated[Path, typer.Option("--candidate")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record a validated inert memory-patch candidate from strict JSON."""
+
+    patch = MemoryPatchCandidate.model_validate_json(candidate.read_bytes(), strict=True)
+    typer.echo(_json(_sdk(root).record_memory_patch(inquiry_id, patch)))
+
+
+@memory_app.command("reconsolidate")
+def record_reconsolidation(
+    inquiry_id: str,
+    link: Annotated[Path, typer.Option("--link")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record an already checked immutable predecessor/successor repair link."""
+
+    record = ReconsolidationLink.model_validate_json(link.read_bytes(), strict=True)
+    typer.echo(_json(_sdk(root).record_reconsolidation_link(inquiry_id, record)))
+
+
+@field_app.command("evaluate")
+def evaluate_field(
+    inquiry_id: str,
+    evaluation_id: Annotated[str, typer.Option("--evaluation-id")],
+    probe_fingerprint: Annotated[str, typer.Option("--probe-fingerprint")],
+    safety: Annotated[list[str] | None, typer.Option("--safety")] = None,
+    exception: Annotated[list[str] | None, typer.Option("--exception")] = None,
+    dependency: Annotated[list[str] | None, typer.Option("--dependency")] = None,
+    retrieval: Annotated[list[str] | None, typer.Option("--retrieval")] = None,
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Derive, validate, and persist one bounded conservative semantic field."""
+
+    evaluation = _sdk(root).evaluate_semantic_field(
+        inquiry_id,
+        evaluation_id=evaluation_id,
+        probe_fingerprint=probe_fingerprint,
+        safety_structure_ids=tuple(safety or ()),
+        exception_structure_ids=tuple(exception or ()),
+        dependency_structure_ids=tuple(dependency or ()),
+        retrieval_structure_ids=tuple(retrieval or ()),
+    )
+    typer.echo(_json(evaluation))
+
+
+@probes_app.command("evaluate")
+def record_probe_evaluation(
+    inquiry_id: str,
+    evaluation: Annotated[Path, typer.Option("--evaluation")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record an independently checked finite holdout evaluation."""
+
+    record = ProbeEvaluation.model_validate_json(evaluation.read_bytes(), strict=True)
+    typer.echo(_json(_sdk(root).record_probe_evaluation(inquiry_id, record)))
+
+
+@probes_app.command("admit")
+def admit_learned_probe(
+    inquiry_id: str,
+    decision: Annotated[Path, typer.Option("--decision")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Apply the fixed controller policy to a recorded learned-probe decision."""
+
+    record = ProbeAdmissionDecision.model_validate_json(decision.read_bytes(), strict=True)
+    typer.echo(_json(_sdk(root).record_probe_admission(inquiry_id, record)))
 
 
 @recovery_app.command("start")

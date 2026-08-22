@@ -5,9 +5,8 @@ verified on 2026-08-22 by the complete frozen native gate recorded with exact
 returns in `docs/verification.md`. Its sole Windows skip is preserved there: the
 host lacked file-symlink privilege (`WinError 1314`), so the adversarial symlink
 case remains live for Linux CI and privileged Windows while the implementation's
-other link/reparse-point and bounds checks passed. G2A is the active bounded
-slice under RCI-058 and its local plus hosted native gates have passed. G2B and
-later-phase rows remain deliberately
+other link/reparse-point and bounds checks passed. G2A is sealed and verified.
+G2B is the active bounded remainder of RCI-058; later-phase rows remain deliberately
 **deferred**, not failed and not implemented by an interface-shaped stub.
 
 Status vocabulary:
@@ -18,6 +17,8 @@ Status vocabulary:
   does not claim a later milestone;
 - **verified G2A** — the cited implementation and local plus hosted
   Windows/Linux/Docker verification exist;
+- **local-verified G2B** — the cited implementation and complete native gate pass, while
+  protected hosted verification remains pending;
 - **deferred Gx** — outside the active Goal and assigned to that milestone;
 - **research** — requires a later explicit Goal and warranted method choice.
 
@@ -107,7 +108,7 @@ Status vocabulary:
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
 | RCI-057 | G1 is Foundation + Phases 1–2 + bounded cognitive spine | verified G1 | `docs/goals/G1.md`, Python packaging, native Windows/Linux CI, pinned supplementary Docker image, and the implementation evidence itemized above. The frozen 12-command native gate is recorded with all commands exiting 0 in `docs/verification.md`; later retrieval/compression/formal-control/release capabilities remain absent or inert as assigned. |
-| RCI-058 | G2 adds retrieval/consolidation/retention/probes/reacquisition | verified G2A retrieval/reconstruction/recovery; G2B deferred | ADR-0009 and `docs/goals/G2A.md`; focused G2A acceptance and the frozen G1 gate passed locally and in hosted Windows/Linux/Docker CI. Consolidation, reconsolidation, semantic-field evaluation, and learned probes remain a separate future G2B Goal; RCI-058 is not complete until both gates pass. |
+| RCI-058 | G2 adds retrieval/consolidation/retention/probes/reacquisition | verified G2A; local-verified G2B, hosted gate pending | ADR-0009, ADR-0010, and `docs/goals/G2B.md`; G2A is hosted-verified. G2B implements deterministic interleaved checkpoints, ordinary-claim consolidation with attacks, immutable repair records, recomputed bounded fields with overflow residuals, content-bound finite holdout checks, and controller-only probe admission. The complete local gate passed with 170 tests plus the focused circuit acceptance; RCI-058 completes only after protected hosted and post-merge checks pass. |
 | RCI-059 | G3A/B/C gate exact, approximate, then native compression | deferred G3 | future three bounded Goals |
 | RCI-060 | G4–G7 remain separately gated | deferred G4–G7 | later Goals; no G1 stubs |
 | RCI-061 | Backlog policy is human-owned and close proposal-only | verified G1 | tracked `.rci/config.toml`; pure reconciliation/apply allowlist; dedicated `BacklogEffectRecorded` ledger ownership rather than synthetic external-return evidence; shadow non-mutation, close proposal-only, checked-evidence, repeat-apply, out-of-order mutation, and linked-recurrence tests |
@@ -130,7 +131,7 @@ Status vocabulary:
 |---|---|---|
 | G1 | Verified raw-return authority, attempt alignment, sealed predictions, and basic probe records under the frozen G1 gate | No learned opaque state or benchmark pass |
 | G2A | Verified deterministic structural retrieval, candidate reconstruction, provisional retention routes, reacquisition scaffold/saga, and soft Pareto comparison on local and hosted Windows/Linux/Docker gates | No consolidation, learned probe, recovery licence, certified quotient, or control |
-| G2B | Consolidation/reconsolidation, semantic-field evaluation, and candidate learned probes after G2A | No recovery licence, certified quotient, or control |
+| G2B | Active: deterministic consolidation/reconsolidation, conservative semantic-field evaluation, and checked candidate learned probes | No recovery licence, certified quotient, automaton dependency, or control |
 | G3 | Consequence quotient, recovery licence, compression, reopening, reacquisition-frontier measurement | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

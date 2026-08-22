@@ -42,7 +42,8 @@ from rci.persistence.errors import (
 )
 
 DATABASE_SCHEMA_VERSION = 2
-FOLDED_STATE_SCHEMA_VERSION = "rci.inquiry-state.v2"
+FOLDED_STATE_SCHEMA_VERSION = "rci.inquiry-state.v3"
+_REBUILDABLE_FOLDED_STATE_SCHEMAS = frozenset({"rci.inquiry-state.v1", "rci.inquiry-state.v2"})
 EVENT_PREFIX_DIGEST_VERSION = "rci.event-prefix.v1"
 
 
@@ -758,11 +759,22 @@ class SQLiteEventStore:
                 (stream_id, state.sequence),
             ).fetchone()
             if existing is not None:
-                schema_changed = str(existing["fold_schema_version"]) != FOLDED_STATE_SCHEMA_VERSION
+                existing_schema = str(existing["fold_schema_version"])
+                if existing_schema in _REBUILDABLE_FOLDED_STATE_SCHEMAS:
+                    connection.execute(
+                        "DELETE FROM snapshots WHERE stream_id = ? AND sequence = ?",
+                        (stream_id, state.sequence),
+                    )
+                    existing = None
+                elif existing_schema != FOLDED_STATE_SCHEMA_VERSION:
+                    raise UnsupportedSchemaVersionError(
+                        f"snapshot fold schema {existing_schema!r} is unsupported"
+                    )
+            if existing is not None:
                 source_changed = str(existing["source_event_digest"]) != source_event_digest
                 bytes_changed = bytes(existing["state_bytes"]) != state_bytes
                 digest_changed = existing["state_digest"] != digest
-                if schema_changed or source_changed or bytes_changed or digest_changed:
+                if source_changed or bytes_changed or digest_changed:
                     raise SnapshotConflictError(
                         "snapshot sequence already stores different state bytes"
                     )
@@ -815,6 +827,8 @@ class SQLiteEventStore:
             return None
         fold_schema_version = str(row["fold_schema_version"])
         if fold_schema_version != FOLDED_STATE_SCHEMA_VERSION:
+            if fold_schema_version in _REBUILDABLE_FOLDED_STATE_SCHEMAS:
+                return None
             raise UnsupportedSchemaVersionError(
                 f"snapshot fold schema {fold_schema_version!r} is unsupported"
             )

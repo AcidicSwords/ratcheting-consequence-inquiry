@@ -27,6 +27,17 @@ from rci.core.effects import (
 )
 from rci.core.model import ArtifactRef, FrozenModel, Identifier, InquiryContext, require_utc
 from rci.core.planning import StepPlan
+from rci.learning.models import (
+    ConsolidationCandidate,
+    ConsolidationCheckpoint,
+    LearnedProbeCandidate,
+    MemoryPatchCandidate,
+    ProbeAdmissionDecision,
+    ProbeEvaluation,
+    ReconsolidationLink,
+    RepresentationGap,
+    SemanticFieldEvaluation,
+)
 from rci.memory.models import (
     ReacquisitionInquiryLink,
     ReacquisitionRequest,
@@ -272,6 +283,52 @@ class RecordRecoveryComparison(CommandBase):
     comparison: RecoveryComparison
 
 
+class RecordConsolidationCheckpoint(CommandBase):
+    kind: Literal["record_consolidation_checkpoint"] = "record_consolidation_checkpoint"
+    checkpoint: ConsolidationCheckpoint
+
+
+class RecordConsolidationCandidate(CommandBase):
+    kind: Literal["record_consolidation_candidate"] = "record_consolidation_candidate"
+    candidate: ConsolidationCandidate
+
+
+class RecordMemoryPatchCandidate(CommandBase):
+    kind: Literal["record_memory_patch_candidate"] = "record_memory_patch_candidate"
+    candidate: MemoryPatchCandidate
+
+
+class RecordReconsolidationLink(CommandBase):
+    kind: Literal["record_reconsolidation_link"] = "record_reconsolidation_link"
+    link: ReconsolidationLink
+
+
+class RecordSemanticFieldEvaluation(CommandBase):
+    kind: Literal["record_semantic_field_evaluation"] = "record_semantic_field_evaluation"
+    evaluation: SemanticFieldEvaluation
+    overflow_residual: Residual | None = None
+
+
+class RecordRepresentationGap(CommandBase):
+    kind: Literal["record_representation_gap"] = "record_representation_gap"
+    gap: RepresentationGap
+
+
+class RecordLearnedProbeCandidate(CommandBase):
+    kind: Literal["record_learned_probe_candidate"] = "record_learned_probe_candidate"
+    candidate: LearnedProbeCandidate
+
+
+class RecordProbeEvaluation(CommandBase):
+    kind: Literal["record_probe_evaluation"] = "record_probe_evaluation"
+    evaluation: ProbeEvaluation
+
+
+class RecordProbeAdmissionDecision(CommandBase):
+    kind: Literal["record_probe_admission_decision"] = "record_probe_admission_decision"
+    decision: ProbeAdmissionDecision
+
+
 DomainCommand = Annotated[
     StartInquiry
     | RecordBacklogEffect
@@ -309,6 +366,15 @@ DomainCommand = Annotated[
     | RequestReacquisition
     | LinkReacquisitionInquiry
     | RecordRecoveryObservation
-    | RecordRecoveryComparison,
+    | RecordRecoveryComparison
+    | RecordConsolidationCheckpoint
+    | RecordConsolidationCandidate
+    | RecordMemoryPatchCandidate
+    | RecordReconsolidationLink
+    | RecordSemanticFieldEvaluation
+    | RecordRepresentationGap
+    | RecordLearnedProbeCandidate
+    | RecordProbeEvaluation
+    | RecordProbeAdmissionDecision,
     Field(discriminator="kind"),
 ]

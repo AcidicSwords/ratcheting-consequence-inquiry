@@ -31,6 +31,7 @@ jobs:
       - run: uv run mypy src/rci tests
       - run: uv run pytest -q tests/acceptance
       - run: uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
+      - run: uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
       - run: uv run rci --help
       - run: uv build
 

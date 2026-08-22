@@ -11,6 +11,7 @@ from rci.claims.logic import (
 )
 from rci.claims.models import (
     Claim,
+    ClaimRole,
     ClaimStatus,
     Conflict,
     Obligation,
@@ -37,17 +38,26 @@ from rci.core.commands import (
     RecordCandidate,
     RecordCheckerVerdict,
     RecordCognitivePlan,
+    RecordConsolidationCandidate,
+    RecordConsolidationCheckpoint,
     RecordDecodeOutcome,
     RecordEvidence,
+    RecordLearnedProbeCandidate,
+    RecordMemoryPatchCandidate,
     RecordMismatch,
     RecordNoAttemptDisposition,
     RecordNogood,
     RecordObligationDisposition,
+    RecordProbeAdmissionDecision,
+    RecordProbeEvaluation,
     RecordProbeObservation,
+    RecordReconsolidationLink,
     RecordReconstruction,
     RecordRecoveryComparison,
     RecordRecoveryObservation,
+    RecordRepresentationGap,
     RecordResidual,
+    RecordSemanticFieldEvaluation,
     RecordStepPlan,
     RegisterRetentionPackage,
     RequestEffect,
@@ -71,6 +81,8 @@ from rci.core.events import (
     CheckerVerdictRecorded,
     ClaimAdmitted,
     CognitivePlanRecorded,
+    ConsolidationCandidateRecorded,
+    ConsolidationCheckpointRecorded,
     CorrectionAppended,
     DomainEvent,
     EffectAttemptOutcomeRecorded,
@@ -83,30 +95,48 @@ from rci.core.events import (
     EvidenceRecorded,
     GuardStandingChanged,
     InquiryStarted,
+    LearnedProbeCandidateRecorded,
     LemmaPromoted,
+    MemoryPatchCandidateRecorded,
     MismatchRecorded,
     NogoodRecorded,
     NogoodStandingChanged,
     ObligationDispositionRecorded,
     ObligationOpened,
     PredictionSealed,
+    ProbeAdmissionDecisionRecorded,
     ProbeAdmitted,
+    ProbeEvaluationRecorded,
     ProbeObservationRecorded,
     ReacquisitionInquiryLinked,
     ReacquisitionRequested,
+    ReconsolidationLinked,
     ReconstructionRecorded,
     RecoveryComparisonRecorded,
     RecoveryObservationRecorded,
+    RepresentationGapRecorded,
     ResidualRecorded,
     RetentionPackageRegistered,
     RetrievalCompleted,
     SemanticDeltaCommitted,
+    SemanticFieldEvaluationRecorded,
     StepPlanRecorded,
     SupportRouteStandingChanged,
     WarrantDecisionRecorded,
 )
 from rci.core.planning import PlanStatus
 from rci.core.state import InquiryState
+from rci.learning.models import (
+    ConsolidationStatus,
+    DependencyDispositionKind,
+    ProbeAdmissionOutcome,
+)
+from rci.learning.policies import (
+    build_probe_evaluation,
+    evaluate_conservative_field,
+    select_consolidation_checkpoint,
+    semantic_field_overflow_residual,
+)
 from rci.memory.recovery import (
     RecoveryCompatibilityError,
     compare_recovery_frontiers,
@@ -120,7 +150,7 @@ from rci.memory.retrieval import (
     structural_index_fingerprint,
 )
 from rci.probes.lifecycle import append_probe_event
-from rci.probes.models import ProbeTrace, SemanticChangeOperation
+from rci.probes.models import ProbeTrace, RelevanceStatus, SemanticChangeOperation
 from rci.warrant.checks import checker_verdict_index, evidence_index, resolve_check_reference
 from rci.warrant.models import (
     PromotionLink,
@@ -1116,6 +1146,10 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             if existing_probe == command.probe:
                 return ()
             raise IdentityConflictError("probe fingerprint was reused")
+        if command.probe.question_contract_key == "learned-recurrent-probe@1.0.0":
+            raise InvalidCommandError(
+                "learned probes require a recorded evaluation and controller admission decision"
+            )
         if state.context is None or (
             command.probe.binding_revision != state.context.binding_revision
             or command.probe.binding_schema_id not in state.context.carrier_schema_ids
@@ -1835,6 +1869,530 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
                 inquiry_id=command.inquiry_id,
                 occurred_at=command.occurred_at,
                 comparison=recovery_comparison,
+            ),
+        )
+
+    if isinstance(command, RecordConsolidationCheckpoint):
+        checkpoint = command.checkpoint
+        existing_consolidation_checkpoint = next(
+            (item for item in state.consolidation_checkpoints if item.id == checkpoint.id), None
+        )
+        if existing_consolidation_checkpoint is not None:
+            if existing_consolidation_checkpoint == checkpoint:
+                return ()
+            raise IdentityConflictError("consolidation checkpoint identity was reused")
+        if state.context is None or (
+            checkpoint.scope_fingerprint,
+            checkpoint.binding_revision,
+            checkpoint.protected_horizon_id,
+        ) != (
+            state.context.scope_fingerprint,
+            state.context.binding_revision,
+            state.context.protected_horizon_id,
+        ):
+            raise InvalidCommandError("consolidation checkpoint pins differ from inquiry context")
+        expected_consolidation_checkpoint = select_consolidation_checkpoint(
+            checkpoint_id=checkpoint.id,
+            policy=checkpoint.policy,
+            source_sequence=state.sequence,
+            scope_fingerprint=checkpoint.scope_fingerprint,
+            binding_revision=checkpoint.binding_revision,
+            protected_horizon_id=checkpoint.protected_horizon_id,
+            probe_observations=state.probe_observations,
+            claims=state.claims,
+            conflicts=state.conflicts,
+            mismatches=state.mismatches,
+            accepted_counterexample_requests={
+                item.request.id: item for item in state.effect_requests
+            },
+        )
+        if checkpoint != expected_consolidation_checkpoint:
+            raise InvalidCommandError("consolidation checkpoint is not the exact policy selection")
+        return (
+            ConsolidationCheckpointRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                checkpoint=checkpoint,
+            ),
+        )
+
+    if isinstance(command, RecordConsolidationCandidate):
+        consolidation_candidate = command.candidate
+        existing_consolidation_candidate = next(
+            (
+                item
+                for item in state.consolidation_candidates
+                if item.id == consolidation_candidate.id
+            ),
+            None,
+        )
+        if existing_consolidation_candidate is not None:
+            if existing_consolidation_candidate == consolidation_candidate:
+                return ()
+            raise IdentityConflictError("consolidation candidate identity was reused")
+        candidate_checkpoint = next(
+            (
+                item
+                for item in state.consolidation_checkpoints
+                if item.id == consolidation_candidate.checkpoint_id
+            ),
+            None,
+        )
+        candidate_claim = state.claim_by_id(consolidation_candidate.generalization_claim_id)
+        obligation_by_id = {item.id: item for item in state.obligations}
+        if (
+            candidate_checkpoint is None
+            or candidate_checkpoint.status is not ConsolidationStatus.READY
+        ):
+            raise InvalidCommandError("consolidation requires a ready checkpoint")
+        if candidate_claim is None or candidate_claim.role is not ClaimRole.GENERALIZATION:
+            raise InvalidCommandError(
+                "consolidation output must be an ordinary generalization claim"
+            )
+        if consolidation_candidate.boundary.scope != candidate_claim.scope or (
+            state.context is None
+            or consolidation_candidate.boundary.scope.fingerprint != state.context.scope_fingerprint
+        ):
+            raise InvalidCommandError("consolidation boundary must preserve exact claim scope")
+        referenced_obligations = (
+            *consolidation_candidate.challenge_obligation_ids,
+            *consolidation_candidate.boundary.open_dependency_obligation_ids,
+        )
+        if any(
+            obligation_by_id.get(identifier) is None
+            or state.current_obligation_status(identifier) is not ObligationStatus.OPEN
+            for identifier in referenced_obligations
+        ):
+            raise InvalidCommandError("consolidation challenges and dependencies must be open")
+        return (
+            ConsolidationCandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                candidate=consolidation_candidate,
+            ),
+        )
+
+    if isinstance(command, RecordMemoryPatchCandidate):
+        memory_patch = command.candidate
+        existing_memory_patch = next(
+            (item for item in state.memory_patch_candidates if item.id == memory_patch.id), None
+        )
+        if existing_memory_patch is not None:
+            if existing_memory_patch == memory_patch:
+                return ()
+            raise IdentityConflictError("memory patch identity was reused")
+        patch_version = next(
+            (item for item in state.lemma_versions if item.id == memory_patch.target_lemma_id), None
+        )
+        patch_mismatch = next(
+            (item for item in state.mismatches if item.id == memory_patch.triggering_mismatch_id),
+            None,
+        )
+        patch_claim = state.claim_by_id(memory_patch.proposed_claim_id)
+        if patch_version is None or patch_version.id not in _current_active_lemma_ids(state):
+            raise InvalidCommandError("memory patch requires an active predecessor lemma")
+        if (
+            patch_mismatch is None
+            or patch_mismatch.external_return_id != memory_patch.triggering_return_id
+        ):
+            raise InvalidCommandError("memory patch must pin its exact mismatch and return")
+        if patch_claim is None or patch_claim.scope.fingerprint != memory_patch.scope_fingerprint:
+            raise InvalidCommandError("memory patch must name an owned in-scope proposed claim")
+        patch_support = next(
+            (item for item in state.lemma_supports if item.lemma_version_id == patch_version.id),
+            None,
+        )
+        if patch_support is None or not set(memory_patch.predecessor_support_route_ids) <= {
+            route.id for route in patch_support.all_support_routes
+        }:
+            raise InvalidCommandError(
+                "memory patch support routes are not owned by its predecessor"
+            )
+        dependencies = {
+            dependency
+            for route in patch_support.all_support_routes
+            if route.id in memory_patch.predecessor_support_route_ids
+            for dependency in route.required_dependency_ids
+        }
+        dispositions = {item.dependency_id: item for item in memory_patch.dependency_dispositions}
+        if set(dispositions) != dependencies:
+            raise InvalidCommandError(
+                "memory patch must explicitly transport or discharge every dependency"
+            )
+        decisions = {item.id: item for item in state.warrant_decisions}
+        versions = {item.id: item for item in state.lemma_versions}
+        for dependency_id, disposition in dispositions.items():
+            if disposition.kind is DependencyDispositionKind.TRANSPORTED:
+                continue
+            decision = decisions.get(disposition.warrant_decision_id or "")
+            dependency = versions.get(dependency_id)
+            if (
+                decision is None
+                or dependency is None
+                or decision.warrant_class is not WarrantClass.HARD
+                or decision.proposition_id != dependency.relation_id
+                or decision.scope_fingerprint != dependency.scope.fingerprint
+            ):
+                raise InvalidCommandError("dependency discharge requires an exact hard decision")
+        if any(
+            state.current_obligation_status(identifier) is not ObligationStatus.OPEN
+            for identifier in memory_patch.challenge_obligation_ids
+        ):
+            raise InvalidCommandError("memory patch challenges must remain open")
+        return (
+            MemoryPatchCandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                candidate=memory_patch,
+            ),
+        )
+
+    if isinstance(command, RecordReconsolidationLink):
+        reconsolidation_link = command.link
+        existing_reconsolidation_link = next(
+            (item for item in state.reconsolidation_links if item.id == reconsolidation_link.id),
+            None,
+        )
+        if existing_reconsolidation_link is not None:
+            if existing_reconsolidation_link == reconsolidation_link:
+                return ()
+            raise IdentityConflictError("reconsolidation link identity was reused")
+        linked_patch = next(
+            (
+                item
+                for item in state.memory_patch_candidates
+                if item.id == reconsolidation_link.memory_patch_id
+            ),
+            None,
+        )
+        predecessor = next(
+            (
+                item
+                for item in state.lemma_versions
+                if item.id == reconsolidation_link.predecessor_lemma_id
+            ),
+            None,
+        )
+        successor = next(
+            (
+                item
+                for item in state.lemma_versions
+                if item.id == reconsolidation_link.successor_lemma_id
+            ),
+            None,
+        )
+        correction = next(
+            (item for item in state.corrections if item.id == reconsolidation_link.correction_id),
+            None,
+        )
+        successor_promotion = next(
+            (
+                item
+                for item in state.promotion_links
+                if item.lemma_version_id == reconsolidation_link.successor_lemma_id
+            ),
+            None,
+        )
+        if linked_patch is None or predecessor is None or successor is None or correction is None:
+            raise InvalidCommandError(
+                "reconsolidation link requires owned patch and succession records"
+            )
+        if (
+            linked_patch.target_lemma_id != predecessor.id
+            or predecessor.id not in successor.predecessor_refs
+        ):
+            raise InvalidCommandError(
+                "reconsolidation successor must preserve predecessor ancestry"
+            )
+        if correction.target_id != predecessor.id or successor.id not in correction.related_ids:
+            raise InvalidCommandError(
+                "reconsolidation correction must link predecessor to successor"
+            )
+        if (
+            successor_promotion is None
+            or successor_promotion.warrant_decision_id != reconsolidation_link.warrant_decision_id
+        ):
+            raise InvalidCommandError(
+                "reconsolidation successor requires its exact promotion warrant"
+            )
+        if any(
+            state.current_obligation_status(identifier) is not ObligationStatus.SATISFIED
+            for identifier in linked_patch.challenge_obligation_ids
+        ):
+            raise InvalidCommandError(
+                "reconsolidation cannot apply before all attacks are discharged"
+            )
+        return (
+            ReconsolidationLinked(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                link=reconsolidation_link,
+            ),
+        )
+
+    if isinstance(command, RecordSemanticFieldEvaluation):
+        field_evaluation = command.evaluation
+        existing_field_evaluation = next(
+            (item for item in state.semantic_field_evaluations if item.id == field_evaluation.id),
+            None,
+        )
+        if existing_field_evaluation is not None:
+            if existing_field_evaluation == field_evaluation:
+                return ()
+            raise IdentityConflictError("semantic-field evaluation identity was reused")
+        if field_evaluation.source_sequence != state.sequence:
+            raise InvalidCommandError("semantic-field evaluation must pin current source sequence")
+        expected_field_evaluation = evaluate_conservative_field(
+            evaluation_id=field_evaluation.id,
+            field=field_evaluation.field,
+            policy=field_evaluation.policy,
+            source_sequence=field_evaluation.source_sequence,
+            source_index_fingerprint=field_evaluation.source_index_fingerprint,
+            probe_fingerprint=field_evaluation.probe_fingerprint,
+            required_structure_ids=field_evaluation.required_structure_ids,
+            overflow_structure_ids=field_evaluation.overflow_structure_ids,
+        )
+        if expected_field_evaluation != field_evaluation:
+            raise InvalidCommandError("semantic-field diagnostic is not exactly recomputed")
+        if state.context is None:
+            raise InvalidCommandError("semantic-field evaluation requires inquiry context")
+        expected_overflow_residual = semantic_field_overflow_residual(
+            field_evaluation,
+            Scope(
+                id=state.context.scope_id,
+                binding_revision=state.context.binding_revision,
+                assumption_ids=state.context.assumption_ids,
+                applicability_guard_id=state.context.guard_condition_id,
+                finite_universe_hash=state.context.finite_universe_hash,
+                closed_world=state.context.closed_world,
+            ),
+        )
+        if command.overflow_residual != expected_overflow_residual:
+            raise InvalidCommandError("semantic-field overflow must preserve its exact residual")
+        active_versions = {
+            version.id: version
+            for version in state.lemma_versions
+            if version.id in _current_active_lemma_ids(state)
+        }
+        for item in field_evaluation.field.items:
+            if item.relevance is not RelevanceStatus.IRRELEVANT:
+                continue
+            warrant = active_versions.get(item.irrelevance_warrant_id or "")
+            if warrant is None or warrant.relation_id != f"consequence-null:{item.structure_id}":
+                raise InvalidCommandError(
+                    "irrelevance requires an active exact hard consequence-null lemma"
+                )
+        return (
+            SemanticFieldEvaluationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                evaluation=field_evaluation,
+                overflow_residual=command.overflow_residual,
+            ),
+        )
+
+    if isinstance(command, RecordRepresentationGap):
+        gap = command.gap
+        existing_gap = next((item for item in state.representation_gaps if item.id == gap.id), None)
+        if existing_gap is not None:
+            if existing_gap == gap:
+                return ()
+            raise IdentityConflictError("representation-gap identity was reused")
+        if state.context is None or (
+            gap.scope_fingerprint,
+            gap.binding_revision,
+            gap.protected_horizon_id,
+        ) != (
+            state.context.scope_fingerprint,
+            state.context.binding_revision,
+            state.context.protected_horizon_id,
+        ):
+            raise InvalidCommandError("representation gap pins differ from inquiry context")
+        if state.obligation_by_id(gap.obligation_id) is None:
+            raise InvalidCommandError("representation gap requires an owned obligation")
+        known_probes = {item.fingerprint for item in state.admitted_probes}
+        if not set(gap.failed_probe_fingerprints) <= known_probes:
+            raise InvalidCommandError(
+                "representation gap references a probe not admitted by policy"
+            )
+        return (
+            RepresentationGapRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                gap=gap,
+            ),
+        )
+
+    if isinstance(command, RecordLearnedProbeCandidate):
+        learned_candidate = command.candidate
+        existing_learned_candidate = next(
+            (item for item in state.learned_probe_candidates if item.id == learned_candidate.id),
+            None,
+        )
+        if existing_learned_candidate is not None:
+            if existing_learned_candidate == learned_candidate:
+                return ()
+            raise IdentityConflictError("learned-probe candidate identity was reused")
+        candidate_gap = next(
+            (
+                item
+                for item in state.representation_gaps
+                if item.id == learned_candidate.representation_gap_id
+            ),
+            None,
+        )
+        if (
+            candidate_gap is None
+            or state.context is None
+            or (
+                learned_candidate.probe_identity.scope_fingerprint,
+                learned_candidate.probe_identity.binding_revision,
+                learned_candidate.probe_identity.protected_horizon_id,
+            )
+            != (
+                state.context.scope_fingerprint,
+                state.context.binding_revision,
+                state.context.protected_horizon_id,
+            )
+        ):
+            raise InvalidCommandError(
+                "learned-probe candidate requires an exact owned gap and context"
+            )
+        if any(
+            state.current_obligation_status(identifier) is not ObligationStatus.OPEN
+            for identifier in learned_candidate.challenge_obligation_ids
+        ):
+            raise InvalidCommandError("learned-probe attacks must be open obligations")
+        return (
+            LearnedProbeCandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                candidate=learned_candidate,
+            ),
+        )
+
+    if isinstance(command, RecordProbeEvaluation):
+        probe_evaluation = command.evaluation
+        existing_probe_evaluation = next(
+            (item for item in state.probe_evaluations if item.id == probe_evaluation.id),
+            None,
+        )
+        if existing_probe_evaluation is not None:
+            if existing_probe_evaluation == probe_evaluation:
+                return ()
+            raise IdentityConflictError("probe-evaluation identity was reused")
+        evaluated_candidate = next(
+            (
+                item
+                for item in state.learned_probe_candidates
+                if item.id == probe_evaluation.candidate_probe_id
+            ),
+            None,
+        )
+        if evaluated_candidate is None:
+            raise InvalidCommandError("probe evaluation requires an owned candidate")
+        expected_probe_evaluation = build_probe_evaluation(
+            evaluation_id=probe_evaluation.id,
+            candidate_probe_id=probe_evaluation.candidate_probe_id,
+            samples=probe_evaluation.samples,
+            protocol=probe_evaluation.protocol,
+            redundancy_check=probe_evaluation.redundancy_check,
+            protected_behavior_check=probe_evaluation.protected_behavior_check,
+        )
+        if expected_probe_evaluation != probe_evaluation:
+            raise InvalidCommandError("probe evaluation is not the exact deterministic result")
+        observation_ids = {item.id for item in state.probe_observations}
+        if (
+            not set(
+                (
+                    *probe_evaluation.training_observation_ids,
+                    *probe_evaluation.holdout_observation_ids,
+                )
+            )
+            <= observation_ids
+        ):
+            raise InvalidCommandError("probe evaluation references unknown observations")
+        for check_reference in (
+            probe_evaluation.redundancy_check,
+            probe_evaluation.protected_behavior_check,
+        ):
+            _require_g2a_check(
+                state,
+                check_reference,
+                proposition_id=probe_evaluation.evaluation_proposition_id,
+                scope_fingerprint=evaluated_candidate.probe_identity.scope_fingerprint,
+            )
+        return (
+            ProbeEvaluationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                evaluation=probe_evaluation,
+            ),
+        )
+
+    if isinstance(command, RecordProbeAdmissionDecision):
+        admission_decision = command.decision
+        existing_admission_decision = next(
+            (item for item in state.probe_admission_decisions if item.id == admission_decision.id),
+            None,
+        )
+        if existing_admission_decision is not None:
+            if existing_admission_decision == admission_decision:
+                return ()
+            raise IdentityConflictError("probe-admission decision identity was reused")
+        admission_candidate = next(
+            (
+                item
+                for item in state.learned_probe_candidates
+                if item.id == admission_decision.candidate_probe_id
+            ),
+            None,
+        )
+        admission_evaluation = next(
+            (
+                item
+                for item in state.probe_evaluations
+                if item.id == admission_decision.evaluation_id
+            ),
+            None,
+        )
+        if (
+            admission_candidate is None
+            or admission_evaluation is None
+            or admission_evaluation.candidate_probe_id != admission_candidate.id
+        ):
+            raise InvalidCommandError("probe admission requires its exact candidate evaluation")
+        challenges_closed = all(
+            state.current_obligation_status(identifier) is ObligationStatus.SATISFIED
+            for identifier in admission_candidate.challenge_obligation_ids
+        )
+        qualifies = (
+            challenges_closed
+            and admission_evaluation.training_discrimination_gain > 0
+            and admission_evaluation.holdout_discrimination_gain > 0
+            and admission_evaluation.protected_error_count == 0
+        )
+        if admission_decision.outcome is ProbeAdmissionOutcome.ADMIT and not qualifies:
+            raise InvalidCommandError("learned probe does not satisfy controller admission policy")
+        if admission_decision.outcome is ProbeAdmissionOutcome.ADMIT and any(
+            item.fingerprint == admission_candidate.probe_identity.fingerprint
+            for item in state.admitted_probes
+        ):
+            raise IdentityConflictError("learned probe identity is already admitted")
+        return (
+            ProbeAdmissionDecisionRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                decision=admission_decision,
             ),
         )
 
@@ -2610,6 +3168,168 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
         return _advance_domain_state(
             state,
             recovery_comparisons=(*state.recovery_comparisons, event.comparison),
+        )
+
+    if isinstance(event, ConsolidationCheckpointRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordConsolidationCheckpoint(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                checkpoint=event.checkpoint,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            consolidation_checkpoints=(*state.consolidation_checkpoints, event.checkpoint),
+        )
+
+    if isinstance(event, ConsolidationCandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordConsolidationCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                candidate=event.candidate,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            consolidation_candidates=(*state.consolidation_candidates, event.candidate),
+        )
+
+    if isinstance(event, MemoryPatchCandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordMemoryPatchCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                candidate=event.candidate,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            memory_patch_candidates=(*state.memory_patch_candidates, event.candidate),
+        )
+
+    if isinstance(event, ReconsolidationLinked):
+        _require_matching_decision(
+            state,
+            event,
+            RecordReconsolidationLink(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                link=event.link,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            reconsolidation_links=(*state.reconsolidation_links, event.link),
+        )
+
+    if isinstance(event, SemanticFieldEvaluationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordSemanticFieldEvaluation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                evaluation=event.evaluation,
+                overflow_residual=event.overflow_residual,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            semantic_field_evaluations=(
+                *state.semantic_field_evaluations,
+                event.evaluation,
+            ),
+            residuals=(
+                state.residuals
+                if event.overflow_residual is None
+                else (*state.residuals, event.overflow_residual)
+            ),
+        )
+
+    if isinstance(event, RepresentationGapRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordRepresentationGap(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                gap=event.gap,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            representation_gaps=(*state.representation_gaps, event.gap),
+        )
+
+    if isinstance(event, LearnedProbeCandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordLearnedProbeCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                candidate=event.candidate,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            learned_probe_candidates=(*state.learned_probe_candidates, event.candidate),
+        )
+
+    if isinstance(event, ProbeEvaluationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordProbeEvaluation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                evaluation=event.evaluation,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            probe_evaluations=(*state.probe_evaluations, event.evaluation),
+        )
+
+    if isinstance(event, ProbeAdmissionDecisionRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordProbeAdmissionDecision(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision=event.decision,
+            ),
+        )
+        candidate = next(
+            item
+            for item in state.learned_probe_candidates
+            if item.id == event.decision.candidate_probe_id
+        )
+        admitted = state.admitted_probes
+        if event.decision.outcome is ProbeAdmissionOutcome.ADMIT:
+            admitted = (*admitted, candidate.probe_identity)
+        return _advance_domain_state(
+            state,
+            probe_admission_decisions=(*state.probe_admission_decisions, event.decision),
+            admitted_probes=admitted,
         )
 
     raise InvalidTransitionError(f"unsupported event type: {type(event).__name__}")
