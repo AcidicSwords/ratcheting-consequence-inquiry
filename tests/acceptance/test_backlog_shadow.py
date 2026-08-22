@@ -123,6 +123,7 @@ def test_checked_status_cannot_be_asserted_without_captured_evidence(tmp_path: P
             "--root",
             str(root),
         ],
+        color=False,
     )
 
     assert result.exit_code != 0
