@@ -468,5 +468,28 @@ slice with byte-identical export and unchanged G1 projection digest.
 
 The local Docker client was version 29.7.2, but the Docker Desktop Linux daemon
 was stopped, so no local image result is claimed. Docker is supplementary and
-nonblocking; the hosted `docker` job remains the required container evidence.
-The first hosted G2A PR workflow is pending and will be recorded after it passes.
+nonblocking. The hosted verification below supplies the required container
+evidence.
+
+## G2A hosted PR verification — 2026-08-22
+
+Commit [`1dea7d1`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/commit/1dea7d17466d0ec26b3907a72315279424f9dbab)
+was verified in [pull request 1](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/1).
+The canonical pull-request workflow was
+[run 32573442799](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32573442799),
+which completed successfully with these five unique job names:
+
+| Required job | Hosted job | Conclusion |
+|---|---|---|
+| `base (ubuntu-latest)` | [97032207945](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32573442799/job/97032207945) | `success` |
+| `base (windows-latest)` | [97032207898](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32573442799/job/97032207898) | `success` |
+| `extras (ubuntu-latest)` | [97032207926](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32573442799/job/97032207926) | `success` |
+| `extras (windows-latest)` | [97032207805](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32573442799/job/97032207805) | `success` |
+| `docker` | [97032207935](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32573442799/job/97032207935) | `success` |
+
+The Docker job built and executed the pinned image under the repository's
+network-disabled, read-only, capability-dropped policy. The four native jobs
+proved the base and optional dependency profiles on both hosted Windows and
+Linux. The branch remained subject to the protected-`main` pull-request and
+required-check boundary; no release, deployment, or authority expansion was
+performed.
