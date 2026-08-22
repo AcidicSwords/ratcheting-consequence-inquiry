@@ -402,7 +402,7 @@ schemas and meanings remain immutable under v0.4.
 G3R adds only new version-1 event kinds. Folded state advances to v5 and v1-v4 snapshots
 rebuild from unchanged authoritative events. It adds no dependency.
 
-### G3Q (active) — regenerative question-contract synthesis
+### G3Q (verified) — regenerative question-contract synthesis
 
 - Compile only independently admitted `QuestionContractCandidate` records into a
   versioned, data-only `recursive-project-v1` registry projection. Generated contracts
@@ -537,7 +537,7 @@ in AGENTS, the G3R Goal, CI, and the verification record:
 uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
 ```
 
-Active G3Q adds this focused acceptance command identically to AGENTS, the G3Q Goal, CI,
+Sealed G3Q retains this focused acceptance command identically to AGENTS, the G3Q Goal, CI,
 and the verification record:
 
 ```text
