@@ -18,6 +18,14 @@ from rci.claims.models import (
     ObligationStatus,
     Scope,
 )
+from rci.compression.models import (
+    ExactClaimKind,
+    HistoryDerivationStatus,
+    ReopeningOutcome,
+    SuccessorDisposition,
+    ValidationOutcome,
+    ValidationProperty,
+)
 from rci.core.commands import (
     AcceptEffectResult,
     AdmitClaim,
@@ -27,9 +35,13 @@ from rci.core.commands import (
     ChangeNogoodStanding,
     ChangeSupportRouteStanding,
     CommitSemanticDelta,
+    DecideRepresentationSuccessor,
     DomainCommand,
     EvaluateWarrant,
+    GrantExactCompressionLicense,
+    GrantRecoveryLicense,
     LinkReacquisitionInquiry,
+    LinkRetentionCapability,
     OpenObligation,
     PlanEffectAttempt,
     PromoteClaim,
@@ -38,6 +50,8 @@ from rci.core.commands import (
     RecordCandidate,
     RecordCheckerVerdict,
     RecordCognitivePlan,
+    RecordCompressionApplication,
+    RecordCompressionValidation,
     RecordConsolidationCandidate,
     RecordConsolidationCheckpoint,
     RecordDecodeOutcome,
@@ -51,6 +65,7 @@ from rci.core.commands import (
     RecordProbeAdmissionDecision,
     RecordProbeEvaluation,
     RecordProbeObservation,
+    RecordRealizedHistoryDerivation,
     RecordReconsolidationLink,
     RecordReconstruction,
     RecordRecoveryComparison,
@@ -59,7 +74,10 @@ from rci.core.commands import (
     RecordResidual,
     RecordSemanticFieldEvaluation,
     RecordStepPlan,
+    RegisterBindingCarrierManifest,
+    RegisterCompressionContract,
     RegisterRetentionPackage,
+    ReopenRepresentation,
     RequestEffect,
     RequestReacquisition,
     RunRetrieval,
@@ -77,10 +95,14 @@ from rci.core.errors import (
 )
 from rci.core.events import (
     BacklogEffectRecorded,
+    BindingCarrierManifestRegistered,
     CandidateRecorded,
     CheckerVerdictRecorded,
     ClaimAdmitted,
     CognitivePlanRecorded,
+    CompressionApplicationRecorded,
+    CompressionContractRegistered,
+    CompressionValidationRecorded,
     ConsolidationCandidateRecorded,
     ConsolidationCheckpointRecorded,
     CorrectionAppended,
@@ -93,6 +115,7 @@ from rci.core.events import (
     EffectRequested,
     EffectResultAccepted,
     EvidenceRecorded,
+    ExactCompressionLicenseGranted,
     GuardStandingChanged,
     InquiryStarted,
     LearnedProbeCandidateRecorded,
@@ -110,12 +133,17 @@ from rci.core.events import (
     ProbeObservationRecorded,
     ReacquisitionInquiryLinked,
     ReacquisitionRequested,
+    RealizedHistoryDerivationRecorded,
     ReconsolidationLinked,
     ReconstructionRecorded,
     RecoveryComparisonRecorded,
+    RecoveryLicenseGranted,
     RecoveryObservationRecorded,
     RepresentationGapRecorded,
+    RepresentationReopened,
+    RepresentationSuccessorDecided,
     ResidualRecorded,
+    RetentionCapabilityLinked,
     RetentionPackageRegistered,
     RetrievalCompleted,
     SemanticDeltaCommitted,
@@ -125,6 +153,7 @@ from rci.core.events import (
     WarrantDecisionRecorded,
 )
 from rci.core.planning import PlanStatus
+from rci.core.serialization import canonical_json_bytes, sha256_digest
 from rci.core.state import InquiryState
 from rci.learning.models import (
     ConsolidationStatus,
@@ -2396,6 +2425,542 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             ),
         )
 
+    if isinstance(command, RegisterBindingCarrierManifest):
+        manifest = command.manifest
+        existing_carrier_manifest = next(
+            (item for item in state.binding_carrier_manifests if item.id == manifest.id), None
+        )
+        if existing_carrier_manifest is not None:
+            if existing_carrier_manifest == manifest:
+                return ()
+            raise IdentityConflictError("carrier-manifest identity was reused")
+        if state.context is None or manifest.binding_revision != state.context.binding_revision:
+            raise InvalidCommandError("carrier manifest must match the inquiry binding revision")
+        declared_schema_ids = set(state.context.carrier_schema_ids)
+        if manifest.configuration_carrier.schema_id not in declared_schema_ids:
+            raise InvalidCommandError("configuration carrier schema is not pinned by the inquiry")
+        if manifest.realized_history_carrier.schema_id not in declared_schema_ids:
+            raise InvalidCommandError("history carrier schema is not pinned by the inquiry")
+        return (
+            BindingCarrierManifestRegistered(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                manifest=manifest,
+            ),
+        )
+
+    if isinstance(command, RecordRealizedHistoryDerivation):
+        derivation = command.derivation
+        existing_history_derivation = next(
+            (item for item in state.realized_history_derivations if item.id == derivation.id),
+            None,
+        )
+        if existing_history_derivation is not None:
+            if existing_history_derivation == derivation:
+                return ()
+            raise IdentityConflictError("history-derivation identity was reused")
+        if not any(
+            item.id == derivation.carrier_manifest_id for item in state.binding_carrier_manifests
+        ):
+            raise InvalidCommandError("history derivation requires an owned carrier manifest")
+        if derivation.source_ledger_sequence != state.sequence:
+            raise InvalidCommandError("history derivation must pin the current committed prefix")
+        if derivation.status is HistoryDerivationStatus.DERIVED:
+            assert derivation.derivation_check is not None
+            assert state.context is not None
+            _require_g2a_check(
+                state,
+                derivation.derivation_check,
+                proposition_id=f"history-derivation:{derivation.id}",
+                scope_fingerprint=state.context.scope_fingerprint,
+            )
+        return (
+            RealizedHistoryDerivationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                derivation=derivation,
+            ),
+        )
+
+    if isinstance(command, RegisterCompressionContract):
+        contract = command.contract
+        existing_compression_contract = next(
+            (item for item in state.compression_contracts if item.id == contract.id), None
+        )
+        if existing_compression_contract is not None:
+            if existing_compression_contract == contract:
+                return ()
+            raise IdentityConflictError("compression-contract identity was reused")
+        carrier_manifest = next(
+            (
+                item
+                for item in state.binding_carrier_manifests
+                if item.id == contract.carrier_manifest_id
+            ),
+            None,
+        )
+        if carrier_manifest is None or state.context is None:
+            raise InvalidCommandError("compression contract requires its carrier manifest")
+        carriers = (
+            carrier_manifest.configuration_carrier,
+            carrier_manifest.realized_history_carrier,
+            *carrier_manifest.other_carriers,
+        )
+        if not any(item.id == contract.source_carrier_id for item in carriers):
+            raise InvalidCommandError("compression source carrier is not explicitly declared")
+        if (
+            contract.binding_revision,
+            contract.scope_fingerprint,
+            contract.protected_horizon_id,
+        ) != (
+            state.context.binding_revision,
+            state.context.scope_fingerprint,
+            state.context.protected_horizon_id,
+        ):
+            raise InvalidCommandError("compression contract pins must match inquiry context")
+        return (
+            CompressionContractRegistered(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                contract=contract,
+            ),
+        )
+
+    if isinstance(command, RecordCompressionValidation):
+        validation = command.validation
+        existing_compression_validation = next(
+            (item for item in state.compression_validations if item.id == validation.id), None
+        )
+        if existing_compression_validation is not None:
+            if existing_compression_validation == validation:
+                return ()
+            raise IdentityConflictError("compression-validation identity was reused")
+        validation_contract = next(
+            (item for item in state.compression_contracts if item.id == validation.contract_id),
+            None,
+        )
+        if validation_contract is None:
+            raise InvalidCommandError("compression validation requires an owned contract")
+        expected_fingerprint = sha256_digest(canonical_json_bytes(validation_contract))
+        if validation.contract_fingerprint != expected_fingerprint:
+            raise InvalidCommandError("compression validation does not pin the exact contract")
+        by_property = {item.property: item for item in validation.properties}
+        required = {
+            ValidationProperty.CONSEQUENCE_FACTORIZATION,
+            ValidationProperty.RESIDUE_COMPLETENESS,
+        }
+        if ExactClaimKind.COARSEST_EXACT_QUOTIENT in validation_contract.claim_kinds:
+            required.add(ValidationProperty.EXACT_EQUIVALENCE)
+        if ExactClaimKind.EXECUTABLE_RETAINED_STATE in validation_contract.claim_kinds:
+            required.update(
+                {
+                    ValidationProperty.CONTINUATION_COMPATIBILITY,
+                    ValidationProperty.RECURSIVE_UPDATE,
+                }
+            )
+        for property_kind in required:
+            if by_property[property_kind].outcome is ValidationOutcome.NOT_CLAIMED:
+                raise InvalidCommandError(
+                    f"compression claim requires a disposition for {property_kind.value}"
+                )
+        for property_check in validation.properties:
+            if property_check.outcome is ValidationOutcome.NOT_CLAIMED:
+                continue
+            assert property_check.check is not None
+            assert property_check.proposition_id is not None
+            expected_property_proposition = (
+                f"compression-property:{validation_contract.id}:{property_check.property.value}"
+            )
+            if property_check.proposition_id != expected_property_proposition:
+                raise InvalidCommandError(
+                    "compression property check is not bound to its exact contract property"
+                )
+            _require_g2a_check(
+                state,
+                property_check.check,
+                proposition_id=property_check.proposition_id,
+                scope_fingerprint=validation_contract.scope_fingerprint,
+            )
+        return (
+            CompressionValidationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                validation=validation,
+            ),
+        )
+
+    if isinstance(command, GrantExactCompressionLicense):
+        license_record = command.license
+        existing_exact_license = next(
+            (item for item in state.exact_compression_licenses if item.id == license_record.id),
+            None,
+        )
+        if existing_exact_license is not None:
+            if existing_exact_license == license_record:
+                return ()
+            raise IdentityConflictError("exact-license identity was reused")
+        licensed_contract = next(
+            (item for item in state.compression_contracts if item.id == license_record.contract_id),
+            None,
+        )
+        licensed_validation = next(
+            (
+                item
+                for item in state.compression_validations
+                if item.id == license_record.validation_id
+            ),
+            None,
+        )
+        decision = state.warrant_decision_by_id(license_record.warrant_decision_id)
+        if (
+            licensed_contract is None
+            or licensed_validation is None
+            or licensed_validation.contract_id != licensed_contract.id
+        ):
+            raise InvalidCommandError("exact license requires its exact contract validation")
+        if not licensed_validation.valid:
+            raise InvalidCommandError("invalid compression validation cannot be licensed")
+        if (
+            state.context is None
+            or license_record.policy_version != state.context.warrant_policy_version
+        ):
+            raise InvalidCommandError("exact license must use the active warrant policy")
+        if (
+            decision is None
+            or decision.warrant_class is not WarrantClass.HARD
+            or decision.proposition_id != f"compression-license:{licensed_validation.id}"
+            or decision.scope_fingerprint != licensed_contract.scope_fingerprint
+            or decision.policy_version != license_record.policy_version
+        ):
+            raise InvalidCommandError("exact license requires an exact active hard warrant")
+        if license_record.predecessor_license_id is not None and not any(
+            item.id == license_record.predecessor_license_id
+            for item in state.exact_compression_licenses
+        ):
+            raise InvalidCommandError("compression-license predecessor is not owned")
+        return (
+            ExactCompressionLicenseGranted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                license=license_record,
+            ),
+        )
+
+    if isinstance(command, RecordCompressionApplication):
+        application = command.application
+        existing_application = next(
+            (item for item in state.compression_applications if item.id == application.id), None
+        )
+        if existing_application is not None:
+            if existing_application == application and all(
+                item in state.path_residues for item in command.path_residues
+            ):
+                return ()
+            raise IdentityConflictError("compression-application identity was reused")
+        application_license = next(
+            (
+                item
+                for item in state.exact_compression_licenses
+                if item.id == application.license_id
+            ),
+            None,
+        )
+        application_derivation = next(
+            (
+                item
+                for item in state.realized_history_derivations
+                if item.id == application.source_history_derivation_id
+            ),
+            None,
+        )
+        if application_license is None or application_derivation is None:
+            raise InvalidCommandError("compression application requires license and history")
+        if (
+            application_derivation.status is not HistoryDerivationStatus.DERIVED
+            or application_derivation.history_artifact != application.source_artifact
+        ):
+            raise InvalidCommandError(
+                "compression application must consume its exact derived history"
+            )
+        if application.retained_state_fingerprint != application.retained_state_artifact.digest:
+            raise InvalidCommandError("retained-state fingerprint must pin the exact CAS bytes")
+        supplied_residues = {item.id: item for item in command.path_residues}
+        if set(application.path_residue_ids) != set(supplied_residues):
+            raise InvalidCommandError(
+                "application must atomically provide every named path residue"
+            )
+        application_contract = next(
+            (
+                item
+                for item in state.compression_contracts
+                if item.id == application_license.contract_id
+            ),
+            None,
+        )
+        if application_contract is None or any(
+            item.contract_id != application_contract.id for item in command.path_residues
+        ):
+            raise InvalidCommandError("path residue must belong to the applied contract")
+        if any(
+            item.source_history_derivation_id != application_derivation.id
+            for item in command.path_residues
+        ):
+            raise InvalidCommandError("path residue must belong to the applied history")
+        if any(
+            item.id in {prior.id for prior in state.path_residues} for item in command.path_residues
+        ):
+            raise InvalidCommandError("path-residue identity is already owned")
+        return (
+            CompressionApplicationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                application=application,
+                path_residues=command.path_residues,
+            ),
+        )
+
+    if isinstance(command, GrantRecoveryLicense):
+        recovery_license_record = command.license
+        existing_recovery_license = next(
+            (item for item in state.recovery_licenses if item.id == recovery_license_record.id),
+            None,
+        )
+        if existing_recovery_license is not None:
+            if existing_recovery_license == recovery_license_record:
+                return ()
+            raise IdentityConflictError("recovery-license identity was reused")
+        recovery_application = next(
+            (
+                item
+                for item in state.compression_applications
+                if item.id == recovery_license_record.compression_application_id
+            ),
+            None,
+        )
+        recovery_package = next(
+            (
+                item
+                for item in state.retention_packages
+                if item.id == recovery_license_record.retention_package_id
+            ),
+            None,
+        )
+        recovery_warrant = state.warrant_decision_by_id(recovery_license_record.warrant_decision_id)
+        route_ids = (
+            set()
+            if recovery_package is None
+            else {
+                *recovery_package.direct_use_route_ids,
+                *recovery_package.reconstruction_route_ids,
+                *recovery_package.consequence_evaluation_route_ids,
+                *recovery_package.reacquisition_route_ids,
+            }
+        )
+        if (
+            recovery_application is None
+            or recovery_package is None
+            or recovery_license_record.route_id not in route_ids
+        ):
+            raise InvalidCommandError("recovery license requires exact application/package route")
+        if (
+            state.context is None
+            or recovery_license_record.policy_version != state.context.warrant_policy_version
+        ):
+            raise InvalidCommandError("recovery license must use the active warrant policy")
+        if (
+            recovery_warrant is None
+            or recovery_warrant.warrant_class is not WarrantClass.HARD
+            or recovery_warrant.proposition_id != f"recovery-license:{recovery_license_record.id}"
+            or recovery_warrant.scope_fingerprint != recovery_package.scope_fingerprint
+        ):
+            raise InvalidCommandError("recovery license requires an exact active hard warrant")
+        return (
+            RecoveryLicenseGranted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                license=recovery_license_record,
+            ),
+        )
+
+    if isinstance(command, LinkRetentionCapability):
+        capability_link = command.link
+        existing_capability_link = next(
+            (item for item in state.retention_capability_links if item.id == capability_link.id),
+            None,
+        )
+        if existing_capability_link is not None:
+            if existing_capability_link == capability_link:
+                return ()
+            raise IdentityConflictError("retention-capability link identity was reused")
+        recovery_license = next(
+            (
+                item
+                for item in state.recovery_licenses
+                if item.id == capability_link.recovery_license_id
+            ),
+            None,
+        )
+        if recovery_license is None or (
+            recovery_license.compression_application_id,
+            recovery_license.retention_package_id,
+            recovery_license.route_id,
+        ) != (
+            capability_link.compression_application_id,
+            capability_link.retention_package_id,
+            capability_link.route_id,
+        ):
+            raise InvalidCommandError("retention capability link must match its recovery license")
+        return (
+            RetentionCapabilityLinked(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                link=capability_link,
+            ),
+        )
+
+    if isinstance(command, DecideRepresentationSuccessor):
+        decision_record = command.decision
+        existing_successor_decision = next(
+            (
+                item
+                for item in state.representation_successor_decisions
+                if item.id == decision_record.id
+            ),
+            None,
+        )
+        if existing_successor_decision is not None:
+            if existing_successor_decision == decision_record:
+                return ()
+            raise IdentityConflictError("representation-successor identity was reused")
+        licenses = {item.id: item for item in state.exact_compression_licenses}
+        incumbent = licenses.get(decision_record.incumbent_license_id)
+        candidate = licenses.get(decision_record.candidate_license_id)
+        if incumbent is None or candidate is None or incumbent.id == candidate.id:
+            raise InvalidCommandError("successor decision requires two distinct owned licenses")
+        candidate_contract = next(
+            (item for item in state.compression_contracts if item.id == candidate.contract_id),
+            None,
+        )
+        if candidate_contract is None:
+            raise InvalidCommandError("successor candidate lacks its owned compression contract")
+        covered = set(decision_record.preserved_capability_ids) | set(
+            decision_record.explicitly_disposed_capability_ids
+        )
+        if not set(incumbent.granted_capability_ids) <= covered:
+            raise InvalidCommandError(
+                "successor must preserve or disposition every predecessor capability"
+            )
+        if decision_record.disposition is SuccessorDisposition.REPLACE:
+            if candidate.predecessor_license_id != incumbent.id:
+                raise InvalidCommandError("replacement candidate must name its exact predecessor")
+            successor_warrant = state.warrant_decision_by_id(
+                decision_record.warrant_decision_id or ""
+            )
+            if (
+                successor_warrant is None
+                or successor_warrant.warrant_class is not WarrantClass.HARD
+                or successor_warrant.proposition_id
+                != f"representation-successor:{decision_record.id}"
+                or successor_warrant.scope_fingerprint != candidate_contract.scope_fingerprint
+                or successor_warrant.policy_version != candidate.policy_version
+            ):
+                raise InvalidCommandError("replacement requires exact independent hard warrant")
+        return (
+            RepresentationSuccessorDecided(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                decision=decision_record,
+            ),
+        )
+
+    if isinstance(command, ReopenRepresentation):
+        reopening = command.reopening
+        existing_reopening = next(
+            (item for item in state.representation_reopenings if item.id == reopening.id), None
+        )
+        if existing_reopening is not None:
+            if existing_reopening == reopening:
+                return ()
+            raise IdentityConflictError("representation-reopening identity was reused")
+        reopened_license = next(
+            (item for item in state.exact_compression_licenses if item.id == reopening.license_id),
+            None,
+        )
+        if reopened_license is None:
+            raise InvalidCommandError("reopening requires an owned exact license")
+        reopened_contract = next(
+            (
+                item
+                for item in state.compression_contracts
+                if item.id == reopened_license.contract_id
+            ),
+            None,
+        )
+        if reopened_contract is None:
+            raise InvalidCommandError("reopening requires the licensed contract")
+        if reopening.prior_horizon_id != reopened_contract.protected_horizon_id:
+            raise InvalidCommandError("reopening prior horizon must match the licensed contract")
+        _require_g2a_check(
+            state,
+            reopening.factorization_failure_check,
+            proposition_id=f"representation-reopening:{reopening.id}",
+            scope_fingerprint=reopened_contract.scope_fingerprint,
+        )
+        if reopening.path_residue_id is not None:
+            reopening_residue = next(
+                (item for item in state.path_residues if item.id == reopening.path_residue_id),
+                None,
+            )
+            if reopening_residue is None or reopening_residue.contract_id != reopened_contract.id:
+                raise InvalidCommandError("reopening path residue is not owned by the contract")
+        if reopening.recovery_license_id is not None:
+            reopening_recovery = next(
+                (
+                    item
+                    for item in state.recovery_licenses
+                    if item.id == reopening.recovery_license_id
+                ),
+                None,
+            )
+            recovery_application = (
+                None
+                if reopening_recovery is None
+                else next(
+                    (
+                        item
+                        for item in state.compression_applications
+                        if item.id == reopening_recovery.compression_application_id
+                    ),
+                    None,
+                )
+            )
+            if (
+                recovery_application is None
+                or recovery_application.license_id != reopened_license.id
+            ):
+                raise InvalidCommandError("reopening recovery route is not licensed for this state")
+        if reopening.outcome is ReopeningOutcome.UNKNOWN and (
+            reopening.path_residue_id is not None or reopening.recovery_license_id is not None
+        ):
+            raise InvalidCommandError("Unknown reopening cannot claim a recovery path")
+        return (
+            RepresentationReopened(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                reopening=reopening,
+            ),
+        )
+
     raise InvalidCommandError(f"unsupported command type: {type(command).__name__}")
 
 
@@ -3330,6 +3895,174 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             state,
             probe_admission_decisions=(*state.probe_admission_decisions, event.decision),
             admitted_probes=admitted,
+        )
+
+    if isinstance(event, BindingCarrierManifestRegistered):
+        _require_matching_decision(
+            state,
+            event,
+            RegisterBindingCarrierManifest(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                manifest=event.manifest,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            binding_carrier_manifests=(*state.binding_carrier_manifests, event.manifest),
+        )
+
+    if isinstance(event, RealizedHistoryDerivationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordRealizedHistoryDerivation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                derivation=event.derivation,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            realized_history_derivations=(
+                *state.realized_history_derivations,
+                event.derivation,
+            ),
+        )
+
+    if isinstance(event, CompressionContractRegistered):
+        _require_matching_decision(
+            state,
+            event,
+            RegisterCompressionContract(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                contract=event.contract,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            compression_contracts=(*state.compression_contracts, event.contract),
+        )
+
+    if isinstance(event, CompressionValidationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCompressionValidation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                validation=event.validation,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            compression_validations=(*state.compression_validations, event.validation),
+        )
+
+    if isinstance(event, ExactCompressionLicenseGranted):
+        _require_matching_decision(
+            state,
+            event,
+            GrantExactCompressionLicense(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                license=event.license,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            exact_compression_licenses=(*state.exact_compression_licenses, event.license),
+        )
+
+    if isinstance(event, CompressionApplicationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCompressionApplication(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                application=event.application,
+                path_residues=event.path_residues,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            path_residues=(*state.path_residues, *event.path_residues),
+            compression_applications=(*state.compression_applications, event.application),
+        )
+
+    if isinstance(event, RecoveryLicenseGranted):
+        _require_matching_decision(
+            state,
+            event,
+            GrantRecoveryLicense(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                license=event.license,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            recovery_licenses=(*state.recovery_licenses, event.license),
+        )
+
+    if isinstance(event, RetentionCapabilityLinked):
+        _require_matching_decision(
+            state,
+            event,
+            LinkRetentionCapability(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                link=event.link,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            retention_capability_links=(*state.retention_capability_links, event.link),
+        )
+
+    if isinstance(event, RepresentationSuccessorDecided):
+        _require_matching_decision(
+            state,
+            event,
+            DecideRepresentationSuccessor(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision=event.decision,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            representation_successor_decisions=(
+                *state.representation_successor_decisions,
+                event.decision,
+            ),
+        )
+
+    if isinstance(event, RepresentationReopened):
+        _require_matching_decision(
+            state,
+            event,
+            ReopenRepresentation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                reopening=event.reopening,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            representation_reopenings=(*state.representation_reopenings, event.reopening),
         )
 
     raise InvalidTransitionError(f"unsupported event type: {type(event).__name__}")

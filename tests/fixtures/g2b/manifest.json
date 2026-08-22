@@ -1,0 +1,23 @@
+{
+  "baseline_commit": "a5ac134981494cd126261117828140e7151eaf39",
+  "base_fixture": "../g1/archived_vertical_slice.jsonl",
+  "delta_fixture": "archived_gap_delta.jsonl",
+  "delta_sha256": "2fde7f95f35fac347821454c98371330280d585186190c9a90b4a8a3e2f1594f",
+  "event_count": 13,
+  "event_kinds": [
+    "inquiry_started",
+    "obligation_opened",
+    "step_plan_recorded",
+    "effect_requested",
+    "effect_attempt_planned",
+    "effect_attempt_started",
+    "effect_attempt_outcome_recorded",
+    "effect_decode_outcome_recorded",
+    "effect_result_accepted",
+    "claim_admitted",
+    "obligation_disposition_recorded",
+    "probe_admitted",
+    "representation_gap_recorded"
+  ],
+  "stream_id": "archived-g1"
+}

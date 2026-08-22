@@ -16,6 +16,7 @@ from rci.core.events import (
     InquiryStarted,
     ReacquisitionInquiryLinked,
     ReacquisitionRequested,
+    RealizedHistoryDerivationRecorded,
     RecoveryObservationRecorded,
 )
 from rci.core.model import ArtifactRef, FrozenModel, Identifier, Sha256Digest
@@ -42,8 +43,10 @@ from rci.persistence.errors import (
 )
 
 DATABASE_SCHEMA_VERSION = 2
-FOLDED_STATE_SCHEMA_VERSION = "rci.inquiry-state.v3"
-_REBUILDABLE_FOLDED_STATE_SCHEMAS = frozenset({"rci.inquiry-state.v1", "rci.inquiry-state.v2"})
+FOLDED_STATE_SCHEMA_VERSION = "rci.inquiry-state.v4"
+_REBUILDABLE_FOLDED_STATE_SCHEMAS = frozenset(
+    {"rci.inquiry-state.v1", "rci.inquiry-state.v2", "rci.inquiry-state.v3"}
+)
 EVENT_PREFIX_DIGEST_VERSION = "rci.event-prefix.v1"
 
 
@@ -397,6 +400,32 @@ class SQLiteEventStore:
         ):
             raise SagaIntegrityError("recovery observation child inquiry is unfinished")
 
+    def _validate_realized_history_derivation(
+        self,
+        connection: sqlite3.Connection,
+        stream_id: str,
+        event: RealizedHistoryDerivationRecorded,
+        committed_state: InquiryState,
+    ) -> None:
+        derivation = event.derivation
+        if not any(
+            item.id == derivation.carrier_manifest_id
+            for item in committed_state.binding_carrier_manifests
+        ):
+            raise IntegrityError("history derivation requires a durably committed carrier manifest")
+        if derivation.source_ledger_sequence != committed_state.sequence:
+            raise IntegrityError("history derivation must pin the committed stream prefix")
+        prefix = self._load_prefix_on_connection(
+            connection,
+            stream_id,
+            derivation.source_ledger_sequence,
+        )
+        if (
+            self._prefix_digest(stream_id, prefix, derivation.source_ledger_sequence)
+            != derivation.source_prefix_digest
+        ):
+            raise IntegrityError("history derivation prefix digest does not match the ledger")
+
     def _bootstrap(self) -> None:
         with self._connect() as connection:
             schema_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
@@ -580,6 +609,13 @@ class SQLiteEventStore:
                     self._validate_reacquisition_link(connection, event, committed_state)
                 if isinstance(event, RecoveryObservationRecorded):
                     self._validate_recovery_observation(connection, event, committed_state)
+                if isinstance(event, RealizedHistoryDerivationRecorded):
+                    self._validate_realized_history_derivation(
+                        connection,
+                        stream_id,
+                        event,
+                        committed_state,
+                    )
                 candidate_state = evolve(candidate_state, event)
 
             if row is None and events:

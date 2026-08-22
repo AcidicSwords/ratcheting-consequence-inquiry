@@ -29,6 +29,7 @@ def test_root_and_governance_command_groups_are_discoverable() -> None:
         "backlog",
         "memory",
         "recovery",
+        "compression",
     ):
         assert command in root_help.stdout
 
@@ -42,6 +43,14 @@ def test_root_and_governance_command_groups_are_discoverable() -> None:
     assert "retrieve" in memory_help.stdout
     for command in ("start", "inspect", "compare"):
         assert command in recovery_help.stdout
+
+    compression_help = runner.invoke(app, ["compression", "--help"])
+    assert compression_help.exit_code == 0
+    for command in ("fixture", "inspect"):
+        assert command in compression_help.stdout
+    parity = runner.invoke(app, ["compression", "fixture", "unary-parity"])
+    assert parity.exit_code == 0
+    assert '"verdict":"valid"' in parity.stdout
 
     references = runner.invoke(app, ["eval", "references"])
     assert references.exit_code == 0

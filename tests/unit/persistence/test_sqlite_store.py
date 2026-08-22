@@ -435,8 +435,12 @@ def test_v1_snapshot_is_discarded_and_rebuilt_without_changing_ledger_or_project
     assert rebuilt_snapshot.source_event_digest == snapshot.source_event_digest
 
 
-def test_g2a_fold_v2_snapshot_is_rebuilt_as_v3_without_changing_events(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    "old_fold_schema",
+    ("rci.inquiry-state.v1", "rci.inquiry-state.v2", "rci.inquiry-state.v3"),
+)
+def test_old_fold_snapshot_is_rebuilt_as_v4_without_changing_events(
+    tmp_path: Path, old_fold_schema: str
 ) -> None:
     artifacts = ArtifactStore(tmp_path / "artifacts")
     events, states, _ = build_history(artifacts)
@@ -450,7 +454,7 @@ def test_g2a_fold_v2_snapshot_is_rebuilt_as_v3_without_changing_events(
         connection.execute("DROP TRIGGER snapshots_forbid_update")
         connection.execute(
             "UPDATE snapshots SET fold_schema_version = ? WHERE stream_id = ?",
-            ("rci.inquiry-state.v2", "inquiry-1"),
+            (old_fold_schema, "inquiry-1"),
         )
         connection.execute(
             """
@@ -467,7 +471,7 @@ def test_g2a_fold_v2_snapshot_is_rebuilt_as_v3_without_changing_events(
     assert reopened.rebuild_state("inquiry-1") == states[-1]
     assert reopened.export_stream("inquiry-1") == original_export
     rebuilt = reopened.save_snapshot("inquiry-1", states[-1])
-    assert rebuilt.fold_schema_version == "rci.inquiry-state.v3"
+    assert rebuilt.fold_schema_version == "rci.inquiry-state.v4"
 
 
 def test_failed_batch_rolls_back_and_resume_is_consistent(tmp_path: Path) -> None:
