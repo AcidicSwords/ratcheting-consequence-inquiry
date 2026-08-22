@@ -45,6 +45,12 @@ The recursive loop materially changed the candidate before promotion:
   repositories cannot carry organization user/team restrictions. The exact status-check
   subresource was updated instead, and a second read-back proved all seven checks before
   merge.
+- the first evidence-closeout review rejected an opening README milestone list that
+  omitted verified G3R and G3Q; an honest follow-up commit corrected it. The next review
+  incorrectly treated GitHub's expected Rebase-and-Merge SHA rewrite as a broken authority
+  chain. GitHub's primary documentation, the PR API, identical tree IDs, identical parent,
+  and empty diff falsified that diagnosis. External review is evidence, not authority, and
+  must itself survive exact comparison.
 
 These are not claims that Codex became intrinsically more intelligent or that its model
 weights changed. The gain is procedural and durable: transient assumptions became exact
@@ -64,7 +70,11 @@ The unavailable hosted review is preserved separately as an indeterminate return
 
 The candidate merged through strict protected linear history as
 `433a24ba31c14db95fb71d9ca1440e4d24c707d5`. All seven post-merge jobs then passed.
-Exact run and job identifiers are recorded in `docs/verification.md`.
+GitHub [Rebase-and-Merge](https://docs.github.com/en/pull-requests/reference/pull-request-merges#rebase-and-merge-your-commits)
+created a new commit identity: the PR API joins head `fbb9a196...` to merge result
+`433a24ba...`; both have parent `b20935c...`,
+identical tree `bef9daa39beb0f702054ab48e5abfc60964c5cc1`, and no content diff. Exact run and
+job identifiers are recorded in `docs/verification.md`.
 
 ## Consequential residue
 

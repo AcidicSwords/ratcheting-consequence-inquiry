@@ -829,6 +829,13 @@ The exact candidate commit was
 [#8](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/8) retained exact
 base `b20935c712e3bd0a3d16aa5445c40c5297eb77c7` and merged by protected linear rebase as
 `433a24ba31c14db95fb71d9ca1440e4d24c707d5`.
+GitHub [Rebase-and-Merge](https://docs.github.com/en/pull-requests/reference/pull-request-merges#rebase-and-merge-your-commits)
+rewrites the commit SHA even when the head is already based on the base commit. The PR API
+records `fbb9a196...` as `headRefOid` and `433a24ba...` as
+`mergeCommit`; both commits have parent `b20935c...`, exact tree
+`bef9daa39beb0f702054ab48e5abfc60964c5cc1`, and an empty pairwise diff. The promoted
+content is therefore exact even though the candidate commit is intentionally not an
+ancestor of the rewritten protected-main commit.
 
 The requested hosted Codex review returned a usage-limit notice in
 [PR comment 5381876187](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/8#issuecomment-5381876187).
