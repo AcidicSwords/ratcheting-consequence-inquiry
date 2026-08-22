@@ -126,7 +126,11 @@ def test_checked_status_cannot_be_asserted_without_captured_evidence(tmp_path: P
     )
 
     assert result.exit_code != 0
-    assert "checked status requires --evidence-file" in result.output
+    # Rich wraps error panels to the detected terminal width.  Keep the
+    # behavioral assertion stable in narrow hosted-CI consoles.
+    assert "checked status" in result.output
+    assert "requires" in result.output
+    assert "--evidence-file" in result.output
     assert not (root / ".rci" / "state.sqlite3").exists()
 
 
