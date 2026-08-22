@@ -1015,5 +1015,51 @@ Local results on the G3G candidate worktree:
 - `uv run pytest -q tests/acceptance/test_goal_synthesis.py`: 3 passed.
 
 The folded-state schema advanced from v5 to v6. Versions v1 through v5 are discarded
-as derived snapshots and rebuilt from the unchanged authoritative event ledger. Hosted
-exact-head conclusions remain pending.
+as derived snapshots and rebuilt from the unchanged authoritative event ledger. At this
+checkpoint hosted exact-head conclusions remained pending; the following section records
+their later returns and supersedes that provisional disposition.
+
+## G3G hosted verification and protected promotion — 2026-08-22
+
+The exact implementation candidate was
+`ebdcee241fb9d8306df5ebe316e506ed7d9a202b` from protected development anchor
+`defeb5c2dad32b86cc1861d4f3c35522a3f0497f`. Pull request
+[#12](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/12) merged by
+protected linear rebase as `5f48d397030b6a063fdca19e51b70a824096e564`. The immutable
+selection anchor remains `60ff25635f94fb004e6419a09293c5e0fc023074`.
+
+Two fresh stateless local `qwen3.5:9b` review attempts failed the requested JSON-only
+review contract, misclassified the task as test generation, and emitted invented code.
+Both returns are preserved as `Indeterminate`; neither changed the repository or counts
+as review evidence. The deterministic compiler/reducer recomputation, adversarial tests,
+and hosted CI remain the standing evidence.
+
+Exact pull-request
+[run 32596264093](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32596264093)
+passed:
+
+- `base (ubuntu-latest)`: job `97087630940`, success;
+- `base (windows-latest)`: job `97087631047`, success;
+- `extras (ubuntu-latest)`: job `97087631068`, success;
+- `extras (windows-latest)`: job `97087631091`, success;
+- `docker`: job `97087631074`, success;
+- `recursive (ubuntu-latest)`: job `97087631067`, success;
+- `regenerative (ubuntu-latest)`: job `97087631081`, success;
+- `goal-synthesis (ubuntu-latest)`: job `97087631070`, success.
+
+Protected-main post-merge
+[run 32596365612](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32596365612)
+at exact SHA `5f48d397030b6a063fdca19e51b70a824096e564` passed:
+
+- `base (ubuntu-latest)`: job `97087894060`, success;
+- `base (windows-latest)`: job `97087894034`, success;
+- `extras (ubuntu-latest)`: job `97087894043`, success;
+- `extras (windows-latest)`: job `97087893954`, success;
+- `docker`: job `97087894012`, success;
+- `recursive (ubuntu-latest)`: job `97087893901`, success;
+- `regenerative (ubuntu-latest)`: job `97087894070`, success;
+- `goal-synthesis (ubuntu-latest)`: job `97087894005`, success.
+
+Branch-protection read-back requires all eight strict current checks, including the new
+goal-synthesis context, with linear history and owner enforcement; force pushes and
+deletion remain blocked. G3G is sealed. No later frontier member is selected or active.

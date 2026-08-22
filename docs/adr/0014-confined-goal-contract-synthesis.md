@@ -1,6 +1,6 @@
 # ADR-0014: Confined implementation-Goal contract synthesis
 
-- Status: accepted and implemented under G3G; hosted verification pending
+- Status: accepted, implemented, and verified under sealed G3G
 - Date: 2026-08-22
 - Requirements: RCI-073, RCI-074, RCI-076, and RCI-078
 
