@@ -360,3 +360,28 @@ PASS: 68-row closeout, zero open G1 statuses, gate parity, tracked human policy,
 The original v0.1 file is represented by its immutable archive because its root
 path is now the normalized v0.3.1 authority. Every other source attachment or
 download remained byte-identical at closeout.
+
+## Hosted G1 verification
+
+The public G1 history starts with baseline commit
+[`c282712a1ca9e3c166457a0a8beb7d8ee353ea31`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/commit/c282712a1ca9e3c166457a0a8beb7d8ee353ea31).
+Hosted consoles exposed a presentation-sensitive acceptance assertion, fixed in
+ordinary follow-up commits without rewriting the baseline. The first fully passing
+hosted head is
+[`76a411f3b6f552d3b0ef2539f04fe42dcd6867fc`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/commit/76a411f3b6f552d3b0ef2539f04fe42dcd6867fc).
+
+[GitHub Actions run 32566650112](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32566650112)
+completed successfully on 2026-08-22 with these unique required job conclusions:
+
+| Required check | Job ID | Conclusion |
+|---|---:|---|
+| `base (ubuntu-latest)` | [97016126204](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32566650112/job/97016126204) | `success` |
+| `base (windows-latest)` | [97016126227](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32566650112/job/97016126227) | `success` |
+| `extras (ubuntu-latest)` | [97016126259](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32566650112/job/97016126259) | `success` |
+| `extras (windows-latest)` | [97016126223](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32566650112/job/97016126223) | `success` |
+| `docker` | [97016126104](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32566650112/job/97016126104) | `success` |
+
+The Docker job built the pinned image and ran it with networking disabled, a
+read-only root filesystem, all Linux capabilities dropped, and
+`no-new-privileges`. The four native jobs independently exercised both dependency
+profiles on hosted Windows and Linux.

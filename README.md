@@ -1,5 +1,7 @@
 # Ratcheting Consequence Inquiry
 
+[![CI](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/workflows/ci.yml)
+
 RCI is an offline-first Python 3.12 reference system for question-driven,
 consequence-sensitive inquiry. Milestone G1 implements the event/effect foundation,
 Phase 1 inquiry kernel, Phase 2 finite formalization and warrant foundations, and a
@@ -39,3 +41,8 @@ uv build
 
 Test execution requires no network service or credentials. OpenAI and Z3 integrations are
 optional extras; Docker is supplementary and is not a local prerequisite.
+
+The verified G1 baseline begins at commit
+[`c282712a1ca9e3c166457a0a8beb7d8ee353ea31`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/commit/c282712a1ca9e3c166457a0a8beb7d8ee353ea31).
+Hosted Windows, Linux, extras, and Docker verification is recorded in
+[`docs/verification.md`](docs/verification.md).
