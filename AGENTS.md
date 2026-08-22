@@ -83,7 +83,8 @@ Logical ownership is single-writer in the folded state:
 - `M_E`: episodic records/artifact refs.
 - `M_S`: semantic lemma versions.
 - `M_P`: admitted procedures/probes/contracts/methods.
-- `M_L`: retention/residue/compression refs (later Goals).
+- `M_L`: G2A retention packages, provisional route/scaffold/protocol records, and
+  recovery observations; licensed capabilities, residue, and compression remain G3.
 - `W`: support environments/routes/dependencies/checks/nogoods/warrant.
 - `A`: effects/attempts/routes/raw returns/decodes/reconstructions.
 - `Pi`: prediction seals and warranted mismatches.
@@ -154,8 +155,9 @@ capture fresh observation before exposing prior returns.
 A prediction used for mismatch analysis is sealed before the attempt and immutable.
 Raw return, decoded result, reconstruction, episodic record, and semantic knowledge are
 different records. Only an independently warranted `SemanticDelta` changes semantic
-memory. Full reconstructive memory, consolidation, retention/compression, and learned
-probe promotion are later Goals.
+memory. G2A adds deterministic structural retrieval, candidate reconstruction,
+non-compressive retention registration, and measured reacquisition. Consolidation,
+reconsolidation, semantic-field evaluation, and learned-probe candidates are G2B.
 
 Keep present use, reconstruction, direct consequence evaluation, and reacquisition
 distinct. Failure of recall does not prove absence of retained learning. A reacquisition
@@ -163,10 +165,27 @@ advantage requires a checked comparison with a pinned baseline and binding-defin
 frontier; eventual relearning alone is insufficient. Do not force a universal scalar
 cost. Reopening may reactivate, reconstruct, initiate relearning, or retrieve provenance.
 
+For G2A, retrieval is deterministic structural matching over owned typed references.
+Rank by exact policy components and stable IDs; enforce scope/binding isolation,
+deduplication, bounds, and stale-reference rejection. Do not add embeddings, floating
+relevance scores, model suppression, or a retrieval dependency. Retrieval and ambiguous
+reconstruction remain candidates, never history, knowledge, support, or warrant.
+
+G2A recovery routes are provisional and unlicensed. Keep `DirectUseRoute`,
+`ReconstructionRoute`, `ConsequenceEvaluationRoute`, and `ReacquisitionRoute` separate;
+none establishes a protected retention capability. `RecoveryLicense` and licensed
+`ObjectRegenerationRoute` enforcement begin in G3. Cost comparisons require identical
+competence/universe/binding/horizon/evaluator/evidence/budget/protocol/policy pins,
+matching named axes, and exact nonnegative values. Strict Pareto advantage means all
+costs no worse and at least one better; incomparable vectors establish no advantage.
+Even an independently checked comparison is provisional/soft and cannot promote or
+license itself.
+
 ## Phase discipline
 
-The active G1 Goal contains Foundation, specification Phases 1-2, and only the thin
-cognitive spine described in `PLAN.md`.
+G1 is a sealed verified baseline. The active G2A Goal adds only deterministic retrieval,
+candidate reconstruction, non-compressive retention registration, and measured
+reacquisition described in `PLAN.md` and ADR-0009.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
@@ -177,10 +196,18 @@ cognitive spine described in `PLAN.md`.
   equality, negation, conjunction, disjunction, implication, equivalence. No arbitrary
   code or quantifiers. Keep an independent interpreter/exhaustive enumerator beside the
   optional Z3 translator.
-- Full reconstructive memory is G2. Exact/approximate compression and the linear
-  consequence quotient are G3. CHC/PDR is G4, control G5, multi-backend warrant G6,
-  and the complete opaque-controlled-memory benchmark plus hardening/release is G7.
+- G2B consolidation/reconsolidation, semantic-field evaluation, learned probes, and
+  automata remain deferred. Exact/approximate compression, licensed recovery routes,
+  and the linear consequence quotient are G3. CHC/PDR is G4, control G5,
+  multi-backend warrant G6, and the complete opaque-controlled-memory benchmark plus
+  hardening/release is G7.
 - Future findings enter the requirements matrix/backlog without expanding the Goal.
+
+G2A adds new version-1 event kinds without changing any G1 event schema. Parent
+reacquisition request, child inquiry creation, and parent linkage form a resumable saga;
+every partial prefix stays open. Bump folded-state/snapshot/projection schemas only when
+needed, rebuild incompatible derived state from the ledger, and preserve archived G1
+stream semantics.
 
 Compression semantics are documented now but not executable in G1. Preserve exact
 quotient vs approximate license, reconstruction loss vs consequence loss, object
@@ -200,7 +227,7 @@ run focused tests before the complete gate. Keep optional network/solver/contain
 outside deterministic blocking tests. Never activate a later contract because its
 catalog entry exists.
 
-The canonical G1 gate, identical to `PLAN.md` and the Goal, is:
+The sealed G1 gate remains identical to `PLAN.md` and both Goal artifacts:
 
 ```text
 uv lock --check
@@ -217,6 +244,13 @@ uv run rci --help
 uv build
 ```
 
+The active G2A gate adds this focused command, identically present in `PLAN.md`,
+`docs/goals/G2A.md`, CI, and `docs/verification.md`:
+
+```text
+uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
+```
+
 Dependency sync is bootstrap and may fetch locked packages. Test execution is
 credential-free, network-denied, deterministic, and effect-free under replay. Record
 exact commands/results in `docs/verification.md`. If a check cannot run, record the
@@ -227,7 +261,10 @@ attacks, localized conflicts, support/ancestry cycles, guard deactivation, repla
 CAS tamper/crash points, OCC races, attempt cardinality/idempotency/timeouts, payload
 null/empty distinctions, schema failure, AST exhaustive/Z3 differential behavior,
 probe comparability/fresh isolation, prediction-before-return, memory separation, both
-reference domains, CLI/SDK parity, and backlog authority limits.
+reference domains, CLI/SDK parity, and backlog authority limits. G2A additionally covers
+retrieval determinism/isolation/bounds, route no-collapse, ambiguous reconstruction,
+parent/child saga crash-resume, exact frontier comparison and pin mismatch,
+non-promotion, the paired circuit recovery fixture, and G1 replay compatibility.
 
 ## Governed dogfooding
 
