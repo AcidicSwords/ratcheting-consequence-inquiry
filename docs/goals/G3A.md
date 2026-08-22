@@ -1,6 +1,6 @@
-# Goal G3A-H: Exact history-state foundation
+# Sealed Goal G3A-H: Exact history-state foundation
 
-- Status: active after v0.4 governance merge
+- Status: completed and sealed after protected local, pull-request, and post-merge verification
 - Authority: RCI v0.4, PLAN, ADR-0011
 - Token budget: none
 
