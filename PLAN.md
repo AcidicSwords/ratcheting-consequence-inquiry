@@ -420,9 +420,11 @@ rebuild from unchanged authoritative events. It adds no dependency.
   holdout discrimination evidence, and the existing controller decision. Generation is
   never admission.
 
-G3Q adds only new version-1 event kinds if durable records are required and introduces no
-dependency. G3A-L, native-method binding, autonomous Goal synthesis, isolated candidate
-actuation, and G4 remain nondominated frontier members rather than rejected alternatives.
+G3Q reuses the sealed candidate/decision records and ordinary obligation/effect/claim
+events. Its compiled registry is a rebuildable projection, so it adds no event kind,
+folded-state field, snapshot migration, or dependency. G3A-L, native-method binding,
+autonomous Goal synthesis, isolated candidate actuation, and G4 remain nondominated
+frontier members rather than rejected alternatives.
 
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
@@ -535,8 +537,8 @@ in AGENTS, the G3R Goal, CI, and the verification record:
 uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
 ```
 
-Active G3Q will add this focused acceptance command identically to AGENTS, the G3Q Goal,
-CI, and the verification record with its executable slice:
+Active G3Q adds this focused acceptance command identically to AGENTS, the G3Q Goal, CI,
+and the verification record:
 
 ```text
 uv run pytest -q tests/acceptance/test_regenerative_questions.py

@@ -772,3 +772,51 @@ at exact SHA `6b0f2f793130d91bddaf1a2cffa9be87fd8b4e6d` also passed:
 status from all six checks, linear history, owner enforcement, and blocks force pushes
 and deletion. This completes the G3R boundary. G3Q is now the active bounded Goal; its
 implementation was not begun during G3R.
+
+## G3Q local candidate verification — 2026-08-22
+
+The candidate starts from exact protected-main anchor
+`b20935c712e3bd0a3d16aa5445c40c5297eb77c7` on branch
+`codex/g3q-regenerative-questions`. It reuses the sealed
+`QuestionContractCandidate`/`QuestionRepertoireDecision` records and ordinary
+obligation/effect/claim events. `CompiledQuestionContract` is a deterministic derived
+view, so no event class, folded-state field, snapshot schema, or dependency changed.
+
+The compiler admits only the exact `recursive-project-v1` policy and pins the clean
+anchor, candidate and decision fingerprints, compiler and controller policies, binding,
+scope, protected horizon, comparison policy, typed owned referents, and allowlisted
+consumer. The SDK and canonical-JSON CLI can inspect the projection and open an ordinary
+question obligation. Returned payloads remain provisional; a declared exact return
+class opens its typed ordinary downstream obligation, while any other payload—including
+prompt-injection text—opens an unclassified residual. Neither route creates warrant,
+promotion, procedural knowledge, source authority, or Git authority.
+
+Exact local returns:
+
+- requirements parity: 78 unique IDs in both spec and matrix;
+- root `AGENTS.md`: 21,296 bytes, below 32 KiB;
+- `uv lock --check`: exit 0, 40 packages resolved;
+- `uv sync --dev`: exit 0;
+- `uv run python -c "import rci; print(rci.__version__)"`: exit 0, `0.5.0`;
+- `uv run pytest -q -m "not optional"`: 190 passed, 1 skipped, 4 deselected;
+- `uv sync --all-extras --dev`: exit 0;
+- `uv run ruff format --check .`: 154 files formatted;
+- `uv run ruff check .`: all checks passed;
+- `uv run mypy src/rci tests`: success across 116 source files;
+- `uv run pytest -q`: 194 passed, 1 skipped;
+- `uv run pytest -q tests/acceptance`: 32 passed on the serial exact rerun;
+- `uv run rci --help`: exit 0 and lists the `project` group;
+- `uv build`: exit 0; 0.5.0 sdist and universal wheel built;
+- `uv run pytest -q tests/acceptance/test_regenerative_questions.py`: 7 passed.
+
+The focused acceptance proves deterministic registry order, exact context isolation,
+owned-but-unadmitted and foreign candidate inertness, stale-policy and malformed-policy
+rejection, exact binding validation, two-return downstream divergence, prompt-injection
+containment, built-in scheduler non-regression, replay/export identity, CLI/SDK parity,
+and absence of self-warrant. One overlapping diagnostic invocation encountered a
+Windows file lock because an earlier yielded pytest subprocess still owned the shared
+`.pytest-tmp` SQLite file; it is not counted as evidence. After the process exited, the
+same canonical acceptance command passed serially with 32 tests.
+
+Hosted CI, exact-head independent review, protected promotion, and post-merge evidence
+remain pending. Accordingly G3Q is implemented locally but not yet sealed or verified.

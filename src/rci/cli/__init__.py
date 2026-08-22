@@ -738,6 +738,40 @@ def project_question_decision(
     typer.echo(_json(state.question_repertoire_decisions[-1]))
 
 
+@project_app.command("question-registry")
+def project_question_registry(
+    inquiry_id: str,
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Emit the deterministic confined registry of admitted project questions."""
+
+    registry = _sdk(root).generated_question_registry(inquiry_id)
+    typer.echo(_json([item.model_dump(mode="json") for item in registry]))
+
+
+@project_app.command("question-open")
+def project_question_open(
+    inquiry_id: str,
+    candidate_id: Annotated[str, typer.Option("--candidate-id")],
+    binding: Annotated[list[str], typer.Option("--binding")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Open one exact admitted project question as an ordinary obligation."""
+
+    bindings: dict[str, str] = {}
+    for item in binding:
+        name, separator, value = item.partition("=")
+        if not separator or not name or not value or name in bindings:
+            raise typer.BadParameter("each --binding must be one unique nonempty NAME=VALUE")
+        bindings[name] = value
+    state = _sdk(root).open_generated_question(
+        inquiry_id,
+        candidate_id=candidate_id,
+        bindings=bindings,
+    )
+    typer.echo(_json(state.obligations[-1]))
+
+
 @project_app.command("method-candidate")
 def project_method_candidate(
     inquiry_id: str,
