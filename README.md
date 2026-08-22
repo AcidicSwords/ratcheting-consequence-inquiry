@@ -17,7 +17,11 @@ successor frontiers, sealed implementation Goals, isolated exact-head evidence, 
 review, and externally observed protected promotion. Verified G3Q implements the selected
 smallest discriminator: an independently admitted, data-only generated question can become
 safely schedulable while every unadmitted candidate remains inert. Other nondominated
-roadmap successors remain explicit frontier members pending the next recursive selection.
+roadmap successors remain explicit frontier members. The post-G3Q recurrence selected a
+confined Goal-synthesis discriminator: exact owned question returns may become inert,
+reviewable implementation-Goal candidates, while free-form commands, paths, execution,
+and promotion remain outside the runtime. Implementation is intentionally pending the
+selection cycle's protected promotion and exact anchor.
 
 The package includes immutable records, pure `decide`/`evolve` transitions, deterministic
 replay, an append-only SQLite WAL ledger, content-addressed artifacts, finite reference
