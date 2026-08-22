@@ -1,7 +1,8 @@
-# Active Goal G3Q: Regenerative question-contract synthesis
+# Goal G3Q: Regenerative question-contract synthesis
 
-- Status: active candidate implementation; hosted verification and promotion pending
+- Status: sealed and verified
 - Exact anchor: protected `main` at `b20935c712e3bd0a3d16aa5445c40c5297eb77c7`
+- Exact promoted successor: protected `main` at `433a24ba31c14db95fb71d9ca1440e4d24c707d5`
 - Authority: RCI v0.5, PLAN, ADR-0012, G3R frontier `frontier-g3r-roadmap-v1`
 - Token budget: none
 
@@ -57,3 +58,11 @@ self-warrant or source/Git authority.
 No free-form generated Python, general autonomous planner, arbitrary contract profile,
 model-ranked relevance, source modification port, G3A-L/SymPy, native-method adapter,
 G4 formal machinery, control, release, deployment, or merge authority.
+
+## Disposition
+
+The local discriminator, complete gate, fresh exact-head read-only review, seven protected
+pull-request checks, protected linear rebase, and seven post-merge checks all passed on
+2026-08-22. Exact returns are recorded in `docs/verification.md`; the immutable development
+episode is recorded in `docs/recursion/cycles/g3q-regenerative-questions.md`. This Goal
+stops without selecting or implementing a later frontier member.

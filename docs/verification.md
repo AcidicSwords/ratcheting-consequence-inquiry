@@ -818,5 +818,55 @@ Windows file lock because an earlier yielded pytest subprocess still owned the s
 `.pytest-tmp` SQLite file; it is not counted as evidence. After the process exited, the
 same canonical acceptance command passed serially with 32 tests.
 
-Hosted CI, exact-head independent review, protected promotion, and post-merge evidence
-remain pending. Accordingly G3Q is implemented locally but not yet sealed or verified.
+At this local-candidate checkpoint, hosted CI, exact-head independent review, protected
+promotion, and post-merge evidence remained pending. The following section records their
+later exact returns and supersedes that provisional disposition.
+
+## G3Q hosted verification and protected promotion — 2026-08-22
+
+The exact candidate commit was
+`fbb9a19649c6e60e9d1a0e636c424170b83a86ca`. Pull request
+[#8](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/8) retained exact
+base `b20935c712e3bd0a3d16aa5445c40c5297eb77c7` and merged by protected linear rebase as
+`433a24ba31c14db95fb71d9ca1440e4d24c707d5`.
+
+The requested hosted Codex review returned a usage-limit notice in
+[PR comment 5381876187](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/8#issuecomment-5381876187).
+It is `Indeterminate` and contributes no warrant. A separate fresh, read-only GitHub
+Copilot CLI review evaluated the exact committed diff
+`b20935c712e3bd0a3d16aa5445c40c5297eb77c7..fbb9a19649c6e60e9d1a0e636c424170b83a86ca`,
+reported no actionable findings across authority escalation, admission conflict and
+staleness, context mismatch, scheduler suppression, replay, stage separation, CLI/SDK
+parity, and regressions, and made no file change. Its preserved summary is
+[PR comment 5381903569](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/8#issuecomment-5381903569).
+
+The exact-head pull-request
+[run 32590137359](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32590137359)
+passed all seven unique jobs:
+
+- `base (ubuntu-latest)`: job `97072562639`, success;
+- `base (windows-latest)`: job `97072562539`, success;
+- `extras (ubuntu-latest)`: job `97072562502`, success;
+- `extras (windows-latest)`: job `97072562528`, success;
+- `docker`: job `97072562438`, success;
+- `recursive (ubuntu-latest)`: job `97072562544`, success;
+- `regenerative (ubuntu-latest)`: job `97072562576`, success.
+
+Protected-main post-merge
+[run 32590581711](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32590581711)
+at exact SHA `433a24ba31c14db95fb71d9ca1440e4d24c707d5` also passed:
+
+- `base (ubuntu-latest)`: job `97073668634`, success;
+- `base (windows-latest)`: job `97073668630`, success;
+- `extras (ubuntu-latest)`: job `97073668622`, success;
+- `extras (windows-latest)`: job `97073668599`, success;
+- `docker`: job `97073668611`, success;
+- `recursive (ubuntu-latest)`: job `97073668633`, success;
+- `regenerative (ubuntu-latest)`: job `97073668524`, success.
+
+Before merge, a protection read-back exposed that only the predecessor six checks were
+required. The status-check subresource was corrected and read back again. Protected
+`main` now requires pull requests with zero mandatory approvals, current strict status
+from all seven GitHub Actions checks with app ID `15368`, linear history, owner
+enforcement, and blocks force pushes and deletion. This seals G3Q without granting RCI or
+the development agent runtime merge authority.

@@ -239,8 +239,9 @@ successors distinct; a failure in one category does not authorize mutation in an
 
 ## Phase discipline
 
-G1, G2A, G2B, G3A-H, and G3R are sealed verified baselines. G3Q is the active bounded
-Goal. G3R added the recursive project-inquiry and candidate-development protocol described in
+G1, G2A, G2B, G3A-H, G3R, and G3Q are sealed verified baselines. No later implementation
+Goal is active until the recursive frontier seals one. G3R added the recursive
+project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
 continuation checks, exact compression/recovery licensing, path residue, representation
@@ -341,7 +342,7 @@ The sealed G3R gate adds this focused command, identically present in `PLAN.md`,
 uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
 ```
 
-The active G3Q Goal adds this focused command identically to `PLAN.md`,
+The sealed G3Q baseline retains this focused command identically to `PLAN.md`,
 `docs/goals/G3Q.md`, CI, and `docs/verification.md`:
 
 ```text
