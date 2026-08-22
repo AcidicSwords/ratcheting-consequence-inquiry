@@ -74,6 +74,25 @@ collapse a missing test into a theory failure, a representation gap into a code 
 or a generated question into a scheduled contract. Unknown costs and different typed
 gains remain on an explicit frontier; no universal project-quality scalar is introduced.
 
+The selected G3G boundary closes one further join without granting execution authority:
+
+```text
+admitted project question + provisional exact return
+  -> typed downstream obligation
+  + clean anchor + limitation + ready frontier + selected candidate
+  -> inert Goal candidate from allowlisted acceptance/mutation profiles
+  -> independent Goal admission
+  -> existing immutable ImplementationGoalContract
+```
+
+The first arrow is G3Q; the last record and candidate-development chain are G3R. G3G
+implements only the confined middle derivation. Commands and repository paths are
+registry facts, never decoded from model or provider text. The complete incumbent gate is
+monotone, authority roots remain forbidden, and `Unknown` is required when exact owned
+records do not determine the Goal. Codex may still author a Goal manually outside the
+runtime; the new capability makes the project-level derivation replayable and attackable
+rather than pretending the external orchestrator disappeared.
+
 ## Durable authority and logical ownership
 
 The SQLite event ledger and content-addressed artifact store are the only durable

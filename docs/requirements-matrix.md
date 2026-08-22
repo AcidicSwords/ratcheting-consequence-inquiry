@@ -6,8 +6,10 @@ returns in `docs/verification.md`. Its sole Windows skip is preserved there: the
 host lacked file-symlink privilege (`WinError 1314`), so the adversarial symlink
 case remains live for Linux CI and privileged Windows while the implementation's
 other link/reparse-point and bounds checks passed. G2A is sealed and verified.
-G2B, G3A-H, G3R, and G3Q are sealed and verified. G3A-L and later phases
-remain outside any active Goal.
+G2B, G3A-H, G3R, and G3Q are sealed and verified. The post-G3Q frontier selected
+confined Goal synthesis as G3G; implementation remains inactive until the selection
+cycle is protected and assigned an exact anchor. G3A-L and later phases remain outside
+the selected implementation boundary.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
 
@@ -34,7 +36,7 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-001 | Authority and complete traceability | accepted v0.5 | `docs/source-manifest.md`, ADR-0001, ADR-0011–0013, this matrix, and the RCI-001--RCI-078 coverage check in `docs/verification.md` |
+| RCI-001 | Authority and complete traceability | accepted v0.5 | `docs/source-manifest.md`, ADR-0001, ADR-0011–0014, this matrix, and the RCI-001--RCI-078 coverage check in `docs/verification.md` |
 | RCI-002 | Pinned binding, scope, guard, universe, policy, and explicit carrier roles | verified G3A-H | sealed `InquiryContext`/`Scope` remain unchanged; `BindingCarrierManifest` declares exact carrier roles without mutating `InquiryStarted` |
 | RCI-003 | Questions create provisional claims, not facts | verified G1 | `QuestionContract` pins role, `AnswerShape`, `answer_schema_id`, binding policy, and lawful follow-ups; `bind_answer` fails closed on an unregistered shape/schema/policy and produces only a provisional L0 claim. `test_only_core_v1_is_schedulable_and_rendering_is_literal` and the Phase 1 vertical slice cover the typed path. |
 | RCI-004 | Arbitrary payloads remain inert L0 data | verified G1 | `freeze_json`, `InertPayload`, CAS-backed bytes; `test_arbitrary_l0_payload_is_inert_and_artifacts_are_references`, `test_nested_payloads_are_snapshot_immutable`, and replay of binary L0 bytes |
@@ -139,7 +141,7 @@ Status vocabulary:
 | RCI-073 | A project limitation requires a protected consequential boundary | verified G3R | `CapabilityLimitation` requires current/desired consequence and a separating observation; empty dissatisfaction and novelty cannot enter the frontier |
 | RCI-074 | Question repertoire succession is typed, inert, attacked, and independently admitted | verified G3Q | Exact admission plus the derived `CompiledQuestionContract` registry, context/policy pins, ordinary scheduling, provisional return routing, adversarial acceptance, fresh exact-head review, protected promotion, and seven-check post-merge CI |
 | RCI-075 | Method repertoire succession binds native assumptions and does not install itself | verified G3R | `MethodBindingCandidate`, preserved primary-source/applicability/license pins, exact independently reviewed evidence, separate `MethodAdmissionDecision`, and exact Goal linkage when an adapter is absent |
-| RCI-076 | Project successors use a partial-order frontier and immutable discriminator-first Goal | verified G3R | exact `CapabilitySuccessorCandidate`, permutation-stable six-candidate dogfood frontier, preservation/gain/cost comparison, and immutable `ImplementationGoalContract` |
+| RCI-076 | Project successors use a partial-order frontier and immutable discriminator-first Goal | verified G3R; G3G selected | exact `CapabilitySuccessorCandidate`, permutation-stable G3R and post-G3Q dogfood frontiers, preservation/gain/cost comparison, immutable `ImplementationGoalContract`, and ADR-0014's pending confined return-to-Goal derivation |
 | RCI-077 | Candidate actualization, evidence, review, successor decision, and promotion remain separate | verified G3R | `CandidateEnvironmentManifest`, exact-head evidence, different-context review, exact reviewed-evidence successor and promotion stages, complete SDK/CLI recording surface, protected merge, and absence of runtime source/Git ports |
 | RCI-078 | Recursive project inquiry has append-only continuity and typed stopping | verified G3R | `RecursiveCycleCheckpoint`, predecessor/phase monotonicity, `RecursiveStopDisposition`, `Unknown` paths, durable cycle handoff/report, and bounded blocker rule |
 
@@ -153,6 +155,7 @@ Status vocabulary:
 | G3A-H | Verified exact history-state carriers, quotient validation, recovery licence, residue, reopening, and representation ratchet | No SymPy linear binding, approximation, native adapter, or control |
 | G3R | Verified recursive project inquiry, repertoire/frontier succession, sealed Goals, isolated candidate evidence, fresh review, and externally observed promotion | No runtime source/Git authority |
 | G3Q | Verified confined regenerative question scheduling | No arbitrary code, general planner, source authority, or automatic warrant |
+| G3G | Selected confined implementation-Goal synthesis | No implementation until exact anchor; no free-form commands/paths, planner, actuator, or authority expansion |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

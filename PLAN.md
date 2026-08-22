@@ -426,6 +426,37 @@ folded-state field, snapshot migration, or dependency. G3A-L, native-method bind
 autonomous Goal synthesis, isolated candidate actuation, and G4 remain nondominated
 frontier members rather than rejected alternatives.
 
+### G3G (selected; implementation not begun) — confined implementation-Goal synthesis
+
+- Compile only an exact owned admitted project-question return, clean anchor,
+  consequential limitation, ready frontier, and its exact selected candidate into an
+  inert `ImplementationGoalCandidate`. The compiler is a deterministic derivation, not a
+  general planner.
+- Source Goal fields from owned records and versioned registries. Generated payloads
+  cannot supply commands, repository paths, policy, evidence, review, warrant, execution,
+  or promotion.
+- Preserve the complete incumbent gate and add one bounded focused discriminator through
+  an allowlisted acceptance profile. Source mutation roots from a separate allowlisted
+  profile that cannot overlap live authorities, Git, credentials, CI policy, release, or
+  deployment surfaces.
+- Require a separate exact `GoalAdmissionDecision` before the existing immutable
+  `ImplementationGoalContract` can be sealed. Generation, admission, Goal sealing,
+  actualization, evidence, review, successor decision, and external promotion remain
+  distinct.
+- Return `Unknown` for stale, foreign, ambiguous, unmatched, context-mismatched, or
+  underdetermined inputs. Preserve manual Goal authoring as an explicit external bypass;
+  G3G's gain is replayable project reasoning, not a claim that all development depends on
+  the compiler.
+- Add no dependency and no source-writing, arbitrary-command, Git, credential, policy,
+  merge, release, deployment, or authority-expansion port.
+
+G3G was selected by the permutation-stable `frontier-post-g3q-v1` dogfood comparison.
+All five candidates remain nondominated because their gain kinds differ. G3G is the
+componentwise cost-minimal reversible discriminator under two bounded inventory axes; it
+does not totally rank or reject G3A-L, native-method binding, isolated actuation, or G4.
+Implementation begins only after the selection record is protected, its exact main anchor
+is written into `docs/goals/G3G.md`, and a new no-budget Goal is activated.
+
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
 - G3A-H (verified): explicit carrier roles; binding-derived realized history; exact consequence

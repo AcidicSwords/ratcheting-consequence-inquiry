@@ -877,3 +877,63 @@ required. The status-check subresource was corrected and read back again. Protec
 from all seven GitHub Actions checks with app ID `15368`, linear history, owner
 enforcement, and blocks force pushes and deletion. This seals G3Q without granting RCI or
 the development agent runtime merge authority.
+
+## Post-G3Q recursive frontier selection — 2026-08-22
+
+The selection cycle begins from clean protected-main anchor
+`4d89bb776181dd0b7885b0e0dd1042426d0456ca` on documentation-only branch
+`codex/post-g3q-frontier`. It changes no runtime code, dependency, event class, snapshot,
+effect port, Git authority, or protected check. The immutable reasoning record is
+`docs/recursion/cycles/post-g3q-frontier.md`; ADR-0014 records the selected confined
+Goal-synthesis boundary, and `docs/goals/G3G.md` is deliberately non-active until a
+protected promoted anchor replaces its placeholder.
+
+The existing strict models accepted one inert `QuestionContractCandidate` with exact
+owned anchor/limitation/frontier referents, two distinct returns
+(`goal-derivation-required` and `method-transport-required`), one exact comparison policy,
+one consumer, and three falsifying attacks. This did not admit or schedule the candidate.
+
+The existing `derive_capability_frontier` implementation was then run over G3G, G3A-L,
+native-method binding, isolated candidate actuation, and G4 in original and reversed
+order. Exact model equality held. All five candidates remain nondominated and all ten
+pairs remain incomparable because their typed gains differ. Under two explicitly bounded
+inventory axes—missing executable seams and new authority-risk boundaries—G3G is the
+componentwise cost-minimal reversible candidate with a discriminator. The result selected
+which discriminator to run first; it did not create a universal roadmap ranking.
+
+The selection consulted primary/native sources for narrow transported relations:
+
+- van Lamsweerde and Letier on goal refinement and obstacle analysis:
+  <https://www.cs.ucf.edu/~turgut/heng_than.pdf>;
+- Jackson and Zave on separating desired environment requirements from implementable
+  machine specifications:
+  <https://www.researchgate.net/publication/221553733_Deriving_Specifications_from_Requirements_An_Example>;
+- Solar-Lezama on the bounded candidate/validator/counterexample recurrence and lawful
+  no-solution behavior, without treating Goal compilation as program synthesis:
+  <https://people.csail.mit.edu/asolar/papers/thesis.pdf>;
+- Rice on typed algorithm-selection spaces rather than a universal scalar method score:
+  <https://dblp.org/rec/journals/ac/Rice76>.
+
+Exact local returns after the governance edits:
+
+- `uv lock --check`: exit 0, 40 packages resolved;
+- `uv sync --dev`: exit 0;
+- `uv run python -c "import rci; print(rci.__version__)"`: exit 0, `0.5.0`;
+- `uv run pytest -q -m "not optional"`: 190 passed, 1 skipped, 4 deselected;
+- `uv sync --all-extras --dev`: exit 0;
+- `uv run ruff format --check .`: 158 files already formatted;
+- `uv run ruff check .`: all checks passed;
+- `uv run mypy src/rci tests`: success across 116 source files;
+- `uv run pytest -q`: 194 passed, 1 skipped;
+- `uv run pytest -q tests/acceptance`: 32 passed;
+- `uv run rci --help`: exit 0 and lists the `project` group;
+- `uv build`: exit 0; 0.5.0 sdist and universal wheel built;
+- `uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py`: 7 passed;
+- `uv run pytest -q tests/acceptance/test_regenerative_questions.py`: 7 passed;
+- requirement parity: 78 unique stable IDs in both specification and matrix;
+- root `AGENTS.md`: 22,302 bytes, below 32 KiB;
+- ADR inventory: 14, including pending implementation decision ADR-0014.
+
+Hosted exact-head review, all seven protected pull-request checks, protected linear merge,
+post-merge checks, and the resulting exact G3G anchor remain pending at this local
+checkpoint. They must not be inferred from the local returns.
