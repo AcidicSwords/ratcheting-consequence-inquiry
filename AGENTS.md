@@ -235,13 +235,15 @@ successors distinct; a failure in one category does not authorize mutation in an
 
 ## Phase discipline
 
-G1, G2A, G2B, and G3A-H are sealed verified baselines. G3R is the active bounded Goal.
-It adds the recursive project-inquiry and candidate-development protocol described in
+G1, G2A, G2B, G3A-H, and G3R are sealed verified baselines. G3Q is the active bounded
+Goal. G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
 continuation checks, exact compression/recovery licensing, path residue, representation
-succession, and generic reopening described in `PLAN.md` and ADR-0011. G3A-L and all
-other successors remain deferred until the G3R frontier selects and seals one next Goal.
+succession, and generic reopening described in `PLAN.md` and ADR-0011. G3Q is the
+frontier-selected smallest discriminator and adds only confined, independently admitted,
+data-only generated question scheduling. G3A-L and the other nondominated successors
+remain deferred rather than rejected.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
@@ -328,11 +330,18 @@ The sealed G3A-H gate adds this focused command, identically present in `PLAN.md
 uv run pytest -q tests/acceptance/test_g3a_history_state.py
 ```
 
-The active G3R gate adds this focused command, identically present in `PLAN.md`,
+The sealed G3R gate adds this focused command, identically present in `PLAN.md`,
 `docs/goals/G3R.md`, CI, and `docs/verification.md`:
 
 ```text
 uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
+```
+
+The active G3Q Goal will add this focused command identically to `PLAN.md`,
+`docs/goals/G3Q.md`, CI, and `docs/verification.md` with its executable slice:
+
+```text
+uv run pytest -q tests/acceptance/test_regenerative_questions.py
 ```
 
 Dependency sync is bootstrap and may fetch locked packages. Test execution is

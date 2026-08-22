@@ -57,10 +57,11 @@ therefore selects the least-cost discriminator, not a permanent winner:
 
 ## Disposition
 
-G3Q is sealed in `docs/goals/G3Q.md` but remains inactive until G3R passes local gates,
-fresh review, protected pull-request CI, merge, and post-merge CI. G3A-L is not rejected;
-it remains on the frontier and can become next when a later checked dependency makes its
-linear relation consequential.
+G3R passed its local gate, two read-only distinct-context exact-head reviews, all six
+protected pull-request checks, protected linear merge, and all six post-merge checks on
+2026-08-22. The exact returns are recorded in `docs/verification.md`. G3Q is therefore
+active in `docs/goals/G3Q.md`. G3A-L is not rejected; it remains on the frontier and can
+become next when a later checked dependency makes its linear relation consequential.
 
-This cycle stops after sealing G3Q. It does not implement G3Q, install a new dependency,
-or grant RCI runtime source/Git authority.
+This completed cycle stops after activating G3Q. It did not implement G3Q, install a new
+dependency, or grant RCI runtime source/Git authority.

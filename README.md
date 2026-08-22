@@ -10,11 +10,13 @@ consolidation, versioned repair, semantic-field evaluation, and learned-probe ad
 RCI v0.5 preserves the v0.4 distinction between the replay-complete aggregate and a protected
 consequence-sufficient retained state. G3A-H adds bounded exact history-state contracts,
 finite transition fixtures, licensed retained-capability joins, path residue, reopening,
-and a warranted representation ratchet. Active G3R applies the same discipline to project
+and a warranted representation ratchet. Verified G3R applies the same discipline to project
 development: consequential limitations, inert question/method candidates, partial-order
 successor frontiers, sealed implementation Goals, isolated exact-head evidence, fresh
-review, and externally observed protected promotion. Later research phases remain
-explicitly deferred until that recursion selects one.
+review, and externally observed protected promotion. Active G3Q now implements the
+selected smallest discriminator: whether an independently admitted, data-only generated
+question can become safely schedulable while every unadmitted candidate remains inert.
+Other nondominated roadmap successors remain explicit frontier members.
 
 The package includes immutable records, pure `decide`/`evolve` transitions, deterministic
 replay, an append-only SQLite WAL ledger, content-addressed artifacts, finite reference

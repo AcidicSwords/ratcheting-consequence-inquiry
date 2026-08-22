@@ -6,8 +6,8 @@ returns in `docs/verification.md`. Its sole Windows skip is preserved there: the
 host lacked file-symlink privilege (`WinError 1314`), so the adversarial symlink
 case remains live for Linux CI and privileged Windows while the implementation's
 other link/reparse-point and bounds checks passed. G2A is sealed and verified.
-G2B and G3A-H are sealed and verified. G3R is active. G3A-L and later phases remain outside any active
-Goal.
+G2B, G3A-H, and G3R are sealed and verified. G3Q is active. G3A-L and later phases
+remain outside any active Goal.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
 
@@ -25,9 +25,8 @@ Status vocabulary:
   evidence remains assigned to G3A-H or later;
 - **verified G3A-H** — bounded exact history-state code and local, protected
   pull-request, and protected-main post-merge evidence pass;
-- **locally verified G3R; hosted review pending** — the recursive project-inquiry code,
-  adversarial acceptance, predecessor gate, and compatibility checks pass locally while
-  fresh exact-head review and protected hosted CI remain outstanding;
+- **verified G3R** — recursive project inquiry, adversarial acceptance, exact-head
+  distinct-context review, protected pull-request CI, merge, and post-merge main CI pass;
 - **deferred Gx** — outside the active Goal and assigned to that milestone;
 - **research** — requires a later explicit Goal and warranted method choice.
 
@@ -136,13 +135,13 @@ Status vocabulary:
 | RCI-069 | Aggregate fold and retained-state representation never collapse | verified G3A-H | frozen G1/G2B stream replay, explicit carriers, five-byte history to one-byte retained state, complete ledger replay, and derived-only view |
 | RCI-070 | Executable retained state requires continuation compatibility | verified G3A-H | unbounded unary base/step congruence, present-answer/future-continuation counterexample, and lawful answer-only scope narrowing |
 | RCI-071 | Representation replacement requires preserve + gain + warrant or frontier | verified G3A-H | positive warranted successor, atomic predecessor-capability-loss rejection, novelty-only rejection, and explicit incomparability |
-| RCI-072 | Repository inquiry pins an exact clean project anchor without creating a second source history | locally verified G3R; hosted review pending | strict `ProjectAnchor`, exact commit propagation, candidate-environment anchor checks, and Git/ledger ownership rules in ADR-0012/0013 |
-| RCI-073 | A project limitation requires a protected consequential boundary | locally verified G3R; hosted review pending | `CapabilityLimitation` requires current/desired consequence and a separating observation; empty dissatisfaction and novelty cannot enter the frontier |
-| RCI-074 | Question repertoire succession is typed, inert, attacked, and independently admitted | locally verified G3R; hosted review pending | `QuestionContractCandidate`, distinct-return validation, owned exact-review evidence for `QuestionRepertoireDecision`, recursive-project-only admission, and inert/suppression acceptance tests |
-| RCI-075 | Method repertoire succession binds native assumptions and does not install itself | locally verified G3R; hosted review pending | `MethodBindingCandidate`, preserved primary-source/applicability/license pins, exact independently reviewed evidence, separate `MethodAdmissionDecision`, and exact Goal linkage when an adapter is absent |
-| RCI-076 | Project successors use a partial-order frontier and immutable discriminator-first Goal | locally verified G3R; hosted review pending | exact `CapabilitySuccessorCandidate`, permutation-stable six-candidate dogfood frontier, preservation/gain/cost comparison, and immutable `ImplementationGoalContract` |
-| RCI-077 | Candidate actualization, evidence, review, successor decision, and promotion remain separate | locally verified G3R; hosted review pending | `CandidateEnvironmentManifest`, exact-head evidence, different-context review, exact reviewed-evidence successor and promotion stages, complete SDK/CLI recording surface, and absence of runtime source/Git ports |
-| RCI-078 | Recursive project inquiry has append-only continuity and typed stopping | locally verified G3R; hosted review pending | `RecursiveCycleCheckpoint`, predecessor/phase monotonicity, `RecursiveStopDisposition`, `Unknown` paths, durable cycle handoff/report, and bounded blocker rule |
+| RCI-072 | Repository inquiry pins an exact clean project anchor without creating a second source history | verified G3R | strict `ProjectAnchor`, exact commit propagation, candidate-environment anchor checks, Git/ledger ownership rules in ADR-0012/0013, and PR/main exact-head evidence |
+| RCI-073 | A project limitation requires a protected consequential boundary | verified G3R | `CapabilityLimitation` requires current/desired consequence and a separating observation; empty dissatisfaction and novelty cannot enter the frontier |
+| RCI-074 | Question repertoire succession is typed, inert, attacked, and independently admitted | verified G3R | `QuestionContractCandidate`, distinct-return validation, owned exact-review evidence for `QuestionRepertoireDecision`, recursive-project-only admission, and inert/suppression acceptance tests |
+| RCI-075 | Method repertoire succession binds native assumptions and does not install itself | verified G3R | `MethodBindingCandidate`, preserved primary-source/applicability/license pins, exact independently reviewed evidence, separate `MethodAdmissionDecision`, and exact Goal linkage when an adapter is absent |
+| RCI-076 | Project successors use a partial-order frontier and immutable discriminator-first Goal | verified G3R | exact `CapabilitySuccessorCandidate`, permutation-stable six-candidate dogfood frontier, preservation/gain/cost comparison, and immutable `ImplementationGoalContract` |
+| RCI-077 | Candidate actualization, evidence, review, successor decision, and promotion remain separate | verified G3R | `CandidateEnvironmentManifest`, exact-head evidence, different-context review, exact reviewed-evidence successor and promotion stages, complete SDK/CLI recording surface, protected merge, and absence of runtime source/Git ports |
+| RCI-078 | Recursive project inquiry has append-only continuity and typed stopping | verified G3R | `RecursiveCycleCheckpoint`, predecessor/phase monotonicity, `RecursiveStopDisposition`, `Unknown` paths, durable cycle handoff/report, and bounded blocker rule |
 
 ### RCI-068 staged capability evidence
 
@@ -152,7 +151,8 @@ Status vocabulary:
 | G2A | Verified deterministic structural retrieval, candidate reconstruction, provisional retention routes, reacquisition scaffold/saga, and soft Pareto comparison on local and hosted Windows/Linux/Docker gates | No consolidation, learned probe, recovery licence, certified quotient, or control |
 | G2B | Verified deterministic consolidation/reconsolidation, conservative semantic-field evaluation, and checked learned probes | No recovery licence, certified quotient, automaton dependency, or control |
 | G3A-H | Verified exact history-state carriers, quotient validation, recovery licence, residue, reopening, and representation ratchet | No SymPy linear binding, approximation, native adapter, or control |
-| G3R | Active recursive project inquiry, repertoire/frontier succession, sealed Goals, isolated candidate evidence, fresh review, and externally observed promotion | No runtime source/Git authority and no successor implementation before this Goal seals |
+| G3R | Verified recursive project inquiry, repertoire/frontier succession, sealed Goals, isolated candidate evidence, fresh review, and externally observed promotion | No runtime source/Git authority |
+| G3Q | Active regenerative question-contract synthesis in the confined project profile | No arbitrary code, general planner, source authority, or automatic warrant |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

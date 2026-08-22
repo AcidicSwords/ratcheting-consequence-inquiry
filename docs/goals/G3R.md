@@ -1,6 +1,7 @@
-# Active Goal G3R: Recursive project inquiry and candidate development
+# Sealed Goal G3R: Recursive project inquiry and candidate development
 
-- Status: active
+- Status: sealed and verified on protected `main` at
+  `6b0f2f793130d91bddaf1a2cffa9be87fd8b4e6d`
 - Authority: RCI v0.5, PLAN, ADR-0012, ADR-0013
 - Token budget: none
 
@@ -38,6 +39,9 @@ uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
 Completion requires RCI-001 through RCI-078 parity, unchanged archived stream semantics,
 all six hosted checks including `recursive (ubuntu-latest)`, fresh independent review,
 protected merge, and successful post-merge main CI.
+
+All completion conditions passed on 2026-08-22. Exact local, review, pull-request,
+protection, merge, and post-merge returns are recorded in `docs/verification.md`.
 
 ## Explicit exclusions
 

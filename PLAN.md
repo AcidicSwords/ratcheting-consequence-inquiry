@@ -373,7 +373,7 @@ licensing, and control remain absent.
 G2A and G2B are sealed internal delivery gates under RCI-058. Their version-1 event
 schemas and meanings remain immutable under v0.4.
 
-### G3R (active) — recursive project inquiry and candidate development
+### G3R (verified) — recursive project inquiry and candidate development
 
 - Reuse the ordinary ledger/CAS to own clean project anchors, consequential capability
   limitations, inert question/method/successor candidates, deterministic partial-order
@@ -401,6 +401,28 @@ schemas and meanings remain immutable under v0.4.
 
 G3R adds only new version-1 event kinds. Folded state advances to v5 and v1-v4 snapshots
 rebuild from unchanged authoritative events. It adds no dependency.
+
+### G3Q (active) — regenerative question-contract synthesis
+
+- Compile only independently admitted `QuestionContractCandidate` records into a
+  versioned, data-only `recursive-project-v1` registry projection. Generated contracts
+  cannot enter `core-v1`, import code, invoke tools, choose policy, or suppress inquiry.
+- Bind scheduling to the exact project limitation, clean anchor, contract version,
+  binding, scope, comparison policy, and admission policy. Stale or mismatched candidates
+  remain inert and lawful unresolved work remains visible.
+- Require at least two consequentially distinct return classes with typed downstream
+  consumers. Returned payloads remain provisional and continue through the existing
+  effect, decode, check, warrant, and promotion stages.
+- Preserve built-in scheduling, fixed learned-probe admission, replay/export identity,
+  `Unknown`, model-irrelevance non-suppression, and the absence of runtime source/Git
+  authority.
+- Admit a question-repertoire successor only after nonredundancy, attack, finite or
+  holdout discrimination evidence, and the existing controller decision. Generation is
+  never admission.
+
+G3Q adds only new version-1 event kinds if durable records are required and introduces no
+dependency. G3A-L, native-method binding, autonomous Goal synthesis, isolated candidate
+actuation, and G4 remain nondominated frontier members rather than rejected alternatives.
 
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
@@ -506,11 +528,18 @@ in AGENTS, the G3A Goal, CI, and the verification record:
 uv run pytest -q tests/acceptance/test_g3a_history_state.py
 ```
 
-Active G3R additionally requires this focused acceptance command, identically present
+Verified G3R additionally requires this focused acceptance command, identically present
 in AGENTS, the G3R Goal, CI, and the verification record:
 
 ```text
 uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
+```
+
+Active G3Q will add this focused acceptance command identically to AGENTS, the G3Q Goal,
+CI, and the verification record with its executable slice:
+
+```text
+uv run pytest -q tests/acceptance/test_regenerative_questions.py
 ```
 
 Synchronization may fetch locked packages; test execution is credential-free,
