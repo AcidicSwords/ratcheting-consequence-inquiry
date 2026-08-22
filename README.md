@@ -3,8 +3,9 @@
 [![CI](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/workflows/ci.yml)
 
 RCI is an offline-first Python 3.12 reference system for question-driven,
-consequence-sensitive inquiry. Verified milestones G1, G2A, G2B, and G3A-H implement the event/effect
-foundation, finite formalization and warrant, a bounded cognitive spine, deterministic
+consequence-sensitive inquiry. Verified milestones G1, G2A, G2B, G3A-H, G3R, and G3Q
+implement the event/effect foundation, finite formalization and warrant, a bounded
+cognitive spine, deterministic
 structural retrieval, provisional retention routes, measured reacquisition,
 consolidation, versioned repair, semantic-field evaluation, and learned-probe admission.
 RCI v0.5 preserves the v0.4 distinction between the replay-complete aggregate and a protected
