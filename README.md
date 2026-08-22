@@ -3,15 +3,14 @@
 [![CI](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/workflows/ci.yml)
 
 RCI is an offline-first Python 3.12 reference system for question-driven,
-consequence-sensitive inquiry. Verified milestones G1, G2A, and G2B implement the event/effect
+consequence-sensitive inquiry. Verified milestones G1, G2A, G2B, and G3A-H implement the event/effect
 foundation, finite formalization and warrant, a bounded cognitive spine, deterministic
 structural retrieval, provisional retention routes, measured reacquisition,
 consolidation, versioned repair, semantic-field evaluation, and learned-probe admission.
 RCI v0.4 makes the replay-complete aggregate distinct from a protected
-consequence-sufficient retained state. The G3A-H branch implements the bounded exact
-history-state contracts and finite transition fixtures; its protected pull-request gate
-passes and post-merge verification remains the completion boundary. Later research
-phases remain explicitly deferred.
+consequence-sufficient retained state. G3A-H adds bounded exact history-state contracts,
+finite transition fixtures, licensed retained-capability joins, path residue, reopening,
+and a warranted representation ratchet. Later research phases remain explicitly deferred.
 
 The package includes immutable records, pure `decide`/`evolve` transitions, deterministic
 replay, an append-only SQLite WAL ledger, content-addressed artifacts, finite reference

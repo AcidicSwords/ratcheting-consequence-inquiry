@@ -373,9 +373,9 @@ licensing, and control remain absent.
 G2A and G2B are sealed internal delivery gates under RCI-058. Their version-1 event
 schemas and meanings remain immutable under v0.4.
 
-### G3A-H/G3A-L/G3B/G3C — retained state and compression
+### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
-- G3A-H: explicit carrier roles; binding-derived realized history; exact consequence
+- G3A-H (verified): explicit carrier roles; binding-derived realized history; exact consequence
   factorization; continuation compatibility; recursive update; determination descent;
   path residue; exact compression and recovery licenses; representation succession;
   generic reopening; unary-parity and order-sensitive history fixtures. It uses current
@@ -470,7 +470,7 @@ the G2B Goal, CI, and the verification record:
 uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
 ```
 
-Active G3A-H additionally requires this focused acceptance command, identically present
+Verified G3A-H additionally requires this focused acceptance command, identically present
 in AGENTS, the G3A Goal, CI, and the verification record:
 
 ```text

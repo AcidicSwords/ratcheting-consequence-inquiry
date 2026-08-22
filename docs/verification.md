@@ -659,5 +659,23 @@ also completed all five jobs successfully at the same commit. The pull-request j
 the frozen G1 gate and the focused G2A, G2B, and G3A-H commands on both native operating
 systems; the Docker job built and executed the pinned network-disabled, read-only image.
 
-Protected-main merge and post-merge hosted returns remain pending and are required
-before G3A-H is sealed or the active Goal is completed.
+## G3A-H protected-main verification — 2026-08-22
+
+Pull request #4 was merged with linear history. Its two commits were rewritten on
+protected `main` as implementation commit
+`5969a0ab48e35ab865932479409d75338b3f6d85` and evidence commit
+`f03b774f2f29b162a3fc828893a541a6f9049866`.
+
+Post-merge run
+[32581710548](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32581710548)
+completed successfully at `f03b774f2f29b162a3fc828893a541a6f9049866` with all five
+required jobs:
+
+- `base (ubuntu-latest)`: success, job `97051969823`;
+- `base (windows-latest)`: success, job `97051970006`;
+- `extras (ubuntu-latest)`: success, job `97051969989`;
+- `extras (windows-latest)`: success, job `97051969921`;
+- `docker`: success, job `97051970073`.
+
+This seals the bounded G3A-H implementation. G3A-L, G3B, G3C, and all later milestones
+remain deferred and unclaimed.

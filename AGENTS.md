@@ -200,10 +200,11 @@ license itself.
 
 ## Phase discipline
 
-G1, G2A, and G2B are sealed verified baselines. The active G3A-H Goal adds only explicit
-carrier roles, binding-derived realized history, exact history-state factorization and
+G1, G2A, G2B, and G3A-H are sealed verified baselines. G3A-H added only explicit carrier
+roles, binding-derived realized history, exact history-state factorization and
 continuation checks, exact compression/recovery licensing, path residue, representation
-succession, and generic reopening described in `PLAN.md` and ADR-0011.
+succession, and generic reopening described in `PLAN.md` and ADR-0011. G3A-L and all
+later milestones remain deferred until a new Goal is explicitly opened.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
@@ -283,7 +284,7 @@ The sealed G2B gate adds this focused command, identically present in `PLAN.md`,
 uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
 ```
 
-The active G3A-H gate adds this focused command, identically present in `PLAN.md`,
+The sealed G3A-H gate adds this focused command, identically present in `PLAN.md`,
 `docs/goals/G3A.md`, CI, and `docs/verification.md`:
 
 ```text
