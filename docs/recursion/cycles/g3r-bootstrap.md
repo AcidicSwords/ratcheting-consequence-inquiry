@@ -34,6 +34,13 @@ improvement must be exposed to mechanisms the candidate does not control: compil
 type-checker output, adversarial/property tests, independently preserved research,
 distinct-context review, and protected CI.
 
+The hosted seal itself produced a concrete instance. While summarizing an exact-head
+review, the development agent expanded a known short commit ID with an unverified
+placeholder. Resolving `HEAD` independently exposed the substitution; the public review
+comment was corrected before merge and preserves the correction. The returned repository
+identity, not fluent narrative completion, is authoritative. Exact identifiers must be
+copied from tool returns at the point of use.
+
 ## Candidate frontier
 
 The checked `project-frontier-v1` fixture evaluates six exact candidates on the shared
