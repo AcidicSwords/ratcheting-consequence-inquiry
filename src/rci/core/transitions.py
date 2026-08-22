@@ -28,6 +28,7 @@ from rci.core.commands import (
     CommitSemanticDelta,
     DomainCommand,
     EvaluateWarrant,
+    LinkReacquisitionInquiry,
     OpenObligation,
     PlanEffectAttempt,
     PromoteClaim,
@@ -44,9 +45,14 @@ from rci.core.commands import (
     RecordObligationDisposition,
     RecordProbeObservation,
     RecordReconstruction,
+    RecordRecoveryComparison,
+    RecordRecoveryObservation,
     RecordResidual,
     RecordStepPlan,
+    RegisterRetentionPackage,
     RequestEffect,
+    RequestReacquisition,
+    RunRetrieval,
     SealPrediction,
     StartEffectAttempt,
     StartInquiry,
@@ -86,8 +92,14 @@ from rci.core.events import (
     PredictionSealed,
     ProbeAdmitted,
     ProbeObservationRecorded,
+    ReacquisitionInquiryLinked,
+    ReacquisitionRequested,
     ReconstructionRecorded,
+    RecoveryComparisonRecorded,
+    RecoveryObservationRecorded,
     ResidualRecorded,
+    RetentionPackageRegistered,
+    RetrievalCompleted,
     SemanticDeltaCommitted,
     StepPlanRecorded,
     SupportRouteStandingChanged,
@@ -95,6 +107,18 @@ from rci.core.events import (
 )
 from rci.core.planning import PlanStatus
 from rci.core.state import InquiryState
+from rci.memory.recovery import (
+    RecoveryCompatibilityError,
+    compare_recovery_frontiers,
+    derive_recovery_frontier,
+)
+from rci.memory.references import resolve_owned_memory_ref
+from rci.memory.retrieval import (
+    RetrievalConflictError,
+    resolve_structural_retrieval_policy,
+    retrieve,
+    structural_index_fingerprint,
+)
 from rci.probes.lifecycle import append_probe_event
 from rci.probes.models import ProbeTrace, SemanticChangeOperation
 from rci.warrant.checks import checker_verdict_index, evidence_index, resolve_check_reference
@@ -204,6 +228,30 @@ def _claim_attack_is_exactly_discharged(state: InquiryState, claim: Claim) -> bo
         and version.scope.fingerprint == claim.scope.fingerprint
         for version in state.lemma_versions
     )
+
+
+def _require_g2a_check(
+    state: InquiryState,
+    reference: object,
+    *,
+    proposition_id: str,
+    scope_fingerprint: str,
+) -> None:
+    """Require one exact aggregate-owned, authorized, valid relation check."""
+
+    if state.context is None:
+        raise InvalidCommandError("G2A checks require an inquiry context")
+    checked, reason = resolve_check_reference(
+        reference,  # type: ignore[arg-type]
+        evidence_by_id=evidence_index(state.evidence_records),
+        checker_verdict_by_id=checker_verdict_index(state.checker_verdicts),
+        proposition_id=proposition_id,
+        proposition_kind=PropositionKind.RELATION,
+        scope_fingerprint=scope_fingerprint,
+        authorized_checker_ids=state.context.discharge_mechanism_ids,
+    )
+    if not checked:
+        raise InvalidCommandError(f"G2A record requires an independent valid check: {reason}")
 
 
 def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ...]:
@@ -1391,6 +1439,405 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             ),
         )
 
+    if isinstance(command, RegisterRetentionPackage):
+        registration = command.registration
+        package = next(
+            (item for item in state.retention_packages if item.id == registration.package.id),
+            None,
+        )
+        if package is not None:
+            exact = (
+                package == registration.package
+                and all(item in state.direct_use_routes for item in registration.direct_use_routes)
+                and all(
+                    item in state.reconstruction_routes
+                    for item in registration.reconstruction_routes
+                )
+                and all(
+                    item in state.consequence_evaluation_routes
+                    for item in registration.consequence_evaluation_routes
+                )
+                and all(
+                    item in state.reacquisition_routes for item in registration.reacquisition_routes
+                )
+                and all(item in state.reacquisition_scaffolds for item in registration.scaffolds)
+                and all(
+                    item in state.recovery_protocols for item in registration.recovery_protocols
+                )
+            )
+            if exact:
+                return ()
+            raise IdentityConflictError("retention package identity was reused")
+        if state.context is None or (
+            registration.package.scope_fingerprint,
+            registration.package.binding_revision,
+            registration.package.protected_horizon_id,
+        ) != (
+            state.context.scope_fingerprint,
+            state.context.binding_revision,
+            state.context.protected_horizon_id,
+        ):
+            raise InvalidCommandError("retention package pins must match the inquiry context")
+        registration_reuses_owned_id = (
+            any(
+                prior.id == proposed.id
+                for prior in state.direct_use_routes
+                for proposed in registration.direct_use_routes
+            )
+            or any(
+                prior.id == proposed.id
+                for prior in state.reconstruction_routes
+                for proposed in registration.reconstruction_routes
+            )
+            or any(
+                prior.id == proposed.id
+                for prior in state.consequence_evaluation_routes
+                for proposed in registration.consequence_evaluation_routes
+            )
+            or any(
+                prior.id == proposed.id
+                for prior in state.reacquisition_routes
+                for proposed in registration.reacquisition_routes
+            )
+            or any(
+                prior.id == proposed.id
+                for prior in state.reacquisition_scaffolds
+                for proposed in registration.scaffolds
+            )
+            or any(
+                prior.id == proposed.id
+                for prior in state.recovery_protocols
+                for proposed in registration.recovery_protocols
+            )
+        )
+        if registration_reuses_owned_id:
+            raise InvalidCommandError(
+                "a new retention package cannot take ownership of an existing route"
+            )
+        for reference in registration.package.owned_refs:
+            resolved, reason = resolve_owned_memory_ref(
+                reference,
+                owned_records=state.owned_memory_records,
+            )
+            if not resolved:
+                raise InvalidCommandError(
+                    f"retention package has an invalid pre-existing reference: {reason}"
+                )
+        return (
+            RetentionPackageRegistered(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                registration=registration,
+            ),
+        )
+
+    if isinstance(command, RunRetrieval):
+        existing_result = next(
+            (item for item in state.retrieval_results if item.id == command.result_id),
+            None,
+        )
+        existing_query = next(
+            (item for item in state.retrieval_queries if item.id == command.query.id),
+            None,
+        )
+        if existing_result is not None or existing_query is not None:
+            if (
+                existing_result is not None
+                and existing_query == command.query
+                and existing_result.query_id == command.query.id
+            ):
+                return ()
+            raise IdentityConflictError("retrieval query or result identity was reused")
+        if command.query.source_sequence != state.sequence:
+            raise InvalidCommandError("retrieval query must pin the current committed sequence")
+        actual_index = structural_index_fingerprint(
+            state.retention_packages,
+            state.owned_memory_fingerprints,
+        )
+        if command.query.source_index_fingerprint != actual_index:
+            raise InvalidCommandError("retrieval query must pin the current structural index")
+        try:
+            policy = resolve_structural_retrieval_policy(
+                command.query.policy_id,
+                command.query.policy_version,
+            )
+            result = retrieve(
+                result_id=command.result_id,
+                query=command.query,
+                policy=policy,
+                packages=state.retention_packages,
+                owned_fingerprints=state.owned_memory_fingerprints,
+            )
+        except (KeyError, RetrievalConflictError, ValueError) as error:
+            raise InvalidCommandError(str(error)) from error
+        return (
+            RetrievalCompleted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                policy=policy,
+                query=command.query,
+                result=result,
+            ),
+        )
+
+    if isinstance(command, RequestReacquisition):
+        reacquisition_request = command.request
+        existing_reacquisition_request = next(
+            (item for item in state.reacquisition_requests if item.id == reacquisition_request.id),
+            None,
+        )
+        if existing_reacquisition_request is not None:
+            if existing_reacquisition_request == reacquisition_request:
+                return ()
+            raise IdentityConflictError("reacquisition request identity was reused")
+        if any(
+            item.child_inquiry_id == reacquisition_request.child_inquiry_id
+            for item in state.reacquisition_requests
+        ):
+            raise IdentityConflictError("reacquisition child inquiry identity was reused")
+        if state.context is None or reacquisition_request.parent_inquiry_id != state.inquiry_id:
+            raise InvalidCommandError("reacquisition request must belong to this inquiry")
+        if (
+            reacquisition_request.pins.scope_fingerprint,
+            reacquisition_request.pins.binding_revision,
+            reacquisition_request.pins.protected_horizon_id,
+            reacquisition_request.pins.finite_universe_hash,
+        ) != (
+            state.context.scope_fingerprint,
+            state.context.binding_revision,
+            state.context.protected_horizon_id,
+            state.context.finite_universe_hash,
+        ):
+            raise InvalidCommandError("reacquisition request pins differ from inquiry context")
+        recovery_protocol = next(
+            (
+                item
+                for item in state.recovery_protocols
+                if item.id == reacquisition_request.pins.recovery_protocol_id
+                and item.version == reacquisition_request.pins.recovery_protocol_version
+            ),
+            None,
+        )
+        if recovery_protocol is None or recovery_protocol.pins != reacquisition_request.pins:
+            raise InvalidCommandError("reacquisition request requires an exact owned protocol")
+        if reacquisition_request.retention_package_id is not None:
+            retained_package = next(
+                (
+                    item
+                    for item in state.retention_packages
+                    if item.id == reacquisition_request.retention_package_id
+                ),
+                None,
+            )
+            if (
+                retained_package is None
+                or reacquisition_request.scaffold_id not in retained_package.scaffold_ids
+                or recovery_protocol.id not in retained_package.recovery_protocol_ids
+                or not any(
+                    route.id in retained_package.reacquisition_route_ids
+                    and route.recovery_protocol_id == recovery_protocol.id
+                    and route.reacquisition_scaffold_id == reacquisition_request.scaffold_id
+                    for route in state.reacquisition_routes
+                )
+            ):
+                raise InvalidCommandError(
+                    "retained reacquisition requires one package-owned scaffold and protocol"
+                )
+        return (
+            ReacquisitionRequested(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                request=reacquisition_request,
+            ),
+        )
+
+    if isinstance(command, LinkReacquisitionInquiry):
+        reacquisition_link = command.link
+        existing_reacquisition_link = next(
+            (
+                item
+                for item in state.reacquisition_inquiry_links
+                if item.id == reacquisition_link.id
+            ),
+            None,
+        )
+        if existing_reacquisition_link is not None:
+            if existing_reacquisition_link == reacquisition_link:
+                return ()
+            raise IdentityConflictError("reacquisition link identity was reused")
+        linked_request = next(
+            (
+                item
+                for item in state.reacquisition_requests
+                if item.id == reacquisition_link.request_id
+            ),
+            None,
+        )
+        if linked_request is None:
+            raise InvalidCommandError("reacquisition link requires an owned request")
+        if any(
+            item.request_id == reacquisition_link.request_id
+            for item in state.reacquisition_inquiry_links
+        ):
+            raise IdentityConflictError("reacquisition request is already linked")
+        if (
+            reacquisition_link.parent_inquiry_id,
+            reacquisition_link.child_inquiry_id,
+            reacquisition_link.child_manifest_artifact,
+            reacquisition_link.child_context_digest,
+        ) != (
+            linked_request.parent_inquiry_id,
+            linked_request.child_inquiry_id,
+            linked_request.child_manifest_artifact,
+            linked_request.child_context_digest,
+        ):
+            raise InvalidCommandError("reacquisition link differs from its request pins")
+        return (
+            ReacquisitionInquiryLinked(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                link=reacquisition_link,
+            ),
+        )
+
+    if isinstance(command, RecordRecoveryObservation):
+        recovery_observation = command.observation
+        existing_recovery_observation = next(
+            (item for item in state.recovery_observations if item.id == recovery_observation.id),
+            None,
+        )
+        if existing_recovery_observation is not None:
+            if existing_recovery_observation == recovery_observation:
+                return ()
+            raise IdentityConflictError("recovery observation identity was reused")
+        observation_request = next(
+            (
+                item
+                for item in state.reacquisition_requests
+                if item.id == recovery_observation.reacquisition_request_id
+            ),
+            None,
+        )
+        observation_link = next(
+            (
+                item
+                for item in state.reacquisition_inquiry_links
+                if item.request_id == recovery_observation.reacquisition_request_id
+            ),
+            None,
+        )
+        if observation_request is None or observation_link is None:
+            raise InvalidCommandError("recovery observation requires a linked child inquiry")
+        if any(
+            item.reacquisition_request_id == recovery_observation.reacquisition_request_id
+            for item in state.recovery_observations
+        ):
+            raise IdentityConflictError("reacquisition request already has an observation")
+        if (
+            recovery_observation.branch,
+            recovery_observation.child_inquiry_id,
+            recovery_observation.retention_package_id,
+            recovery_observation.pins,
+        ) != (
+            observation_request.branch,
+            observation_request.child_inquiry_id,
+            observation_request.retention_package_id,
+            observation_request.pins,
+        ):
+            raise InvalidCommandError("recovery observation differs from request pins")
+        if recovery_observation.child_prefix_sequence < observation_link.child_prefix_sequence:
+            raise InvalidCommandError("recovery observation predates its child linkage")
+        if (
+            not recovery_observation.competence_established
+            and recovery_observation.competence_check is not None
+        ):
+            raise InvalidCommandError("unsuccessful recovery cannot carry a competence check")
+        _require_g2a_check(
+            state,
+            recovery_observation.measurement_check,
+            proposition_id=recovery_observation.measurement_proposition_id,
+            scope_fingerprint=recovery_observation.pins.scope_fingerprint,
+        )
+        if recovery_observation.competence_check is not None:
+            _require_g2a_check(
+                state,
+                recovery_observation.competence_check,
+                proposition_id=recovery_observation.pins.target_competence_id,
+                scope_fingerprint=recovery_observation.pins.scope_fingerprint,
+            )
+        return (
+            RecoveryObservationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                observation=recovery_observation,
+            ),
+        )
+
+    if isinstance(command, RecordRecoveryComparison):
+        recovery_comparison = command.comparison
+        existing_recovery_comparison = next(
+            (item for item in state.recovery_comparisons if item.id == recovery_comparison.id),
+            None,
+        )
+        if existing_recovery_comparison is not None:
+            if existing_recovery_comparison == recovery_comparison:
+                return ()
+            raise IdentityConflictError("recovery comparison identity was reused")
+        observations = {item.id: item for item in state.recovery_observations}
+        try:
+            baseline_observations = tuple(
+                observations[identifier]
+                for identifier in recovery_comparison.baseline_frontier.source_observation_ids
+            )
+            retained_observations = tuple(
+                observations[identifier]
+                for identifier in recovery_comparison.retained_frontier.source_observation_ids
+            )
+        except KeyError as error:
+            raise InvalidCommandError(
+                "recovery comparison references an unknown observation"
+            ) from error
+        try:
+            baseline = derive_recovery_frontier(
+                branch=recovery_comparison.baseline_frontier.branch,
+                pins=recovery_comparison.baseline_frontier.pins,
+                observations=baseline_observations,
+            )
+            retained = derive_recovery_frontier(
+                branch=recovery_comparison.retained_frontier.branch,
+                pins=recovery_comparison.retained_frontier.pins,
+                observations=retained_observations,
+            )
+            expected = compare_recovery_frontiers(
+                comparison_id=recovery_comparison.id,
+                baseline=baseline,
+                retained=retained,
+                comparison_check=recovery_comparison.comparison_check,
+            )
+        except RecoveryCompatibilityError as error:
+            raise InvalidCommandError(str(error)) from error
+        if expected != recovery_comparison:
+            raise InvalidCommandError("recovery comparison is not the exact derived result")
+        _require_g2a_check(
+            state,
+            recovery_comparison.comparison_check,
+            proposition_id=recovery_comparison.comparison_proposition_id,
+            scope_fingerprint=recovery_comparison.baseline_frontier.pins.scope_fingerprint,
+        )
+        return (
+            RecoveryComparisonRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                comparison=recovery_comparison,
+            ),
+        )
+
     raise InvalidCommandError(f"unsupported command type: {type(command).__name__}")
 
 
@@ -2042,6 +2489,127 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
         return _advance_domain_state(
             state,
             semantic_deltas=(*state.semantic_deltas, event.delta),
+        )
+
+    if isinstance(event, RetentionPackageRegistered):
+        _require_matching_decision(
+            state,
+            event,
+            RegisterRetentionPackage(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                registration=event.registration,
+            ),
+        )
+        registration = event.registration
+        return _advance_domain_state(
+            state,
+            direct_use_routes=(*state.direct_use_routes, *registration.direct_use_routes),
+            reconstruction_routes=(
+                *state.reconstruction_routes,
+                *registration.reconstruction_routes,
+            ),
+            consequence_evaluation_routes=(
+                *state.consequence_evaluation_routes,
+                *registration.consequence_evaluation_routes,
+            ),
+            reacquisition_routes=(
+                *state.reacquisition_routes,
+                *registration.reacquisition_routes,
+            ),
+            reacquisition_scaffolds=(
+                *state.reacquisition_scaffolds,
+                *registration.scaffolds,
+            ),
+            recovery_protocols=(
+                *state.recovery_protocols,
+                *registration.recovery_protocols,
+            ),
+            retention_packages=(*state.retention_packages, registration.package),
+        )
+
+    if isinstance(event, RetrievalCompleted):
+        _require_matching_decision(
+            state,
+            event,
+            RunRetrieval(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                result_id=event.result.id,
+                query=event.query,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            retrieval_policies=(*state.retrieval_policies, event.policy),
+            retrieval_queries=(*state.retrieval_queries, event.query),
+            retrieval_results=(*state.retrieval_results, event.result),
+        )
+
+    if isinstance(event, ReacquisitionRequested):
+        _require_matching_decision(
+            state,
+            event,
+            RequestReacquisition(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                request=event.request,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            reacquisition_requests=(*state.reacquisition_requests, event.request),
+        )
+
+    if isinstance(event, ReacquisitionInquiryLinked):
+        _require_matching_decision(
+            state,
+            event,
+            LinkReacquisitionInquiry(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                link=event.link,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            reacquisition_inquiry_links=(*state.reacquisition_inquiry_links, event.link),
+        )
+
+    if isinstance(event, RecoveryObservationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordRecoveryObservation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                observation=event.observation,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            recovery_observations=(*state.recovery_observations, event.observation),
+        )
+
+    if isinstance(event, RecoveryComparisonRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordRecoveryComparison(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                comparison=event.comparison,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            recovery_comparisons=(*state.recovery_comparisons, event.comparison),
         )
 
     raise InvalidTransitionError(f"unsupported event type: {type(event).__name__}")

@@ -43,6 +43,8 @@ from rci.core.errors import InvalidTransitionError
 from rci.core.events import EffectAttemptPlanned, EffectRequested, EffectResultAccepted
 from rci.core.model import ArtifactRef
 from rci.persistence import (
+    DATABASE_SCHEMA_VERSION,
+    FOLDED_STATE_SCHEMA_VERSION,
     ArtifactIntegrityError,
     ArtifactStore,
     DuplicateEventError,
@@ -320,6 +322,10 @@ def test_snapshot_and_projection_are_rebuildable(tmp_path: Path) -> None:
     store.append("inquiry-1", 0, events[:split])
     snapshot = store.save_snapshot("inquiry-1", states[split - 1])
     assert snapshot.sequence == split
+    assert snapshot.fold_schema_version == FOLDED_STATE_SCHEMA_VERSION
+    assert snapshot.source_event_digest == store.stream_prefix_digest(
+        "inquiry-1", through_sequence=split
+    )
     store.append("inquiry-1", split, events[split:])
     assert store.rebuild_state("inquiry-1") == states[-1]
 
@@ -344,6 +350,89 @@ def test_snapshot_and_projection_are_rebuildable(tmp_path: Path) -> None:
         store.load_latest_projection_checkpoint("event-kinds", "1.0.0", "inquiry-1") == checkpoint
     )
     assert store.load_latest_projection_checkpoint("event-kinds", "2.0.0", "inquiry-1") is None
+
+
+def test_stream_prefix_digest_is_ordered_bounded_and_stable(tmp_path: Path) -> None:
+    artifacts = ArtifactStore(tmp_path / "artifacts")
+    events, _, _ = build_history(artifacts)
+    store = SQLiteEventStore(tmp_path / "state.sqlite3", artifact_store=artifacts)
+    store.append("inquiry-1", 0, events)
+
+    first = store.stream_prefix_digest("inquiry-1", through_sequence=1)
+    complete = store.stream_prefix_digest("inquiry-1")
+    assert first == store.stream_prefix_digest("inquiry-1", through_sequence=1)
+    assert complete == store.stream_prefix_digest("inquiry-1", through_sequence=len(events))
+    assert first != complete
+    with pytest.raises(ValueError, match="outside the event stream"):
+        store.stream_prefix_digest("inquiry-1", through_sequence=len(events) + 1)
+
+
+def test_v1_snapshot_is_discarded_and_rebuilt_without_changing_ledger_or_projection(
+    tmp_path: Path,
+) -> None:
+    artifacts = ArtifactStore(tmp_path / "artifacts")
+    events, states, _ = build_history(artifacts)
+    database = tmp_path / "state.sqlite3"
+    store = SQLiteEventStore(database, artifact_store=artifacts)
+    store.append("inquiry-1", 0, events)
+    original_export = store.export_stream("inquiry-1")
+    snapshot = store.save_snapshot("inquiry-1", states[-1])
+    checkpoint = store.save_projection_checkpoint(
+        "event-kinds",
+        "1.0.0",
+        "inquiry-1",
+        len(events),
+        b"g1-projection",
+    )
+
+    # Recreate the exact G1 snapshot shape while leaving the authoritative ledger
+    # and the separately versioned projection checkpoint untouched.
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TRIGGER snapshots_forbid_update")
+        connection.execute("ALTER TABLE snapshots RENAME TO snapshots_v2")
+        connection.execute(
+            """
+            CREATE TABLE snapshots (
+                stream_id TEXT NOT NULL,
+                sequence INTEGER NOT NULL CHECK (sequence >= 1),
+                state_bytes BLOB NOT NULL,
+                state_digest TEXT NOT NULL,
+                PRIMARY KEY (stream_id, sequence),
+                FOREIGN KEY (stream_id) REFERENCES streams(stream_id)
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO snapshots(stream_id, sequence, state_bytes, state_digest)
+            SELECT stream_id, sequence, state_bytes, state_digest FROM snapshots_v2
+            """
+        )
+        connection.execute("DROP TABLE snapshots_v2")
+        connection.execute(
+            """
+            CREATE TRIGGER snapshots_forbid_update
+            BEFORE UPDATE ON snapshots
+            BEGIN
+                SELECT RAISE(ABORT, 'snapshots are immutable');
+            END
+            """
+        )
+        connection.execute("PRAGMA user_version = 1")
+
+    reopened = SQLiteEventStore(database, artifact_store=artifacts)
+    assert DATABASE_SCHEMA_VERSION == 2
+    assert reopened.export_stream("inquiry-1") == original_export
+    assert reopened.load_latest_snapshot("inquiry-1") is None
+    assert reopened.rebuild_state("inquiry-1") == states[-1]
+    assert (
+        reopened.load_latest_projection_checkpoint("event-kinds", "1.0.0", "inquiry-1")
+        == checkpoint
+    )
+
+    rebuilt_snapshot = reopened.save_snapshot("inquiry-1", states[-1])
+    assert rebuilt_snapshot.fold_schema_version == FOLDED_STATE_SCHEMA_VERSION
+    assert rebuilt_snapshot.source_event_digest == snapshot.source_event_digest
 
 
 def test_failed_batch_rolls_back_and_resume_is_consistent(tmp_path: Path) -> None:

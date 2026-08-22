@@ -28,6 +28,16 @@ from rci.core.effects import (
 )
 from rci.core.model import ArtifactRef, FrozenModel, Identifier, InquiryContext, require_utc
 from rci.core.planning import StepPlan
+from rci.memory.models import (
+    ReacquisitionInquiryLink,
+    ReacquisitionRequest,
+    RecoveryComparison,
+    RecoveryObservation,
+    RetentionRegistration,
+    RetrievalQuery,
+    RetrievalResult,
+    StructuralRetrievalPolicy,
+)
 from rci.probes.models import (
     CognitiveAttemptPlan,
     Mismatch,
@@ -226,6 +236,38 @@ class SemanticDeltaCommitted(EventBase):
     delta: SemanticDelta
 
 
+class RetentionPackageRegistered(EventBase):
+    kind: Literal["retention_package_registered"] = "retention_package_registered"
+    registration: RetentionRegistration
+
+
+class RetrievalCompleted(EventBase):
+    kind: Literal["retrieval_completed"] = "retrieval_completed"
+    policy: StructuralRetrievalPolicy
+    query: RetrievalQuery
+    result: RetrievalResult
+
+
+class ReacquisitionRequested(EventBase):
+    kind: Literal["reacquisition_requested"] = "reacquisition_requested"
+    request: ReacquisitionRequest
+
+
+class ReacquisitionInquiryLinked(EventBase):
+    kind: Literal["reacquisition_inquiry_linked"] = "reacquisition_inquiry_linked"
+    link: ReacquisitionInquiryLink
+
+
+class RecoveryObservationRecorded(EventBase):
+    kind: Literal["recovery_observation_recorded"] = "recovery_observation_recorded"
+    observation: RecoveryObservation
+
+
+class RecoveryComparisonRecorded(EventBase):
+    kind: Literal["recovery_comparison_recorded"] = "recovery_comparison_recorded"
+    comparison: RecoveryComparison
+
+
 DomainEvent = Annotated[
     InquiryStarted
     | BacklogEffectRecorded
@@ -257,6 +299,12 @@ DomainEvent = Annotated[
     | ProbeObservationRecorded
     | ReconstructionRecorded
     | MismatchRecorded
-    | SemanticDeltaCommitted,
+    | SemanticDeltaCommitted
+    | RetentionPackageRegistered
+    | RetrievalCompleted
+    | ReacquisitionRequested
+    | ReacquisitionInquiryLinked
+    | RecoveryObservationRecorded
+    | RecoveryComparisonRecorded,
     Field(discriminator="kind"),
 ]

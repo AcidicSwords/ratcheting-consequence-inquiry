@@ -31,14 +31,20 @@ from rci.core.commands import (
     AcceptEffectResult,
     AdmitClaim,
     DomainCommand,
+    LinkReacquisitionInquiry,
     OpenObligation,
     PlanEffectAttempt,
     RecordAttemptOutcome,
     RecordBacklogEffect,
     RecordDecodeOutcome,
     RecordObligationDisposition,
+    RecordRecoveryComparison,
+    RecordRecoveryObservation,
     RecordStepPlan,
+    RegisterRetentionPackage,
     RequestEffect,
+    RequestReacquisition,
+    RunRetrieval,
     StartEffectAttempt,
     StartInquiry,
 )
@@ -51,11 +57,30 @@ from rci.core.effects import (
     RouteSnapshot,
     SuccessResult,
 )
-from rci.core.events import DomainEvent
+from rci.core.events import DomainEvent, InquiryStarted
 from rci.core.model import ArtifactRef, CapturedPayload, InquiryContext
 from rci.core.serialization import canonical_json_bytes, sha256_digest
 from rci.core.state import InquiryState
 from rci.core.transitions import decide, evolve
+from rci.memory import (
+    STRUCTURAL_EXACT_V1,
+    MemoryOwner,
+    OwnedMemoryRef,
+    OwnedRecordType,
+    ReacquisitionChildManifest,
+    ReacquisitionInquiryLink,
+    ReacquisitionRequest,
+    RecoveryBranch,
+    RecoveryComparison,
+    RecoveryFrontier,
+    RecoveryObservation,
+    RetentionRegistration,
+    RetrievalQuery,
+    RetrievalResult,
+    compare_recovery_frontiers,
+    derive_recovery_frontier,
+    structural_index_fingerprint,
+)
 from rci.orchestration import (
     AttemptKey,
     ObligationEntry,
@@ -67,6 +92,7 @@ from rci.persistence import ArtifactStore, SQLiteEventStore
 from rci.questions import bind_answer, get_contract, render_question
 from rci.questions.catalog import CATALOG_V0_3, CORE_V1
 from rci.questions.models import QuestionContract
+from rci.warrant import CheckReference
 
 Clock = Callable[[], datetime]
 
@@ -201,14 +227,7 @@ class RCI:
             provenance_refs=("sdk-default-binding-v1",),
         )
 
-    def start(
-        self,
-        inquiry_id: str,
-        *,
-        context: InquiryContext | None = None,
-    ) -> InquiryState:
-        selected_context = context or self.default_context()
-        self._scope_from_context(selected_context)
+    def _inquiry_manifest_artifact(self, context: InquiryContext) -> ArtifactRef:
         catalog_ref = self.artifacts.put_bytes(
             canonical_json_bytes(CATALOG_V0_3),
             media_type="application/vnd.rci.question-catalog+json",
@@ -217,7 +236,7 @@ class RCI:
         manifest = canonical_json_bytes(
             {
                 "schema_version": 1,
-                "context": selected_context.model_dump(mode="json"),
+                "context": context.model_dump(mode="json"),
                 "question_catalog_digest": CATALOG_V0_3.digest,
                 "question_catalog_artifact": catalog_ref.model_dump(mode="json"),
             }
@@ -227,29 +246,39 @@ class RCI:
             media_type="application/vnd.rci.inquiry-manifest+json",
             encoding="utf-8",
         )
+        return manifest_ref
+
+    def _start_with_manifest(
+        self,
+        inquiry_id: str,
+        *,
+        context: InquiryContext,
+        manifest_ref: ArtifactRef,
+    ) -> InquiryState:
+        self._scope_from_context(context)
         command = StartInquiry(
             event_id=_stable_id("evt", inquiry_id, "start", manifest_ref.digest),
             inquiry_id=inquiry_id,
             occurred_at=self.clock(),
             manifest_artifact=manifest_ref,
-            policy_version=selected_context.warrant_policy_version,
-            context=selected_context,
+            policy_version=context.warrant_policy_version,
+            context=context,
         )
-        scope = self._scope_from_context(selected_context)
+        scope = self._scope_from_context(context)
         initial_obligation = Obligation(
             id=_stable_id(
                 "obl",
                 inquiry_id,
                 "characterize",
                 scope.fingerprint,
-                selected_context.consequence_profile_id,
+                context.consequence_profile_id,
             ),
             kind=ObligationKind.CHARACTERIZE,
-            carrier_id=selected_context.consequence_profile_id,
+            carrier_id=context.consequence_profile_id,
             args=(
                 BoundArgument(
                     name="carrier",
-                    value=selected_context.consequence_profile_id,
+                    value=context.consequence_profile_id,
                 ),
             ),
             scope=scope,
@@ -263,6 +292,19 @@ class RCI:
             obligation=initial_obligation,
         )
         return self._apply_batch(inquiry_id, (command, open_initial))
+
+    def start(
+        self,
+        inquiry_id: str,
+        *,
+        context: InquiryContext | None = None,
+    ) -> InquiryState:
+        selected_context = context or self.default_context()
+        return self._start_with_manifest(
+            inquiry_id,
+            context=selected_context,
+            manifest_ref=self._inquiry_manifest_artifact(selected_context),
+        )
 
     def inspect(self, inquiry_id: str) -> InquiryState:
         return self.events.rebuild_state(inquiry_id)
@@ -766,6 +808,324 @@ class RCI:
                 ),
             ),
         )
+
+    def register_retention_package(
+        self,
+        inquiry_id: str,
+        registration: RetentionRegistration,
+    ) -> InquiryState:
+        """Register one atomic, provisional, non-compressive retention bundle."""
+
+        return self.dispatch(
+            RegisterRetentionPackage(
+                event_id=_stable_id(
+                    "evt",
+                    inquiry_id,
+                    registration.package.id,
+                    registration.package.fingerprint,
+                    "registered",
+                ),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                registration=registration,
+            )
+        )
+
+    def retrieve(
+        self,
+        inquiry_id: str,
+        *,
+        query_id: str,
+        result_id: str,
+        owners: tuple[MemoryOwner, ...] = (),
+        record_types: tuple[OwnedRecordType, ...] = (),
+        reference_selectors: tuple[OwnedMemoryRef, ...] = (),
+        cue_ids: tuple[str, ...] = (),
+        tag_ids: tuple[str, ...] = (),
+        limit: int = 20,
+    ) -> RetrievalResult:
+        """Run one exact structural query over the current committed aggregate prefix."""
+
+        state = self.inspect(inquiry_id)
+        if state.context is None:
+            raise RuntimeError("retrieval requires a started inquiry context")
+        query = RetrievalQuery(
+            id=query_id,
+            policy_id=STRUCTURAL_EXACT_V1.id,
+            policy_version=STRUCTURAL_EXACT_V1.version,
+            scope_fingerprint=state.context.scope_fingerprint,
+            binding_revision=state.context.binding_revision,
+            protected_horizon_id=state.context.protected_horizon_id,
+            source_sequence=state.sequence,
+            source_index_fingerprint=structural_index_fingerprint(
+                state.retention_packages,
+                state.owned_memory_fingerprints,
+            ),
+            owners=owners,
+            record_types=record_types,
+            reference_selectors=reference_selectors,
+            cue_ids=tuple(sorted(set(cue_ids))),
+            tag_ids=tuple(sorted(set(tag_ids))),
+            limit=limit,
+        )
+        updated = self.dispatch(
+            RunRetrieval(
+                event_id=_stable_id("evt", inquiry_id, query.id, result_id, "retrieved"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                result_id=result_id,
+                query=query,
+            )
+        )
+        result = next(item for item in updated.retrieval_results if item.id == result_id)
+        return result
+
+    def request_reacquisition(
+        self,
+        parent_inquiry_id: str,
+        *,
+        request_id: str,
+        child_inquiry_id: str,
+        branch: RecoveryBranch,
+        recovery_protocol_id: str,
+        retention_package_id: str | None = None,
+        scaffold_id: str | None = None,
+    ) -> InquiryState:
+        """Persist the first saga prefix without starting or linking the child."""
+
+        parent = self.inspect(parent_inquiry_id)
+        if parent.context is None:
+            raise RuntimeError("reacquisition requires a started parent inquiry")
+        protocol = next(
+            (item for item in parent.recovery_protocols if item.id == recovery_protocol_id),
+            None,
+        )
+        if protocol is None:
+            raise ValueError("reacquisition protocol is not owned by the parent inquiry")
+        context_digest = sha256_digest(canonical_json_bytes(parent.context))
+        base_manifest_ref = self._inquiry_manifest_artifact(parent.context)
+        child_manifest = ReacquisitionChildManifest(
+            parent_inquiry_id=parent_inquiry_id,
+            request_id=request_id,
+            child_inquiry_id=child_inquiry_id,
+            pins=protocol.pins,
+            context_digest=context_digest,
+            policy_version=parent.context.warrant_policy_version,
+            inquiry_manifest_artifact=base_manifest_ref,
+        )
+        child_manifest_ref = self.artifacts.put_bytes(
+            canonical_json_bytes(child_manifest),
+            media_type="application/vnd.rci.reacquisition-child-manifest+json",
+            encoding="utf-8",
+        )
+        request = ReacquisitionRequest(
+            id=request_id,
+            parent_inquiry_id=parent_inquiry_id,
+            child_inquiry_id=child_inquiry_id,
+            branch=branch,
+            pins=protocol.pins,
+            child_manifest_artifact=child_manifest_ref,
+            child_inquiry_manifest_artifact=base_manifest_ref,
+            child_context_digest=context_digest,
+            child_policy_version=parent.context.warrant_policy_version,
+            retention_package_id=retention_package_id,
+            scaffold_id=scaffold_id,
+        )
+        return self.dispatch(
+            RequestReacquisition(
+                event_id=_stable_id("evt", parent_inquiry_id, request.id, "requested"),
+                inquiry_id=parent_inquiry_id,
+                occurred_at=self.clock(),
+                request=request,
+            )
+        )
+
+    def start_reacquisition_child(
+        self,
+        parent_inquiry_id: str,
+        request_id: str,
+    ) -> InquiryState:
+        """Create or idempotently resume the exact child stream pinned by a request."""
+
+        parent = self.inspect(parent_inquiry_id)
+        request = next(
+            (item for item in parent.reacquisition_requests if item.id == request_id),
+            None,
+        )
+        if request is None or parent.context is None:
+            raise ValueError("reacquisition request is not owned by a started parent")
+        manifest = ReacquisitionChildManifest.model_validate_json(
+            self.artifacts.get_bytes(request.child_manifest_artifact),
+            strict=True,
+        )
+        if manifest.context_digest != sha256_digest(canonical_json_bytes(parent.context)):
+            raise ValueError("reacquisition manifest context differs from its parent")
+        return self._start_with_manifest(
+            request.child_inquiry_id,
+            context=parent.context,
+            manifest_ref=request.child_manifest_artifact,
+        )
+
+    def link_reacquisition_inquiry(
+        self,
+        parent_inquiry_id: str,
+        request_id: str,
+    ) -> InquiryState:
+        """Persist the final link only after verifying the actual child prefix."""
+
+        parent = self.inspect(parent_inquiry_id)
+        request = next(
+            (item for item in parent.reacquisition_requests if item.id == request_id),
+            None,
+        )
+        if request is None:
+            raise ValueError("reacquisition request is not owned by the parent")
+        if any(item.request_id == request_id for item in parent.reacquisition_inquiry_links):
+            return parent
+        child = self.events.load_stream(request.child_inquiry_id)
+        if not child.events:
+            raise ValueError("reacquisition child stream has not started")
+        start_event = child.events[0]
+        inquiry_started = start_event.event
+        if not isinstance(inquiry_started, InquiryStarted):
+            raise ValueError("reacquisition child stream does not begin with InquiryStarted")
+        link = ReacquisitionInquiryLink(
+            id=_stable_id("reacq-link", parent_inquiry_id, request.id),
+            request_id=request.id,
+            parent_inquiry_id=parent_inquiry_id,
+            child_inquiry_id=request.child_inquiry_id,
+            child_start_event_id=inquiry_started.event_id,
+            child_start_event_digest=start_event.event_digest,
+            child_prefix_sequence=child.version,
+            child_prefix_digest=self.events.stream_prefix_digest(request.child_inquiry_id),
+            child_manifest_artifact=inquiry_started.manifest_artifact,
+            child_context_digest=sha256_digest(canonical_json_bytes(inquiry_started.context)),
+        )
+        return self.dispatch(
+            LinkReacquisitionInquiry(
+                event_id=_stable_id("evt", parent_inquiry_id, link.id, "linked"),
+                inquiry_id=parent_inquiry_id,
+                occurred_at=self.clock(),
+                link=link,
+            )
+        )
+
+    def start_reacquisition(
+        self,
+        parent_inquiry_id: str,
+        *,
+        request_id: str,
+        child_inquiry_id: str,
+        branch: RecoveryBranch,
+        recovery_protocol_id: str,
+        retention_package_id: str | None = None,
+        scaffold_id: str | None = None,
+    ) -> InquiryState:
+        """Resume the request-to-child-to-link saga through every durable prefix."""
+
+        self.request_reacquisition(
+            parent_inquiry_id,
+            request_id=request_id,
+            child_inquiry_id=child_inquiry_id,
+            branch=branch,
+            recovery_protocol_id=recovery_protocol_id,
+            retention_package_id=retention_package_id,
+            scaffold_id=scaffold_id,
+        )
+        self.start_reacquisition_child(parent_inquiry_id, request_id)
+        return self.link_reacquisition_inquiry(parent_inquiry_id, request_id)
+
+    def record_recovery_observation(
+        self,
+        parent_inquiry_id: str,
+        observation: RecoveryObservation,
+    ) -> InquiryState:
+        """Record independently checked child recovery measurements."""
+
+        return self.dispatch(
+            RecordRecoveryObservation(
+                event_id=_stable_id("evt", parent_inquiry_id, observation.id, "observed"),
+                inquiry_id=parent_inquiry_id,
+                occurred_at=self.clock(),
+                observation=observation,
+            )
+        )
+
+    def recovery_frontier(
+        self,
+        parent_inquiry_id: str,
+        *,
+        branch: RecoveryBranch,
+        observation_ids: tuple[str, ...],
+    ) -> RecoveryFrontier:
+        state = self.inspect(parent_inquiry_id)
+        by_id = {item.id: item for item in state.recovery_observations}
+        try:
+            observations = tuple(by_id[identifier] for identifier in observation_ids)
+        except KeyError as error:
+            raise ValueError("recovery frontier references an unknown observation") from error
+        if not observations:
+            raise ValueError("recovery frontier requires at least one observation")
+        return derive_recovery_frontier(
+            branch=branch,
+            pins=observations[0].pins,
+            observations=observations,
+        )
+
+    def compare_recovery(
+        self,
+        parent_inquiry_id: str,
+        *,
+        comparison_id: str,
+        baseline_observation_ids: tuple[str, ...],
+        retained_observation_ids: tuple[str, ...],
+        comparison_check: CheckReference,
+    ) -> RecoveryComparison:
+        comparison = self.compare_recovery_frontiers_for_check(
+            parent_inquiry_id,
+            comparison_id=comparison_id,
+            baseline_observation_ids=baseline_observation_ids,
+            retained_observation_ids=retained_observation_ids,
+            comparison_check=comparison_check,
+        )
+        self.dispatch(
+            RecordRecoveryComparison(
+                event_id=_stable_id("evt", parent_inquiry_id, comparison.id, "compared"),
+                inquiry_id=parent_inquiry_id,
+                occurred_at=self.clock(),
+                comparison=comparison,
+            )
+        )
+        return comparison
+
+    def compare_recovery_frontiers_for_check(
+        self,
+        parent_inquiry_id: str,
+        *,
+        comparison_id: str,
+        baseline_observation_ids: tuple[str, ...],
+        retained_observation_ids: tuple[str, ...],
+        comparison_check: CheckReference,
+    ) -> RecoveryComparison:
+        """Build the exact provisional comparison that an external checker must bind."""
+
+        baseline = self.recovery_frontier(
+            parent_inquiry_id,
+            branch=RecoveryBranch.BASELINE,
+            observation_ids=baseline_observation_ids,
+        )
+        retained = self.recovery_frontier(
+            parent_inquiry_id,
+            branch=RecoveryBranch.RETAINED,
+            observation_ids=retained_observation_ids,
+        )
+        comparison = compare_recovery_frontiers(
+            comparison_id=comparison_id,
+            baseline=baseline,
+            retained=retained,
+            comparison_check=comparison_check,
+        )
+        return comparison
 
     def append_local_effects(
         self,

@@ -7,11 +7,14 @@ from rci.persistence.errors import (
     IntegrityError,
     OptimisticConcurrencyError,
     PersistenceError,
+    SagaIntegrityError,
     SnapshotConflictError,
     UnsupportedSchemaVersionError,
 )
 from rci.persistence.sqlite import (
     DATABASE_SCHEMA_VERSION,
+    EVENT_PREFIX_DIGEST_VERSION,
+    FOLDED_STATE_SCHEMA_VERSION,
     ProjectionCheckpoint,
     SnapshotRecord,
     SQLiteEventStore,
@@ -21,6 +24,8 @@ from rci.persistence.sqlite import (
 
 __all__ = [
     "DATABASE_SCHEMA_VERSION",
+    "EVENT_PREFIX_DIGEST_VERSION",
+    "FOLDED_STATE_SCHEMA_VERSION",
     "ArtifactIntegrityError",
     "ArtifactStore",
     "DuplicateEventError",
@@ -29,6 +34,7 @@ __all__ = [
     "PersistenceError",
     "ProjectionCheckpoint",
     "SQLiteEventStore",
+    "SagaIntegrityError",
     "SnapshotConflictError",
     "SnapshotRecord",
     "StoredEvent",

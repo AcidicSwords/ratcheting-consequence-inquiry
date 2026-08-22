@@ -409,6 +409,64 @@ The focused G2A command is frozen as:
 uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
 ```
 
-This section records governance and command parity only. A passing G2A test
-return is intentionally not claimed until the implementation and complete gate
-have run; exact returns will be appended here.
+## G2A local implementation verification — 2026-08-22
+
+The complete frozen G1 gate and focused G2A command were rerun from branch
+`goal/g2a-retrieval-recovery` after the G2A implementation. Exact local returns:
+
+```text
+uv lock --check
+PASS (exit 0): Resolved 40 packages.
+
+uv sync --dev
+PASS (exit 0): base/dev environment synchronized; optional OpenAI/Z3 packages absent.
+
+uv run python -c "import rci"
+PASS (exit 0).
+
+uv run pytest -q -m "not optional"
+PASS (exit 0): 161 passed, 1 skipped, 4 deselected.
+
+uv sync --all-extras --dev
+PASS (exit 0): 40 locked packages resolved; OpenAI 2.54.0 and z3-solver 4.16.0.0 installed.
+
+uv run ruff format --check .
+PASS (exit 0): 124 files already formatted.
+
+uv run ruff check .
+PASS (exit 0): All checks passed.
+
+uv run mypy src/rci tests
+PASS (exit 0): 98 source files checked with no issues.
+
+uv run pytest -q
+PASS (exit 0): 165 passed, 1 skipped.
+
+uv run pytest -q tests/acceptance
+PASS (exit 0): 15 passed.
+
+uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
+PASS (exit 0): 3 passed.
+
+uv run rci --help
+PASS (exit 0): lifecycle, contracts, eval, db, backlog, memory, and recovery groups present.
+
+uv build
+PASS (exit 0): source archive and universal wheel built for version 0.3.1.
+```
+
+The focused evidence covers deterministic retrieval and CLI parity, exact route
+separation, a baseline/retained circuit pair with one effect each and a strict
+three-probe versus two-probe Pareto improvement, independently checked soft
+comparison, resumable request/child/link prefixes, same-batch saga rejection,
+wrong-context child rejection, unfinished-child rejection, and mutation-bound
+measurement/comparison checks. Unit and replay suites additionally cover
+permutation stability, exact scope/binding/horizon isolation, bounds, stale refs,
+ambiguous reconstruction, generated-detail containment, eventual-success-only,
+incomparable/evaluator-mismatched frontiers, and the archived 11-event G1 vertical
+slice with byte-identical export and unchanged G1 projection digest.
+
+The local Docker client was version 29.7.2, but the Docker Desktop Linux daemon
+was stopped, so no local image result is claimed. Docker is supplementary and
+nonblocking; the hosted `docker` job remains the required container evidence.
+The first hosted G2A PR workflow is pending and will be recorded after it passes.
