@@ -14,7 +14,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from rci.backlog.models import G1_APPLICABLE_EFFECT_KINDS, BacklogEffect
 from rci.claims.models import (
@@ -174,6 +174,12 @@ from rci.project import (
 )
 from rci.questions import bind_answer, get_contract, render_question
 from rci.questions.catalog import CATALOG_V0_3, CATALOG_V0_4, CORE_V1
+from rci.questions.generated import (
+    CompiledQuestionContract,
+    GeneratedQuestionCompilationError,
+    compile_admitted_question,
+    generated_question_registry,
+)
 from rci.questions.models import QuestionContract
 from rci.warrant import CheckReference
 
@@ -205,6 +211,24 @@ class _QuestionEnvelope(_FrozenModel):
     catalog_manifest_digest: str
     contract_artifact: ArtifactRef
     rendered_question: str
+    generated_compilation_id: str | None = None
+    generated_candidate_id: str | None = None
+    generated_decision_id: str | None = None
+    generated_profile_id: str | None = None
+    generated_comparison_policy_id: str | None = None
+
+    @model_validator(mode="after")
+    def validate_generated_pins(self) -> _QuestionEnvelope:
+        pins = (
+            self.generated_compilation_id,
+            self.generated_candidate_id,
+            self.generated_decision_id,
+            self.generated_profile_id,
+            self.generated_comparison_policy_id,
+        )
+        if any(value is not None for value in pins) and any(value is None for value in pins):
+            raise ValueError("generated question envelope pins must be present together")
+        return self
 
 
 _CONTRACT_BY_OBLIGATION_KIND: dict[ObligationKind, str] = {
@@ -216,6 +240,21 @@ _CONTRACT_BY_OBLIGATION_KIND: dict[ObligationKind, str] = {
     ObligationKind.SUFFICIENCY_COUNTEREXAMPLE: "sufficiency-counterexample",
     ObligationKind.LOCALIZE_CONFLICT: "conflict-localization",
     ObligationKind.CHARACTERIZE_RESIDUAL: "residual-characterization",
+}
+
+_GENERATED_CANDIDATE_ARGUMENT = "__rci_generated_question_candidate_id"
+_GENERATED_DECISION_ARGUMENT = "__rci_generated_question_decision_id"
+_GENERATED_COMPILATION_ARGUMENT = "__rci_generated_question_compilation_id"
+
+_PROJECT_DOWNSTREAM_OBLIGATION_KIND: dict[str, ObligationKind] = {
+    "theory": ObligationKind.CHARACTERIZE,
+    "question": ObligationKind.CHARACTERIZE_RESIDUAL,
+    "probe": ObligationKind.SAME_CLASS_VARIATION,
+    "representation": ObligationKind.MINIMAL_BOUNDARY_CROSSING,
+    "method": ObligationKind.CHARACTERIZE_RESIDUAL,
+    "evidence": ObligationKind.LOCALIZE_CONFLICT,
+    "implementation": ObligationKind.PROPOSE_FACTOR,
+    "authority": ObligationKind.CHARACTERIZE_RESIDUAL,
 }
 
 
@@ -412,7 +451,141 @@ class RCI:
         return self.events.export_stream(inquiry_id)
 
     @staticmethod
-    def _contract_for_obligation(obligation: Obligation) -> QuestionContract | None:
+    def _text_argument(obligation: Obligation, name: str) -> str | None:
+        value = next((item.value for item in obligation.args if item.name == name), None)
+        return value if isinstance(value, str) else None
+
+    def generated_question_registry(self, inquiry_id: str) -> tuple[CompiledQuestionContract, ...]:
+        return generated_question_registry(self.inspect(inquiry_id))
+
+    def open_generated_question(
+        self,
+        inquiry_id: str,
+        *,
+        candidate_id: str,
+        bindings: dict[str, str],
+    ) -> InquiryState:
+        """Open one ordinary obligation from an exact compiled project question."""
+
+        state = self.inspect(inquiry_id)
+        compiled = compile_admitted_question(state, candidate_id)
+        registered = next(
+            (
+                item
+                for item in generated_question_registry(state)
+                if item.candidate_id == candidate_id
+            ),
+            None,
+        )
+        if registered != compiled:
+            raise GeneratedQuestionCompilationError(
+                "generated question is not unique in the active confined registry"
+            )
+        render_question(compiled.contract, bindings)
+        if bindings != {"limitation": compiled.limitation_id}:
+            raise GeneratedQuestionCompilationError(
+                "generated question bindings must name the exact owned limitation"
+            )
+        if state.context is None:  # pragma: no cover - compiler invariant
+            raise RuntimeError("generated question requires a started inquiry")
+        if (
+            compiled.binding_revision != state.context.binding_revision
+            or compiled.scope_fingerprint != state.context.scope_fingerprint
+        ):
+            raise GeneratedQuestionCompilationError(
+                "generated question compilation is stale for the inquiry context"
+            )
+        argument_values = {
+            **bindings,
+            _GENERATED_CANDIDATE_ARGUMENT: compiled.candidate_id,
+            _GENERATED_DECISION_ARGUMENT: compiled.decision_id,
+            _GENERATED_COMPILATION_ARGUMENT: compiled.id,
+        }
+        args = tuple(
+            BoundArgument(name=name, value=value) for name, value in sorted(argument_values.items())
+        )
+        obligation = Obligation(
+            id=_stable_id(
+                "obl",
+                inquiry_id,
+                compiled.id,
+                canonical_json_bytes(bindings).decode(),
+            ),
+            kind=ObligationKind.SEPARATE_CONSEQUENCE_CLASSES,
+            carrier_id=compiled.limitation_id,
+            args=args,
+            scope=self._scope_from_context(state.context),
+            binding_revision=state.context.binding_revision,
+            priority_vector=(200,),
+        )
+        return self.dispatch(
+            OpenObligation(
+                event_id=_stable_id("evt", inquiry_id, obligation.id, "generated-open"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                obligation=obligation,
+            )
+        )
+
+    def _compiled_question_for_obligation(
+        self,
+        state: InquiryState,
+        obligation: Obligation,
+    ) -> CompiledQuestionContract | None:
+        candidate_id = self._text_argument(obligation, _GENERATED_CANDIDATE_ARGUMENT)
+        decision_id = self._text_argument(obligation, _GENERATED_DECISION_ARGUMENT)
+        compilation_id = self._text_argument(obligation, _GENERATED_COMPILATION_ARGUMENT)
+        marker_values = (candidate_id, decision_id, compilation_id)
+        if all(value is None for value in marker_values):
+            return None
+        if any(value is None for value in marker_values):
+            raise GeneratedQuestionCompilationError(
+                "generated question obligation has incomplete admission pins"
+            )
+        assert candidate_id is not None
+        compiled = compile_admitted_question(state, candidate_id)
+        registered = next(
+            (
+                item
+                for item in generated_question_registry(state)
+                if item.candidate_id == candidate_id
+            ),
+            None,
+        )
+        if (
+            registered != compiled
+            or decision_id != compiled.decision_id
+            or compilation_id != compiled.id
+            or obligation.carrier_id != compiled.limitation_id
+            or obligation.binding_revision != compiled.binding_revision
+            or obligation.scope.fingerprint != compiled.scope_fingerprint
+        ):
+            raise GeneratedQuestionCompilationError(
+                "generated question obligation differs from its exact compilation"
+            )
+        return compiled
+
+    def _contract_for_obligation(
+        self,
+        state: InquiryState,
+        obligation: Obligation,
+    ) -> QuestionContract | None:
+        marker_values = tuple(
+            self._text_argument(obligation, name)
+            for name in (
+                _GENERATED_CANDIDATE_ARGUMENT,
+                _GENERATED_DECISION_ARGUMENT,
+                _GENERATED_COMPILATION_ARGUMENT,
+            )
+        )
+        try:
+            compiled = self._compiled_question_for_obligation(state, obligation)
+        except GeneratedQuestionCompilationError:
+            return None
+        if compiled is not None:
+            return compiled.contract
+        if any(value is not None for value in marker_values):
+            return None
         contract_id = _CONTRACT_BY_OBLIGATION_KIND.get(obligation.kind)
         if contract_id is None:
             return None
@@ -422,12 +595,18 @@ class RCI:
         return contract
 
     @staticmethod
-    def _carrier_text(obligation: Obligation) -> str:
-        carrier = next(
-            (argument.value for argument in obligation.args if argument.name == "carrier"),
-            obligation.carrier_id,
-        )
-        return carrier if isinstance(carrier, str) else obligation.carrier_id
+    def _bindings_for_contract(
+        obligation: Obligation,
+        contract: QuestionContract,
+    ) -> dict[str, str]:
+        values = {item.name: item.value for item in obligation.args}
+        bindings: dict[str, str] = {}
+        for role in contract.input_roles:
+            value = values.get(role)
+            if not isinstance(value, str):
+                raise RuntimeError("question obligation lacks a typed text binding")
+            bindings[role] = value
+        return bindings
 
     def _question_envelope_for_request(self, request: EffectRequest) -> _QuestionEnvelope:
         data = self.artifacts.get_bytes(request.input_artifact)
@@ -473,7 +652,7 @@ class RCI:
     def _scheduler_entries(self, state: InquiryState) -> tuple[ObligationEntry, ...]:
         entries: list[ObligationEntry] = []
         for creation_sequence, obligation in enumerate(state.obligations, start=1):
-            contract = self._contract_for_obligation(obligation)
+            contract = self._contract_for_obligation(state, obligation)
             if contract is None:
                 continue
             current_status = state.current_obligation_status(obligation.id)
@@ -546,22 +725,24 @@ class RCI:
         self,
         inquiry_id: str,
         *,
+        state: InquiryState,
         step_plan: StepPlan,
         obligation: Obligation,
         contract: QuestionContract,
     ) -> tuple[EffectRequest, EffectAttemptPlan, str]:
         rendered = render_question(
             contract,
-            {"carrier": self._carrier_text(obligation)},
+            self._bindings_for_contract(obligation, contract),
         )
         contract_ref = self.artifacts.put_bytes(
             canonical_json_bytes(contract),
             media_type="application/vnd.rci.question-contract+json",
             encoding="utf-8",
         )
-        inquiry_context = self.inspect(inquiry_id).context
+        inquiry_context = state.context
         if inquiry_context is None:
             raise RuntimeError("manual request requires a started inquiry context")
+        compiled = self._compiled_question_for_obligation(state, obligation)
         envelope = _QuestionEnvelope(
             obligation_id=obligation.id,
             obligation_fingerprint=obligation.fingerprint,
@@ -570,6 +751,13 @@ class RCI:
             catalog_manifest_digest=inquiry_context.catalog_manifest_digest,
             contract_artifact=contract_ref,
             rendered_question=rendered,
+            generated_compilation_id=compiled.id if compiled is not None else None,
+            generated_candidate_id=compiled.candidate_id if compiled is not None else None,
+            generated_decision_id=compiled.decision_id if compiled is not None else None,
+            generated_profile_id=compiled.profile_id if compiled is not None else None,
+            generated_comparison_policy_id=(
+                compiled.comparison_policy_id if compiled is not None else None
+            ),
         )
         input_ref = self.artifacts.put_bytes(
             canonical_json_bytes(envelope),
@@ -667,7 +855,7 @@ class RCI:
         if step_plan.status is PlanStatus.SATISFIED:
             unsupported_open = any(
                 state.current_obligation_status(obligation.id) is ObligationStatus.OPEN
-                and self._contract_for_obligation(obligation) is None
+                and self._contract_for_obligation(state, obligation) is None
                 for obligation in state.obligations
             )
             return StepResult(
@@ -686,11 +874,12 @@ class RCI:
         obligation = state.obligation_by_id(step_plan.selected_obligation_id)
         if obligation is None:  # pragma: no cover - aggregate invariant
             raise RuntimeError("step plan selected an unknown obligation")
-        contract = self._contract_for_obligation(obligation)
+        contract = self._contract_for_obligation(state, obligation)
         if contract is None:  # pragma: no cover - scheduler projection invariant
             raise RuntimeError("step plan selected an inactive contract")
         request, plan, rendered = self._manual_request(
             inquiry_id,
+            state=state,
             step_plan=step_plan,
             obligation=obligation,
             contract=contract,
@@ -749,6 +938,76 @@ class RCI:
             inquiry_id=inquiry_id,
             status="unknown",
             sequence=state.sequence,
+        )
+
+    def _generated_downstream_obligation(
+        self,
+        *,
+        state: InquiryState,
+        source_obligation: Obligation,
+        envelope: _QuestionEnvelope,
+        answer: str | bytes | None,
+        source_claim_id: str,
+    ) -> Obligation | None:
+        if envelope.generated_candidate_id is None:
+            return None
+        compiled = compile_admitted_question(state, envelope.generated_candidate_id)
+        if (
+            envelope.generated_compilation_id != compiled.id
+            or envelope.generated_decision_id != compiled.decision_id
+            or envelope.generated_profile_id != compiled.profile_id
+            or envelope.generated_comparison_policy_id != compiled.comparison_policy_id
+        ):
+            raise GeneratedQuestionCompilationError(
+                "generated question return differs from its persisted compilation"
+            )
+        matched = next(
+            (
+                item
+                for item in compiled.possible_returns
+                if isinstance(answer, str) and answer == item.return_class_id
+            ),
+            None,
+        )
+        return_class_id = matched.return_class_id if matched is not None else "unclassified"
+        downstream_state_id = (
+            matched.downstream_state_id
+            if matched is not None
+            else f"unclassified-return:{compiled.candidate_id}"
+        )
+        downstream_kind = (
+            _PROJECT_DOWNSTREAM_OBLIGATION_KIND[matched.downstream_obligation_kind.value]
+            if matched is not None
+            else ObligationKind.CHARACTERIZE_RESIDUAL
+        )
+        limitation_kind = (
+            matched.downstream_obligation_kind.value if matched is not None else "unknown"
+        )
+        argument_values = {
+            "carrier": downstream_state_id,
+            "downstream_limitation_kind": limitation_kind,
+            "generated_return_class_id": return_class_id,
+            "source_claim_id": source_claim_id,
+            "source_question_candidate_id": compiled.candidate_id,
+        }
+        return Obligation(
+            id=_stable_id(
+                "obl",
+                source_obligation.id,
+                compiled.id,
+                return_class_id,
+                downstream_state_id,
+            ),
+            kind=downstream_kind,
+            carrier_id=downstream_state_id,
+            args=tuple(
+                BoundArgument(name=name, value=value)
+                for name, value in sorted(argument_values.items())
+            ),
+            scope=source_obligation.scope,
+            binding_revision=source_obligation.binding_revision,
+            parent_obligation_ids=(source_obligation.id,),
+            priority_vector=(150,),
         )
 
     def submit_answer(self, inquiry_id: str, answer: str | bytes | None) -> InquiryState:
@@ -832,7 +1091,9 @@ class RCI:
             self.artifacts.get_bytes(envelope.contract_artifact),
             strict=True,
         )
-        contract = recorded_contract
+        contract = self._contract_for_obligation(state, obligation)
+        if contract is None or contract != recorded_contract:
+            raise RuntimeError("persisted question contract is not active for its obligation")
         claim = bind_answer(
             contract,
             answer=inert_answer,
@@ -856,54 +1117,68 @@ class RCI:
                 operation_id="l0_claim",
             ),
         )
-        return self._apply_batch(
-            inquiry_id,
-            (
-                RecordAttemptOutcome(
-                    event_id=_stable_id("evt", external_return.id, "captured"),
-                    inquiry_id=inquiry_id,
-                    occurred_at=now,
-                    request_id=pending.request.id,
-                    outcome=ReturnedOutcome(
-                        attempt_id=attempt.id,
-                        route_id=attempt.route.id,
-                        external_return=external_return,
-                    ),
-                ),
-                RecordDecodeOutcome(
-                    event_id=_stable_id("evt", decoded.id, "decoded"),
-                    inquiry_id=inquiry_id,
-                    occurred_at=now,
-                    request_id=pending.request.id,
-                    outcome=decoded,
-                ),
-                AcceptEffectResult(
-                    event_id=_stable_id("evt", decoded.id, "accepted"),
-                    inquiry_id=inquiry_id,
-                    occurred_at=now,
-                    request_id=pending.request.id,
-                    decoded_outcome_id=decoded.id,
-                ),
-                AdmitClaim(
-                    event_id=_stable_id("evt", claim.id, "admitted"),
-                    inquiry_id=inquiry_id,
-                    occurred_at=now,
-                    claim=claim,
-                ),
-                RecordObligationDisposition(
-                    event_id=_stable_id("evt", obligation.id, decoded.id, "satisfied"),
-                    inquiry_id=inquiry_id,
-                    occurred_at=now,
-                    disposition=ObligationDisposition(
-                        id=_stable_id("disp", obligation.id, decoded.id, "satisfied"),
-                        obligation_id=obligation.id,
-                        status=ObligationStatus.SATISFIED,
-                        reason="accepted answer bound as a provisional L0 claim",
-                        evidence_refs=(decoded.id,),
-                    ),
+        downstream = self._generated_downstream_obligation(
+            state=state,
+            source_obligation=obligation,
+            envelope=envelope,
+            answer=answer,
+            source_claim_id=claim.id,
+        )
+        commands: list[DomainCommand] = [
+            RecordAttemptOutcome(
+                event_id=_stable_id("evt", external_return.id, "captured"),
+                inquiry_id=inquiry_id,
+                occurred_at=now,
+                request_id=pending.request.id,
+                outcome=ReturnedOutcome(
+                    attempt_id=attempt.id,
+                    route_id=attempt.route.id,
+                    external_return=external_return,
                 ),
             ),
-        )
+            RecordDecodeOutcome(
+                event_id=_stable_id("evt", decoded.id, "decoded"),
+                inquiry_id=inquiry_id,
+                occurred_at=now,
+                request_id=pending.request.id,
+                outcome=decoded,
+            ),
+            AcceptEffectResult(
+                event_id=_stable_id("evt", decoded.id, "accepted"),
+                inquiry_id=inquiry_id,
+                occurred_at=now,
+                request_id=pending.request.id,
+                decoded_outcome_id=decoded.id,
+            ),
+            AdmitClaim(
+                event_id=_stable_id("evt", claim.id, "admitted"),
+                inquiry_id=inquiry_id,
+                occurred_at=now,
+                claim=claim,
+            ),
+            RecordObligationDisposition(
+                event_id=_stable_id("evt", obligation.id, decoded.id, "satisfied"),
+                inquiry_id=inquiry_id,
+                occurred_at=now,
+                disposition=ObligationDisposition(
+                    id=_stable_id("disp", obligation.id, decoded.id, "satisfied"),
+                    obligation_id=obligation.id,
+                    status=ObligationStatus.SATISFIED,
+                    reason="accepted answer bound as a provisional L0 claim",
+                    evidence_refs=(decoded.id,),
+                ),
+            ),
+        ]
+        if downstream is not None:
+            commands.append(
+                OpenObligation(
+                    event_id=_stable_id("evt", downstream.id, "generated-downstream"),
+                    inquiry_id=inquiry_id,
+                    occurred_at=now,
+                    obligation=downstream,
+                )
+            )
+        return self._apply_batch(inquiry_id, tuple(commands))
 
     def consolidation_checkpoint(
         self,

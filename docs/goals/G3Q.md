@@ -1,6 +1,7 @@
 # Active Goal G3Q: Regenerative question-contract synthesis
 
-- Status: active after verified G3R merge `6b0f2f793130d91bddaf1a2cffa9be87fd8b4e6d`
+- Status: active candidate implementation; hosted verification and promotion pending
+- Exact anchor: protected `main` at `b20935c712e3bd0a3d16aa5445c40c5297eb77c7`
 - Authority: RCI v0.5, PLAN, ADR-0012, G3R frontier `frontier-g3r-roadmap-v1`
 - Token budget: none
 

@@ -212,6 +212,10 @@ successors distinct; a failure in one category does not authorize mutation in an
 - Generated question contracts are inert until admitted by the versioned
   `recursive-project-v1` policy. They require typed referents, at least two distinct
   consequential returns, comparison semantics, consumers, and falsifying attacks.
+- G3Q compiles an admitted candidate only into a derived, deterministic, data-only
+  registry projection pinned to its clean anchor, exact decision, compiler/policy,
+  binding, scope, horizon, and comparison semantics. It opens an ordinary obligation;
+  an unmatched return opens a typed residual and never grants warrant.
 - Method candidates name the native relation, primary sources, assumptions,
   applicability checks, license, and missing adapter. Admission never installs code or
   grants authority.
@@ -337,8 +341,8 @@ The sealed G3R gate adds this focused command, identically present in `PLAN.md`,
 uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
 ```
 
-The active G3Q Goal will add this focused command identically to `PLAN.md`,
-`docs/goals/G3Q.md`, CI, and `docs/verification.md` with its executable slice:
+The active G3Q Goal adds this focused command identically to `PLAN.md`,
+`docs/goals/G3Q.md`, CI, and `docs/verification.md`:
 
 ```text
 uv run pytest -q tests/acceptance/test_regenerative_questions.py

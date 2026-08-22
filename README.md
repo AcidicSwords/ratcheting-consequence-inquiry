@@ -13,7 +13,7 @@ finite transition fixtures, licensed retained-capability joins, path residue, re
 and a warranted representation ratchet. Verified G3R applies the same discipline to project
 development: consequential limitations, inert question/method candidates, partial-order
 successor frontiers, sealed implementation Goals, isolated exact-head evidence, fresh
-review, and externally observed protected promotion. Active G3Q now implements the
+review, and externally observed protected promotion. Active G3Q is implementing the
 selected smallest discriminator: whether an independently admitted, data-only generated
 question can become safely schedulable while every unadmitted candidate remains inert.
 Other nondominated roadmap successors remain explicit frontier members.
