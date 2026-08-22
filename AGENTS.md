@@ -5,7 +5,7 @@
 Work as a repository-grounded coding agent.
 
 1. Direct user instructions control requested intent within runtime authority.
-2. `RCI_Project_Spec.tex` v0.4 is the semantic authority.
+2. `RCI_Project_Spec.tex` v0.5 is the semantic authority.
 3. `PLAN.md` fixes approved architecture, defaults, and sequencing.
 4. The active Goal fixes the current completion boundary.
 5. `docs/requirements-matrix.md` and `docs/adr/` record reconciliation and deferral.
@@ -198,13 +198,50 @@ costs no worse and at least one better; incomparable vectors establish no advant
 Even an independently checked comparison is provisional/soft and cannot promote or
 license itself.
 
+## Recursive project inquiry
+
+G3R treats repository development as a typed RCI binding. Keep theory, question/probe
+repertoire, method repertoire, representation, Goal decomposition, and implementation
+successors distinct; a failure in one category does not authorize mutation in another.
+
+- Begin each cycle from an exact clean `ProjectAnchor`. Repository history remains Git;
+  the RCI ledger records project-inquiry evidence and never becomes a second source
+  history.
+- Record a limitation only when two states across the claimed boundary have different
+  protected consequences. General dissatisfaction and novelty are not limitations.
+- Generated question contracts are inert until admitted by the versioned
+  `recursive-project-v1` policy. They require typed referents, at least two distinct
+  consequential returns, comparison semantics, consumers, and falsifying attacks.
+- Method candidates name the native relation, primary sources, assumptions,
+  applicability checks, license, and missing adapter. Admission never installs code or
+  grants authority.
+- Compare successors by exact preservation, typed gain, and comparable exact costs.
+  Keep an explicit frontier when candidates are incomparable. Select the smallest
+  reversible candidate with a lawful discriminator or return `Unknown`.
+- Seal `ImplementationGoalContract` before implementation. It pins current/desired
+  behavior, separator, expected returns, protected predecessors, gate digests, mutation
+  bounds, rollback, and reopening; returns cannot rewrite it to make a candidate pass.
+- Candidate development happens externally in an isolated branch/worktree at the exact
+  anchor. RCI records evidence but has no source-writing, arbitrary-command, Git,
+  credential, policy, merge, release, deployment, or authority-expansion port.
+- Replacement requires passing exact-head evidence, fresh review by a context distinct
+  from the developer, predecessor preservation, typed gain, and protected CI. A merge
+  is an externally observed promotion, never a reducer side effect.
+- Evolve CI by dual gate: add and pass the successor beside the incumbent before any
+  later reviewed cleanup removes the incumbent.
+- Append cycle checkpoints and immutable cycle reports. Stop on no consequential
+  residue, no discriminator, repeated blocker, stale/invalid/indeterminate evidence, or
+  required authority expansion; return `Unknown` instead of relaxing the Goal.
+
 ## Phase discipline
 
-G1, G2A, G2B, and G3A-H are sealed verified baselines. G3A-H added only explicit carrier
+G1, G2A, G2B, and G3A-H are sealed verified baselines. G3R is the active bounded Goal.
+It adds the recursive project-inquiry and candidate-development protocol described in
+ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
 continuation checks, exact compression/recovery licensing, path residue, representation
 succession, and generic reopening described in `PLAN.md` and ADR-0011. G3A-L and all
-later milestones remain deferred until a new Goal is explicitly opened.
+other successors remain deferred until the G3R frontier selects and seals one next Goal.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
@@ -291,6 +328,13 @@ The sealed G3A-H gate adds this focused command, identically present in `PLAN.md
 uv run pytest -q tests/acceptance/test_g3a_history_state.py
 ```
 
+The active G3R gate adds this focused command, identically present in `PLAN.md`,
+`docs/goals/G3R.md`, CI, and `docs/verification.md`:
+
+```text
+uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
+```
+
 Dependency sync is bootstrap and may fetch locked packages. Test execution is
 credential-free, network-denied, deterministic, and effect-free under replay. Record
 exact commands/results in `docs/verification.md`. If a check cannot run, record the
@@ -320,4 +364,6 @@ non-promotion, the paired circuit recovery fixture, and G1 replay compatibility.
 - No source-writing, Git mutation, merge/push, policy editing, packaging, deployment,
   release, or authority-expansion capability exists.
 - RCI may propose development obligations and ADR changes but cannot self-promote,
-  self-modify, or merge. Human review and CI remain the authorization boundary.
+  self-modify, or merge. Fresh independent review and protected CI remain the
+  non-self evidence boundary; the development agent may act only inside a sealed Goal
+  and bounded candidate environment whose promotion conditions were fixed in advance.

@@ -81,6 +81,28 @@ from rci.probes.models import (
     Reconstruction,
     SemanticDelta,
 )
+from rci.project.models import (
+    AdmissionOutcome,
+    CandidateEnvironmentManifest,
+    CapabilityFrontier,
+    CapabilityLimitation,
+    CapabilitySuccessorCandidate,
+    CyclePhase,
+    DevelopmentEvidence,
+    EvidenceOutcome,
+    ImplementationGoalContract,
+    IndependentReview,
+    MethodAdmissionDecision,
+    MethodBindingCandidate,
+    ProjectAnchor,
+    ProjectSuccessorDecision,
+    PromotionDecision,
+    QuestionContractCandidate,
+    QuestionRepertoireDecision,
+    RecursiveCycleCheckpoint,
+    RecursiveStopDisposition,
+    ReviewOutcome,
+)
 from rci.warrant.checks import checker_verdict_index, evidence_index, resolve_check_reference
 from rci.warrant.models import (
     ActiveLemmaView,
@@ -185,6 +207,22 @@ class InquiryState(FrozenModel):
     retention_capability_links: tuple[RetentionCapabilityLink, ...] = ()
     representation_successor_decisions: tuple[RepresentationSuccessorDecision, ...] = ()
     representation_reopenings: tuple[RepresentationReopening, ...] = ()
+    project_anchors: tuple[ProjectAnchor, ...] = ()
+    capability_limitations: tuple[CapabilityLimitation, ...] = ()
+    question_contract_candidates: tuple[QuestionContractCandidate, ...] = ()
+    question_repertoire_decisions: tuple[QuestionRepertoireDecision, ...] = ()
+    method_binding_candidates: tuple[MethodBindingCandidate, ...] = ()
+    method_admission_decisions: tuple[MethodAdmissionDecision, ...] = ()
+    capability_successor_candidates: tuple[CapabilitySuccessorCandidate, ...] = ()
+    capability_frontiers: tuple[CapabilityFrontier, ...] = ()
+    implementation_goals: tuple[ImplementationGoalContract, ...] = ()
+    candidate_environments: tuple[CandidateEnvironmentManifest, ...] = ()
+    development_evidence: tuple[DevelopmentEvidence, ...] = ()
+    independent_reviews: tuple[IndependentReview, ...] = ()
+    project_successor_decisions: tuple[ProjectSuccessorDecision, ...] = ()
+    promotion_decisions: tuple[PromotionDecision, ...] = ()
+    recursive_cycle_checkpoints: tuple[RecursiveCycleCheckpoint, ...] = ()
+    recursive_stop_dispositions: tuple[RecursiveStopDisposition, ...] = ()
 
     @property
     def retained_state_views(self) -> tuple[RetainedStateView, ...]:
@@ -441,6 +479,22 @@ class InquiryState(FrozenModel):
                     self.retention_capability_links,
                     self.representation_successor_decisions,
                     self.representation_reopenings,
+                    self.project_anchors,
+                    self.capability_limitations,
+                    self.question_contract_candidates,
+                    self.question_repertoire_decisions,
+                    self.method_binding_candidates,
+                    self.method_admission_decisions,
+                    self.capability_successor_candidates,
+                    self.capability_frontiers,
+                    self.implementation_goals,
+                    self.candidate_environments,
+                    self.development_evidence,
+                    self.independent_reviews,
+                    self.project_successor_decisions,
+                    self.promotion_decisions,
+                    self.recursive_cycle_checkpoints,
+                    self.recursive_stop_dispositions,
                 )
             ):
                 raise ValueError("an unstarted inquiry cannot contain domain records")
@@ -1191,6 +1245,249 @@ class InquiryState(FrozenModel):
             for item in self.retention_capability_links
         ):
             raise ValueError("retention capability links require owned records")
+
+        project_collections = (
+            self.project_anchors,
+            self.capability_limitations,
+            self.question_contract_candidates,
+            self.question_repertoire_decisions,
+            self.method_binding_candidates,
+            self.method_admission_decisions,
+            self.capability_successor_candidates,
+            self.capability_frontiers,
+            self.implementation_goals,
+            self.candidate_environments,
+            self.development_evidence,
+            self.independent_reviews,
+            self.project_successor_decisions,
+            self.promotion_decisions,
+            self.recursive_cycle_checkpoints,
+            self.recursive_stop_dispositions,
+        )
+        for project_collection in project_collections:
+            project_ids = tuple(item.id for item in project_collection)
+            if len(project_ids) != len(set(project_ids)):
+                raise ValueError("G3R record identities must be unique within their owner")
+        anchors = {item.id: item for item in self.project_anchors}
+        limitations = {item.id: item for item in self.capability_limitations}
+        question_candidates = {item.id: item for item in self.question_contract_candidates}
+        method_candidates = {item.id: item for item in self.method_binding_candidates}
+        candidates = {item.id: item for item in self.capability_successor_candidates}
+        frontiers = {item.id: item for item in self.capability_frontiers}
+        goals = {item.id: item for item in self.implementation_goals}
+        environments = {item.id: item for item in self.candidate_environments}
+        project_evidence = {item.id: item for item in self.development_evidence}
+        reviews = {item.id: item for item in self.independent_reviews}
+        successors = {item.id: item for item in self.project_successor_decisions}
+        anchor_ids = set(anchors)
+        limitation_ids = set(limitations)
+        candidate_ids = set(candidates)
+        frontier_ids = set(frontiers)
+        goal_ids = set(goals)
+        environment_ids = set(environments)
+        evidence_ids = set(project_evidence)
+        review_ids = set(reviews)
+        successor_ids = set(successors)
+        if any(item.anchor_id not in anchor_ids for item in self.capability_limitations):
+            raise ValueError("project limitations require an owned project anchor")
+        if any(
+            item.limitation_id not in limitation_ids for item in self.question_contract_candidates
+        ):
+            raise ValueError("question candidates require an owned project limitation")
+        if any(
+            item.candidate_id not in question_candidates
+            or not set(item.evidence_ids) <= evidence_ids
+            for item in self.question_repertoire_decisions
+        ):
+            raise ValueError("question decisions require owned candidates and evidence")
+        for question_repertoire_decision in self.question_repertoire_decisions:
+            question_candidate = question_candidates.get(question_repertoire_decision.candidate_id)
+            decision_evidence = tuple(
+                project_evidence[evidence_id]
+                for evidence_id in question_repertoire_decision.evidence_ids
+                if evidence_id in project_evidence
+            )
+            if question_candidate is not None and any(
+                (evidence_goal := goals.get(item.goal_id)) is None
+                or (evidence_candidate := candidates.get(evidence_goal.candidate_id)) is None
+                or evidence_candidate.limitation_id != question_candidate.limitation_id
+                for item in decision_evidence
+            ):
+                raise ValueError("question decision evidence must address its exact limitation")
+            if question_repertoire_decision.outcome is AdmissionOutcome.ADMIT and (
+                question_candidate is None
+                or question_candidate.contract.family != "recursive-project"
+                or any(item.outcome is not EvidenceOutcome.PASS for item in decision_evidence)
+                or not any(
+                    review.outcome is ReviewOutcome.VALID
+                    and tuple(review.evidence_ids)
+                    == tuple(question_repertoire_decision.evidence_ids)
+                    for review in self.independent_reviews
+                )
+            ):
+                raise ValueError(
+                    "question admission requires exact independently reviewed evidence"
+                )
+        if any(item.limitation_id not in limitation_ids for item in self.method_binding_candidates):
+            raise ValueError("method candidates require an owned project limitation")
+        if any(
+            item.candidate_id not in method_candidates
+            or not set(item.evidence_ids) <= evidence_ids
+            or (
+                item.implementation_goal_id is not None
+                and item.implementation_goal_id not in goal_ids
+            )
+            for item in self.method_admission_decisions
+        ):
+            raise ValueError("method decisions require owned candidates, evidence, and Goals")
+        for method_admission_decision in self.method_admission_decisions:
+            method_candidate = method_candidates.get(method_admission_decision.candidate_id)
+            decision_evidence = tuple(
+                project_evidence[evidence_id]
+                for evidence_id in method_admission_decision.evidence_ids
+                if evidence_id in project_evidence
+            )
+            if method_candidate is not None and any(
+                (evidence_goal := goals.get(item.goal_id)) is None
+                or (evidence_candidate := candidates.get(evidence_goal.candidate_id)) is None
+                or evidence_candidate.limitation_id != method_candidate.limitation_id
+                for item in decision_evidence
+            ):
+                raise ValueError("method decision evidence must address its exact limitation")
+            if method_admission_decision.outcome is AdmissionOutcome.ADMIT and (
+                method_candidate is None
+                or any(item.outcome is not EvidenceOutcome.PASS for item in decision_evidence)
+                or not any(
+                    review.outcome is ReviewOutcome.VALID
+                    and tuple(review.evidence_ids) == tuple(method_admission_decision.evidence_ids)
+                    for review in self.independent_reviews
+                )
+            ):
+                raise ValueError("method admission requires exact independently reviewed evidence")
+            if (
+                method_candidate is not None
+                and method_admission_decision.outcome is AdmissionOutcome.ADMIT
+                and method_candidate.adapter_required
+                and (
+                    method_admission_decision.implementation_goal_id is None
+                    or (adapter_goal := goals.get(method_admission_decision.implementation_goal_id))
+                    is None
+                    or (adapter_candidate := candidates.get(adapter_goal.candidate_id)) is None
+                    or adapter_candidate.limitation_id != method_candidate.limitation_id
+                )
+            ):
+                raise ValueError("method adapter admission requires an exact sealed Goal")
+        if any(
+            item.anchor_id not in anchor_ids or item.limitation_id not in limitation_ids
+            for item in self.capability_successor_candidates
+        ):
+            raise ValueError("project successor candidates require owned anchor and limitation")
+        if any(
+            item.anchor_id not in anchor_ids
+            or item.limitation_id not in limitation_ids
+            or not set(item.candidate_ids) <= candidate_ids
+            or any(
+                candidates[candidate_id].anchor_id != item.anchor_id
+                or candidates[candidate_id].limitation_id != item.limitation_id
+                for candidate_id in item.candidate_ids
+                if candidate_id in candidates
+            )
+            for item in self.capability_frontiers
+        ):
+            raise ValueError("project frontiers require owned anchors, limitations, and candidates")
+        if any(
+            item.anchor_id not in anchor_ids
+            or item.frontier_id not in frontier_ids
+            or item.candidate_id not in candidate_ids
+            or frontiers[item.frontier_id].anchor_id != item.anchor_id
+            or frontiers[item.frontier_id].selected_discriminator_candidate_id != item.candidate_id
+            for item in self.implementation_goals
+        ):
+            raise ValueError("implementation goals require owned frontier inputs")
+        if any(
+            item.goal_id not in goal_ids
+            or anchors[goals[item.goal_id].anchor_id].commit_sha != item.base_commit_sha
+            for item in self.candidate_environments
+        ):
+            raise ValueError("candidate environments require an owned sealed goal")
+        if any(
+            item.goal_id not in goal_ids
+            or item.candidate_environment_id not in environment_ids
+            or environments[item.candidate_environment_id].goal_id != item.goal_id
+            or environments[item.candidate_environment_id].base_commit_sha != item.base_commit_sha
+            for item in self.development_evidence
+        ):
+            raise ValueError("development evidence requires owned goal and candidate environment")
+        if any(
+            item.goal_id not in goal_ids
+            or item.candidate_environment_id not in environment_ids
+            or not set(item.evidence_ids) <= evidence_ids
+            or environments[item.candidate_environment_id].goal_id != item.goal_id
+            or environments[item.candidate_environment_id].developer_id == item.reviewer_id
+            or any(
+                project_evidence[evidence_id].goal_id != item.goal_id
+                or project_evidence[evidence_id].candidate_environment_id
+                != item.candidate_environment_id
+                for evidence_id in item.evidence_ids
+                if evidence_id in project_evidence
+            )
+            or any(
+                project_evidence[evidence_id].candidate_commit_sha != item.reviewed_commit_sha
+                for evidence_id in item.evidence_ids
+                if evidence_id in project_evidence
+            )
+            or (
+                item.outcome is ReviewOutcome.VALID
+                and any(
+                    project_evidence[evidence_id].outcome is not EvidenceOutcome.PASS
+                    for evidence_id in item.evidence_ids
+                    if evidence_id in project_evidence
+                )
+            )
+            for item in self.independent_reviews
+        ):
+            raise ValueError("independent reviews require exact owned candidate evidence")
+        if any(
+            item.goal_id not in goal_ids
+            or item.candidate_id not in candidate_ids
+            or item.candidate_environment_id not in environment_ids
+            or item.review_id not in review_ids
+            or not set(item.evidence_ids) <= evidence_ids
+            or reviews[item.review_id].goal_id != item.goal_id
+            or reviews[item.review_id].candidate_environment_id != item.candidate_environment_id
+            or tuple(reviews[item.review_id].evidence_ids) != tuple(item.evidence_ids)
+            for item in self.project_successor_decisions
+        ):
+            raise ValueError("project successor decisions require their exact owned proof chain")
+        if any(
+            item.successor_decision_id not in successor_ids for item in self.promotion_decisions
+        ):
+            raise ValueError("promotion decisions require an owned project successor decision")
+        checkpoint_cycles = {item.cycle_id for item in self.recursive_cycle_checkpoints}
+        all_project_ids = {item.id for collection in project_collections for item in collection}
+        if any(
+            item.id in item.record_ids or not set(item.record_ids) <= all_project_ids
+            for item in self.recursive_cycle_checkpoints
+        ):
+            raise ValueError("cycle checkpoints require owned project records")
+        cycle_tails: dict[str, RecursiveCycleCheckpoint] = {}
+        cycle_phases = list(CyclePhase)
+        for checkpoint in self.recursive_cycle_checkpoints:
+            predecessor = cycle_tails.get(checkpoint.cycle_id)
+            if predecessor is None:
+                if checkpoint.predecessor_id is not None:
+                    raise ValueError("first cycle checkpoint cannot name a predecessor")
+            elif checkpoint.predecessor_id != predecessor.id or cycle_phases.index(
+                checkpoint.phase
+            ) <= cycle_phases.index(predecessor.phase):
+                raise ValueError("cycle checkpoint history must be exact and monotone")
+            cycle_tails[checkpoint.cycle_id] = checkpoint
+        if any(
+            item.cycle_id not in checkpoint_cycles
+            or not set(item.consequential_residual_ids) <= limitation_ids
+            for item in self.recursive_stop_dispositions
+        ):
+            raise ValueError("recursive stops require an owned cycle and limitation residue")
         return self
 
     def request_by_id(self, request_id: str) -> EffectRequestState | None:

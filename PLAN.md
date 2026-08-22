@@ -1,9 +1,9 @@
-# RCI v0.4 implementation plan
+# RCI v0.5 implementation plan
 
 ## Status and authority
 
 This document is the approved engineering architecture and delivery sequence for
-`RCI_Project_Spec.tex` v0.4. The specification defines RCI semantics; this plan fixes
+`RCI_Project_Spec.tex` v0.5. The specification defines RCI semantics; this plan fixes
 implementation choices, trust boundaries, dependencies, and milestone gates. The active
 Goal fixes the current completion boundary. Ambiguities are recorded in
 `docs/requirements-matrix.md` and, when a decision is required, `docs/adr/`; code does
@@ -373,6 +373,35 @@ licensing, and control remain absent.
 G2A and G2B are sealed internal delivery gates under RCI-058. Their version-1 event
 schemas and meanings remain immutable under v0.4.
 
+### G3R (active) — recursive project inquiry and candidate development
+
+- Reuse the ordinary ledger/CAS to own clean project anchors, consequential capability
+  limitations, inert question/method/successor candidates, deterministic partial-order
+  frontiers, sealed implementation Goals, candidate environments, exact evidence,
+  independent reviews, successor/promotion decisions, checkpoints, and typed stops.
+- Keep theory, question/probe, representation, method, Goal, and implementation
+  succession separate. A generated question needs two consequentially distinct return
+  classes and is confined to `recursive-project-v1` after admission. A method binding
+  preserves primary sources, assumptions, applicability, license, and adapter status.
+- Select nondominated candidates by exact preservation/gain/cost relations. Unknown or
+  differently typed costs remain incomparable. Select the smallest reversible lawful
+  discriminator first; otherwise return `Unknown`.
+- Seal `Current`, `Desired`, `Separator`, `Preserve`, `Acceptance`, `Scope`, and
+  `Assumptions` plus expected returns, mutation roots, frozen gates, rollback, and
+  reopening before changing implementation.
+- Develop in an isolated `codex/` branch/worktree from the exact clean anchor. Require
+  fresh-context exact-head review and CI. Runtime records promotion facts but gains no
+  source-writing, arbitrary-command, Git, credential, merge, deployment, or release port.
+- Evolve required checks only by dual-gate overlap. Recur one bounded Goal at a time;
+  stop on no residue/discriminator, three repeated blockers, invalid/indeterminate
+  evidence, or required authority expansion.
+- Dogfood G3R over G3A-L, regenerative question synthesis, native-method binding,
+  autonomous Goal synthesis, candidate-development actuation, and G4. Seal exactly one
+  next Goal without implementing it before G3R closes.
+
+G3R adds only new version-1 event kinds. Folded state advances to v5 and v1-v4 snapshots
+rebuild from unchanged authoritative events. It adds no dependency.
+
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
 - G3A-H (verified): explicit carrier roles; binding-derived realized history; exact consequence
@@ -475,6 +504,13 @@ in AGENTS, the G3A Goal, CI, and the verification record:
 
 ```text
 uv run pytest -q tests/acceptance/test_g3a_history_state.py
+```
+
+Active G3R additionally requires this focused acceptance command, identically present
+in AGENTS, the G3R Goal, CI, and the verification record:
+
+```text
+uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
 ```
 
 Synchronization may fetch locked packages; test execution is credential-free,

@@ -35,6 +35,9 @@ from rci.core.commands import (
     ChangeNogoodStanding,
     ChangeSupportRouteStanding,
     CommitSemanticDelta,
+    DecideMethodAdmission,
+    DecideProjectSuccessor,
+    DecideQuestionRepertoire,
     DecideRepresentationSuccessor,
     DomainCommand,
     EvaluateWarrant,
@@ -48,6 +51,10 @@ from rci.core.commands import (
     RecordAttemptOutcome,
     RecordBacklogEffect,
     RecordCandidate,
+    RecordCandidateEnvironment,
+    RecordCapabilityFrontier,
+    RecordCapabilityLimitation,
+    RecordCapabilitySuccessorCandidate,
     RecordCheckerVerdict,
     RecordCognitivePlan,
     RecordCompressionApplication,
@@ -55,9 +62,12 @@ from rci.core.commands import (
     RecordConsolidationCandidate,
     RecordConsolidationCheckpoint,
     RecordDecodeOutcome,
+    RecordDevelopmentEvidence,
     RecordEvidence,
+    RecordIndependentReview,
     RecordLearnedProbeCandidate,
     RecordMemoryPatchCandidate,
+    RecordMethodBindingCandidate,
     RecordMismatch,
     RecordNoAttemptDisposition,
     RecordNogood,
@@ -65,11 +75,16 @@ from rci.core.commands import (
     RecordProbeAdmissionDecision,
     RecordProbeEvaluation,
     RecordProbeObservation,
+    RecordProjectAnchor,
+    RecordPromotionDecision,
+    RecordQuestionContractCandidate,
     RecordRealizedHistoryDerivation,
     RecordReconsolidationLink,
     RecordReconstruction,
     RecordRecoveryComparison,
     RecordRecoveryObservation,
+    RecordRecursiveCycleCheckpoint,
+    RecordRecursiveStopDisposition,
     RecordRepresentationGap,
     RecordResidual,
     RecordSemanticFieldEvaluation,
@@ -81,6 +96,7 @@ from rci.core.commands import (
     RequestEffect,
     RequestReacquisition,
     RunRetrieval,
+    SealImplementationGoal,
     SealPrediction,
     StartEffectAttempt,
     StartInquiry,
@@ -96,7 +112,11 @@ from rci.core.errors import (
 from rci.core.events import (
     BacklogEffectRecorded,
     BindingCarrierManifestRegistered,
+    CandidateEnvironmentRecorded,
     CandidateRecorded,
+    CapabilityFrontierRecorded,
+    CapabilityLimitationRecorded,
+    CapabilitySuccessorCandidateRecorded,
     CheckerVerdictRecorded,
     ClaimAdmitted,
     CognitivePlanRecorded,
@@ -106,6 +126,7 @@ from rci.core.events import (
     ConsolidationCandidateRecorded,
     ConsolidationCheckpointRecorded,
     CorrectionAppended,
+    DevelopmentEvidenceRecorded,
     DomainEvent,
     EffectAttemptOutcomeRecorded,
     EffectAttemptPlanned,
@@ -117,10 +138,14 @@ from rci.core.events import (
     EvidenceRecorded,
     ExactCompressionLicenseGranted,
     GuardStandingChanged,
+    ImplementationGoalSealed,
+    IndependentReviewRecorded,
     InquiryStarted,
     LearnedProbeCandidateRecorded,
     LemmaPromoted,
     MemoryPatchCandidateRecorded,
+    MethodAdmissionDecided,
+    MethodBindingCandidateRecorded,
     MismatchRecorded,
     NogoodRecorded,
     NogoodStandingChanged,
@@ -131,6 +156,11 @@ from rci.core.events import (
     ProbeAdmitted,
     ProbeEvaluationRecorded,
     ProbeObservationRecorded,
+    ProjectAnchorRecorded,
+    ProjectSuccessorDecided,
+    PromotionDecisionRecorded,
+    QuestionContractCandidateRecorded,
+    QuestionRepertoireDecided,
     ReacquisitionInquiryLinked,
     ReacquisitionRequested,
     RealizedHistoryDerivationRecorded,
@@ -139,6 +169,8 @@ from rci.core.events import (
     RecoveryComparisonRecorded,
     RecoveryLicenseGranted,
     RecoveryObservationRecorded,
+    RecursiveCycleCheckpointRecorded,
+    RecursiveStopDispositionRecorded,
     RepresentationGapRecorded,
     RepresentationReopened,
     RepresentationSuccessorDecided,
@@ -180,6 +212,16 @@ from rci.memory.retrieval import (
 )
 from rci.probes.lifecycle import append_probe_event
 from rci.probes.models import ProbeTrace, RelevanceStatus, SemanticChangeOperation
+from rci.project.models import (
+    AdmissionOutcome,
+    EvidenceOutcome,
+    ProjectDisposition,
+    ReviewOutcome,
+)
+from rci.project.models import (
+    PromotionOutcome as ProjectPromotionOutcome,
+)
+from rci.project.selection import derive_capability_frontier
 from rci.warrant.checks import checker_verdict_index, evidence_index, resolve_check_reference
 from rci.warrant.models import (
     PromotionLink,
@@ -311,6 +353,40 @@ def _require_g2a_check(
     )
     if not checked:
         raise InvalidCommandError(f"G2A record requires an independent valid check: {reason}")
+
+
+def _require_project_admission_evidence(
+    state: InquiryState,
+    *,
+    evidence_ids: tuple[str, ...],
+    limitation_id: str,
+    require_valid_review: bool,
+) -> None:
+    evidence_by_id = {item.id: item for item in state.development_evidence}
+    goal_by_id = {item.id: item for item in state.implementation_goals}
+    candidate_by_id = {item.id: item for item in state.capability_successor_candidates}
+    try:
+        evidence = tuple(evidence_by_id[item] for item in evidence_ids)
+    except KeyError as error:
+        raise InvalidCommandError(
+            "repertoire decision requires owned development evidence"
+        ) from error
+    if any(
+        (goal := goal_by_id.get(item.goal_id)) is None
+        or (candidate := candidate_by_id.get(goal.candidate_id)) is None
+        or candidate.limitation_id != limitation_id
+        for item in evidence
+    ):
+        raise InvalidCommandError("repertoire evidence must address the exact limitation")
+    if require_valid_review:
+        if any(item.outcome is not EvidenceOutcome.PASS for item in evidence):
+            raise InvalidCommandError("repertoire admission requires passing evidence")
+        if not any(
+            review.outcome is ReviewOutcome.VALID
+            and tuple(review.evidence_ids) == tuple(evidence_ids)
+            for review in state.independent_reviews
+        ):
+            raise InvalidCommandError("repertoire admission requires exact independent review")
 
 
 def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ...]:
@@ -2961,6 +3037,652 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             ),
         )
 
+    if isinstance(command, RecordProjectAnchor):
+        anchor = command.anchor
+        anchor_existing = next(
+            (item for item in state.project_anchors if item.id == anchor.id), None
+        )
+        if anchor_existing is not None:
+            if anchor_existing == anchor:
+                return ()
+            raise IdentityConflictError("project-anchor identity was reused")
+        return (
+            ProjectAnchorRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                anchor=anchor,
+            ),
+        )
+
+    if isinstance(command, RecordCapabilityLimitation):
+        limitation = command.limitation
+        limitation_existing = next(
+            (item for item in state.capability_limitations if item.id == limitation.id), None
+        )
+        if limitation_existing is not None:
+            if limitation_existing == limitation:
+                return ()
+            raise IdentityConflictError("capability-limitation identity was reused")
+        if not any(item.id == limitation.anchor_id for item in state.project_anchors):
+            raise InvalidCommandError("capability limitation requires an owned clean anchor")
+        return (
+            CapabilityLimitationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                limitation=limitation,
+            ),
+        )
+
+    if isinstance(command, RecordQuestionContractCandidate):
+        question_candidate = command.candidate
+        question_existing = next(
+            (
+                item
+                for item in state.question_contract_candidates
+                if item.id == question_candidate.id
+            ),
+            None,
+        )
+        if question_existing is not None:
+            if question_existing == question_candidate:
+                return ()
+            raise IdentityConflictError("question-candidate identity was reused")
+        if not any(
+            item.id == question_candidate.limitation_id for item in state.capability_limitations
+        ):
+            raise InvalidCommandError("question candidate requires an owned limitation")
+        return (
+            QuestionContractCandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                candidate=question_candidate,
+            ),
+        )
+
+    if isinstance(command, DecideQuestionRepertoire):
+        question_decision = command.decision
+        question_decision_existing = next(
+            (
+                item
+                for item in state.question_repertoire_decisions
+                if item.id == question_decision.id
+            ),
+            None,
+        )
+        if question_decision_existing is not None:
+            if question_decision_existing == question_decision:
+                return ()
+            raise IdentityConflictError("question-decision identity was reused")
+        question_candidate_record = next(
+            (
+                item
+                for item in state.question_contract_candidates
+                if item.id == question_decision.candidate_id
+            ),
+            None,
+        )
+        if question_candidate_record is None:
+            raise InvalidCommandError("question decision requires its inert candidate")
+        if (
+            question_decision.outcome is AdmissionOutcome.ADMIT
+            and question_candidate_record.contract.family != "recursive-project"
+        ):
+            raise InvalidCommandError("generated admission is confined to recursive-project")
+        _require_project_admission_evidence(
+            state,
+            evidence_ids=question_decision.evidence_ids,
+            limitation_id=question_candidate_record.limitation_id,
+            require_valid_review=question_decision.outcome is AdmissionOutcome.ADMIT,
+        )
+        return (
+            QuestionRepertoireDecided(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                decision=question_decision,
+            ),
+        )
+
+    if isinstance(command, RecordMethodBindingCandidate):
+        method_candidate_record = command.candidate
+        method_existing = next(
+            (
+                item
+                for item in state.method_binding_candidates
+                if item.id == method_candidate_record.id
+            ),
+            None,
+        )
+        if method_existing is not None:
+            if method_existing == method_candidate_record:
+                return ()
+            raise IdentityConflictError("method-candidate identity was reused")
+        if not any(
+            item.id == method_candidate_record.limitation_id
+            for item in state.capability_limitations
+        ):
+            raise InvalidCommandError("method binding requires an owned limitation")
+        return (
+            MethodBindingCandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                candidate=method_candidate_record,
+            ),
+        )
+
+    if isinstance(command, DecideMethodAdmission):
+        method_decision = command.decision
+        method_decision_existing = next(
+            (item for item in state.method_admission_decisions if item.id == method_decision.id),
+            None,
+        )
+        if method_decision_existing is not None:
+            if method_decision_existing == method_decision:
+                return ()
+            raise IdentityConflictError("method-decision identity was reused")
+        method_candidate = next(
+            (
+                item
+                for item in state.method_binding_candidates
+                if item.id == method_decision.candidate_id
+            ),
+            None,
+        )
+        if method_candidate is None:
+            raise InvalidCommandError("method decision requires its inert candidate")
+        _require_project_admission_evidence(
+            state,
+            evidence_ids=method_decision.evidence_ids,
+            limitation_id=method_candidate.limitation_id,
+            require_valid_review=method_decision.outcome is AdmissionOutcome.ADMIT,
+        )
+        implementation_goal = (
+            next(
+                (
+                    item
+                    for item in state.implementation_goals
+                    if item.id == method_decision.implementation_goal_id
+                ),
+                None,
+            )
+            if method_decision.implementation_goal_id is not None
+            else None
+        )
+        if method_decision.outcome is AdmissionOutcome.ADMIT and method_candidate.adapter_required:
+            if implementation_goal is None:
+                raise InvalidCommandError("a missing method adapter must open a sealed goal")
+            goal_candidate = next(
+                (
+                    item
+                    for item in state.capability_successor_candidates
+                    if item.id == implementation_goal.candidate_id
+                ),
+                None,
+            )
+            if (
+                goal_candidate is None
+                or goal_candidate.limitation_id != method_candidate.limitation_id
+            ):
+                raise InvalidCommandError("method adapter goal must address the exact limitation")
+        return (
+            MethodAdmissionDecided(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                decision=method_decision,
+            ),
+        )
+
+    if isinstance(command, RecordCapabilitySuccessorCandidate):
+        project_candidate = command.candidate
+        project_candidate_existing = next(
+            (
+                item
+                for item in state.capability_successor_candidates
+                if item.id == project_candidate.id
+            ),
+            None,
+        )
+        if project_candidate_existing is not None:
+            if project_candidate_existing == project_candidate:
+                return ()
+            raise IdentityConflictError("project-successor candidate identity was reused")
+        if not any(
+            item.id == project_candidate.anchor_id for item in state.project_anchors
+        ) or not any(
+            item.id == project_candidate.limitation_id for item in state.capability_limitations
+        ):
+            raise InvalidCommandError("project successor requires owned anchor and limitation")
+        return (
+            CapabilitySuccessorCandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                candidate=project_candidate,
+            ),
+        )
+
+    if isinstance(command, RecordCapabilityFrontier):
+        project_frontier = command.frontier
+        project_frontier_existing = next(
+            (item for item in state.capability_frontiers if item.id == project_frontier.id),
+            None,
+        )
+        if project_frontier_existing is not None:
+            if project_frontier_existing == project_frontier:
+                return ()
+            raise IdentityConflictError("capability-frontier identity was reused")
+        candidates_by_id = {item.id: item for item in state.capability_successor_candidates}
+        try:
+            expected_frontier = derive_capability_frontier(
+                frontier_id=project_frontier.id,
+                candidates=tuple(candidates_by_id[item] for item in project_frontier.candidate_ids),
+            )
+        except (KeyError, ValueError) as error:
+            raise InvalidCommandError("frontier references invalid successor candidates") from error
+        if expected_frontier != project_frontier:
+            raise InvalidCommandError("capability frontier must equal pure deterministic selection")
+        return (
+            CapabilityFrontierRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                frontier=project_frontier,
+            ),
+        )
+
+    if isinstance(command, SealImplementationGoal):
+        implementation_goal = command.goal
+        implementation_goal_existing = next(
+            (item for item in state.implementation_goals if item.id == implementation_goal.id),
+            None,
+        )
+        if implementation_goal_existing is not None:
+            if implementation_goal_existing == implementation_goal:
+                return ()
+            raise IdentityConflictError("sealed implementation goal is immutable")
+        goal_frontier = next(
+            (
+                item
+                for item in state.capability_frontiers
+                if item.id == implementation_goal.frontier_id
+            ),
+            None,
+        )
+        if (
+            goal_frontier is None
+            or goal_frontier.status != "ready"
+            or goal_frontier.selected_discriminator_candidate_id != implementation_goal.candidate_id
+        ):
+            raise InvalidCommandError(
+                "goal must seal the frontier-selected discriminator candidate"
+            )
+        return (
+            ImplementationGoalSealed(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                goal=implementation_goal,
+            ),
+        )
+
+    if isinstance(command, RecordCandidateEnvironment):
+        candidate_manifest = command.manifest
+        candidate_manifest_existing = next(
+            (item for item in state.candidate_environments if item.id == candidate_manifest.id),
+            None,
+        )
+        if candidate_manifest_existing is not None:
+            if candidate_manifest_existing == candidate_manifest:
+                return ()
+            raise IdentityConflictError("candidate-environment identity was reused")
+        environment_goal = next(
+            (item for item in state.implementation_goals if item.id == candidate_manifest.goal_id),
+            None,
+        )
+        environment_anchor = (
+            next(
+                (item for item in state.project_anchors if item.id == environment_goal.anchor_id),
+                None,
+            )
+            if environment_goal is not None
+            else None
+        )
+        if (
+            environment_goal is None
+            or environment_anchor is None
+            or candidate_manifest.base_commit_sha != environment_anchor.commit_sha
+        ):
+            raise InvalidCommandError("candidate environment must start from its sealed anchor")
+        return (
+            CandidateEnvironmentRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                manifest=candidate_manifest,
+            ),
+        )
+
+    if isinstance(command, RecordDevelopmentEvidence):
+        evidence_record = command.evidence
+        evidence_existing = next(
+            (item for item in state.development_evidence if item.id == evidence_record.id), None
+        )
+        if evidence_existing is not None:
+            if evidence_existing == evidence_record:
+                return ()
+            raise IdentityConflictError("development-evidence identity was reused")
+        evidence_goal = next(
+            (item for item in state.implementation_goals if item.id == evidence_record.goal_id),
+            None,
+        )
+        evidence_environment = next(
+            (
+                item
+                for item in state.candidate_environments
+                if item.id == evidence_record.candidate_environment_id
+            ),
+            None,
+        )
+        if (
+            evidence_goal is None
+            or evidence_environment is None
+            or evidence_environment.goal_id != evidence_goal.id
+        ):
+            raise InvalidCommandError(
+                "development evidence requires its sealed candidate environment"
+            )
+        if (
+            evidence_record.base_commit_sha != evidence_environment.base_commit_sha
+            or evidence_record.gate_digest
+            not in {
+                evidence_goal.incumbent_gate_digest,
+                evidence_goal.proposed_gate_digest,
+            }
+        ):
+            raise InvalidCommandError(
+                "development evidence must preserve base and sealed gate pins"
+            )
+        return (
+            DevelopmentEvidenceRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                evidence=evidence_record,
+            ),
+        )
+
+    if isinstance(command, RecordIndependentReview):
+        independent_review = command.review
+        review_existing = next(
+            (item for item in state.independent_reviews if item.id == independent_review.id),
+            None,
+        )
+        if review_existing is not None:
+            if review_existing == independent_review:
+                return ()
+            raise IdentityConflictError("independent-review identity was reused")
+        review_environment = next(
+            (
+                item
+                for item in state.candidate_environments
+                if item.id == independent_review.candidate_environment_id
+            ),
+            None,
+        )
+        evidence_by_id = {item.id: item for item in state.development_evidence}
+        try:
+            reviewed_evidence = tuple(
+                evidence_by_id[item] for item in independent_review.evidence_ids
+            )
+        except KeyError as error:
+            raise InvalidCommandError("review references unknown development evidence") from error
+        if (
+            review_environment is None
+            or review_environment.goal_id != independent_review.goal_id
+            or independent_review.reviewer_id == review_environment.developer_id
+            or any(item.goal_id != independent_review.goal_id for item in reviewed_evidence)
+            or any(
+                item.candidate_environment_id != independent_review.candidate_environment_id
+                for item in reviewed_evidence
+            )
+            or any(
+                item.candidate_commit_sha != independent_review.reviewed_commit_sha
+                for item in reviewed_evidence
+            )
+        ):
+            raise InvalidCommandError("review must be fresh, independent, and exact-head bound")
+        if independent_review.outcome is ReviewOutcome.VALID and any(
+            item.outcome is not EvidenceOutcome.PASS for item in reviewed_evidence
+        ):
+            raise InvalidCommandError("a valid review cannot bless failing or unknown evidence")
+        return (
+            IndependentReviewRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                review=independent_review,
+            ),
+        )
+
+    if isinstance(command, DecideProjectSuccessor):
+        project_decision = command.decision
+        project_decision_existing = next(
+            (item for item in state.project_successor_decisions if item.id == project_decision.id),
+            None,
+        )
+        if project_decision_existing is not None:
+            if project_decision_existing == project_decision:
+                return ()
+            raise IdentityConflictError("project-successor decision identity was reused")
+        successor_goal = next(
+            (item for item in state.implementation_goals if item.id == project_decision.goal_id),
+            None,
+        )
+        decided_candidate = next(
+            (
+                item
+                for item in state.capability_successor_candidates
+                if item.id == project_decision.candidate_id
+            ),
+            None,
+        )
+        successor_review = next(
+            (item for item in state.independent_reviews if item.id == project_decision.review_id),
+            None,
+        )
+        successor_environment = next(
+            (
+                item
+                for item in state.candidate_environments
+                if item.id == project_decision.candidate_environment_id
+            ),
+            None,
+        )
+        evidence_by_id = {item.id: item for item in state.development_evidence}
+        try:
+            decision_evidence = tuple(
+                evidence_by_id[item] for item in project_decision.evidence_ids
+            )
+        except KeyError as error:
+            raise InvalidCommandError("successor decision references unknown evidence") from error
+        if (
+            successor_goal is None
+            or decided_candidate is None
+            or successor_review is None
+            or successor_environment is None
+        ):
+            raise InvalidCommandError("successor decision requires its complete owned proof chain")
+        if (
+            successor_goal.candidate_id,
+            successor_environment.goal_id,
+            successor_review.goal_id,
+            successor_review.candidate_environment_id,
+        ) != (
+            decided_candidate.id,
+            successor_goal.id,
+            successor_goal.id,
+            successor_environment.id,
+        ):
+            raise InvalidCommandError("successor proof chain does not name one sealed candidate")
+        if tuple(project_decision.evidence_ids) != tuple(successor_review.evidence_ids):
+            raise InvalidCommandError("successor decision must use exactly the reviewed evidence")
+        if project_decision.disposition is ProjectDisposition.REPLACE:
+            if successor_review.outcome is not ReviewOutcome.VALID or any(
+                item.outcome is not EvidenceOutcome.PASS for item in decision_evidence
+            ):
+                raise InvalidCommandError(
+                    "replacement requires valid independent review and evidence"
+                )
+            if not set(decided_candidate.preserved_capability_ids) <= set(
+                project_decision.preserved_capability_ids
+            ) or tuple(decided_candidate.gain_kinds) != tuple(project_decision.gain_kinds):
+                raise InvalidCommandError("replacement must preserve and gain exactly as proposed")
+        return (
+            ProjectSuccessorDecided(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                decision=project_decision,
+            ),
+        )
+
+    if isinstance(command, RecordPromotionDecision):
+        promotion_decision = command.decision
+        promotion_existing = next(
+            (item for item in state.promotion_decisions if item.id == promotion_decision.id),
+            None,
+        )
+        if promotion_existing is not None:
+            if promotion_existing == promotion_decision:
+                return ()
+            raise IdentityConflictError("promotion-decision identity was reused")
+        promoted_successor = next(
+            (
+                item
+                for item in state.project_successor_decisions
+                if item.id == promotion_decision.successor_decision_id
+            ),
+            None,
+        )
+        promotion_review = (
+            next(
+                (
+                    item
+                    for item in state.independent_reviews
+                    if item.id == promoted_successor.review_id
+                ),
+                None,
+            )
+            if promoted_successor is not None
+            else None
+        )
+        if promoted_successor is None or promotion_review is None:
+            raise InvalidCommandError(
+                "promotion requires an owned independently reviewed successor"
+            )
+        if promotion_decision.outcome is ProjectPromotionOutcome.MERGED and (
+            promoted_successor.disposition is not ProjectDisposition.REPLACE
+            or promotion_review.outcome is not ReviewOutcome.VALID
+            or promotion_decision.candidate_commit_sha != promotion_review.reviewed_commit_sha
+        ):
+            raise InvalidCommandError("merged promotion must match the validated successor head")
+        return (
+            PromotionDecisionRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                decision=promotion_decision,
+            ),
+        )
+
+    if isinstance(command, RecordRecursiveCycleCheckpoint):
+        cycle_checkpoint = command.checkpoint
+        checkpoint_existing = next(
+            (item for item in state.recursive_cycle_checkpoints if item.id == cycle_checkpoint.id),
+            None,
+        )
+        if checkpoint_existing is not None:
+            if checkpoint_existing == cycle_checkpoint:
+                return ()
+            raise IdentityConflictError("cycle-checkpoint identity was reused")
+        prior = tuple(
+            item
+            for item in state.recursive_cycle_checkpoints
+            if item.cycle_id == cycle_checkpoint.cycle_id
+        )
+        if prior and cycle_checkpoint.predecessor_id != prior[-1].id:
+            raise InvalidCommandError("cycle checkpoint must succeed the exact current tail")
+        if not prior and cycle_checkpoint.predecessor_id is not None:
+            raise InvalidCommandError("first cycle checkpoint cannot name a predecessor")
+        if prior and list(type(cycle_checkpoint.phase)).index(cycle_checkpoint.phase) <= list(
+            type(prior[-1].phase)
+        ).index(prior[-1].phase):
+            raise InvalidCommandError("cycle checkpoints must advance monotonically")
+        owned_project_ids = {
+            item.id
+            for collection in (
+                state.project_anchors,
+                state.capability_limitations,
+                state.question_contract_candidates,
+                state.question_repertoire_decisions,
+                state.method_binding_candidates,
+                state.method_admission_decisions,
+                state.capability_successor_candidates,
+                state.capability_frontiers,
+                state.implementation_goals,
+                state.candidate_environments,
+                state.development_evidence,
+                state.independent_reviews,
+                state.project_successor_decisions,
+                state.promotion_decisions,
+                state.recursive_cycle_checkpoints,
+                state.recursive_stop_dispositions,
+            )
+            for item in collection
+        }
+        if not set(cycle_checkpoint.record_ids) <= owned_project_ids:
+            raise InvalidCommandError("cycle checkpoint may reference only owned project records")
+        return (
+            RecursiveCycleCheckpointRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                checkpoint=cycle_checkpoint,
+            ),
+        )
+
+    if isinstance(command, RecordRecursiveStopDisposition):
+        stop_disposition = command.disposition
+        stop_existing = next(
+            (item for item in state.recursive_stop_dispositions if item.id == stop_disposition.id),
+            None,
+        )
+        if stop_existing is not None:
+            if stop_existing == stop_disposition:
+                return ()
+            raise IdentityConflictError("recursive-stop identity was reused")
+        if not any(
+            item.cycle_id == stop_disposition.cycle_id for item in state.recursive_cycle_checkpoints
+        ):
+            raise InvalidCommandError("recursive stop requires an owned cycle checkpoint")
+        if not set(stop_disposition.consequential_residual_ids) <= {
+            item.id for item in state.capability_limitations
+        }:
+            raise InvalidCommandError("recursive stop residuals must name owned limitations")
+        return (
+            RecursiveStopDispositionRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                disposition=stop_disposition,
+            ),
+        )
+
     raise InvalidCommandError(f"unsupported command type: {type(command).__name__}")
 
 
@@ -4063,6 +4785,256 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
         return _advance_domain_state(
             state,
             representation_reopenings=(*state.representation_reopenings, event.reopening),
+        )
+
+    if isinstance(event, ProjectAnchorRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordProjectAnchor(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                anchor=event.anchor,
+            ),
+        )
+        return _advance_domain_state(state, project_anchors=(*state.project_anchors, event.anchor))
+
+    if isinstance(event, CapabilityLimitationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCapabilityLimitation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                limitation=event.limitation,
+            ),
+        )
+        return _advance_domain_state(
+            state, capability_limitations=(*state.capability_limitations, event.limitation)
+        )
+
+    if isinstance(event, QuestionContractCandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordQuestionContractCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                candidate=event.candidate,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            question_contract_candidates=(*state.question_contract_candidates, event.candidate),
+        )
+
+    if isinstance(event, QuestionRepertoireDecided):
+        _require_matching_decision(
+            state,
+            event,
+            DecideQuestionRepertoire(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision=event.decision,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            question_repertoire_decisions=(*state.question_repertoire_decisions, event.decision),
+        )
+
+    if isinstance(event, MethodBindingCandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordMethodBindingCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                candidate=event.candidate,
+            ),
+        )
+        return _advance_domain_state(
+            state, method_binding_candidates=(*state.method_binding_candidates, event.candidate)
+        )
+
+    if isinstance(event, MethodAdmissionDecided):
+        _require_matching_decision(
+            state,
+            event,
+            DecideMethodAdmission(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision=event.decision,
+            ),
+        )
+        return _advance_domain_state(
+            state, method_admission_decisions=(*state.method_admission_decisions, event.decision)
+        )
+
+    if isinstance(event, CapabilitySuccessorCandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCapabilitySuccessorCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                candidate=event.candidate,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            capability_successor_candidates=(
+                *state.capability_successor_candidates,
+                event.candidate,
+            ),
+        )
+
+    if isinstance(event, CapabilityFrontierRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCapabilityFrontier(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                frontier=event.frontier,
+            ),
+        )
+        return _advance_domain_state(
+            state, capability_frontiers=(*state.capability_frontiers, event.frontier)
+        )
+
+    if isinstance(event, ImplementationGoalSealed):
+        _require_matching_decision(
+            state,
+            event,
+            SealImplementationGoal(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                goal=event.goal,
+            ),
+        )
+        return _advance_domain_state(
+            state, implementation_goals=(*state.implementation_goals, event.goal)
+        )
+
+    if isinstance(event, CandidateEnvironmentRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCandidateEnvironment(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                manifest=event.manifest,
+            ),
+        )
+        return _advance_domain_state(
+            state, candidate_environments=(*state.candidate_environments, event.manifest)
+        )
+
+    if isinstance(event, DevelopmentEvidenceRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordDevelopmentEvidence(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                evidence=event.evidence,
+            ),
+        )
+        return _advance_domain_state(
+            state, development_evidence=(*state.development_evidence, event.evidence)
+        )
+
+    if isinstance(event, IndependentReviewRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordIndependentReview(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                review=event.review,
+            ),
+        )
+        return _advance_domain_state(
+            state, independent_reviews=(*state.independent_reviews, event.review)
+        )
+
+    if isinstance(event, ProjectSuccessorDecided):
+        _require_matching_decision(
+            state,
+            event,
+            DecideProjectSuccessor(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision=event.decision,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            project_successor_decisions=(*state.project_successor_decisions, event.decision),
+        )
+
+    if isinstance(event, PromotionDecisionRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordPromotionDecision(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision=event.decision,
+            ),
+        )
+        return _advance_domain_state(
+            state, promotion_decisions=(*state.promotion_decisions, event.decision)
+        )
+
+    if isinstance(event, RecursiveCycleCheckpointRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordRecursiveCycleCheckpoint(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                checkpoint=event.checkpoint,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            recursive_cycle_checkpoints=(*state.recursive_cycle_checkpoints, event.checkpoint),
+        )
+
+    if isinstance(event, RecursiveStopDispositionRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordRecursiveStopDisposition(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                disposition=event.disposition,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            recursive_stop_dispositions=(
+                *state.recursive_stop_dispositions,
+                event.disposition,
+            ),
         )
 
     raise InvalidTransitionError(f"unsupported event type: {type(event).__name__}")

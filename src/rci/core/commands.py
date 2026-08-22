@@ -68,6 +68,24 @@ from rci.probes.models import (
     Reconstruction,
     SemanticDelta,
 )
+from rci.project.models import (
+    CandidateEnvironmentManifest,
+    CapabilityFrontier,
+    CapabilityLimitation,
+    CapabilitySuccessorCandidate,
+    DevelopmentEvidence,
+    ImplementationGoalContract,
+    IndependentReview,
+    MethodAdmissionDecision,
+    MethodBindingCandidate,
+    ProjectAnchor,
+    ProjectSuccessorDecision,
+    PromotionDecision,
+    QuestionContractCandidate,
+    QuestionRepertoireDecision,
+    RecursiveCycleCheckpoint,
+    RecursiveStopDisposition,
+)
 from rci.warrant.models import (
     Applicability,
     CheckerVerdictRecord,
@@ -393,6 +411,86 @@ class ReopenRepresentation(CommandBase):
     reopening: RepresentationReopening
 
 
+class RecordProjectAnchor(CommandBase):
+    kind: Literal["record_project_anchor"] = "record_project_anchor"
+    anchor: ProjectAnchor
+
+
+class RecordCapabilityLimitation(CommandBase):
+    kind: Literal["record_capability_limitation"] = "record_capability_limitation"
+    limitation: CapabilityLimitation
+
+
+class RecordQuestionContractCandidate(CommandBase):
+    kind: Literal["record_question_contract_candidate"] = "record_question_contract_candidate"
+    candidate: QuestionContractCandidate
+
+
+class DecideQuestionRepertoire(CommandBase):
+    kind: Literal["decide_question_repertoire"] = "decide_question_repertoire"
+    decision: QuestionRepertoireDecision
+
+
+class RecordMethodBindingCandidate(CommandBase):
+    kind: Literal["record_method_binding_candidate"] = "record_method_binding_candidate"
+    candidate: MethodBindingCandidate
+
+
+class DecideMethodAdmission(CommandBase):
+    kind: Literal["decide_method_admission"] = "decide_method_admission"
+    decision: MethodAdmissionDecision
+
+
+class RecordCapabilitySuccessorCandidate(CommandBase):
+    kind: Literal["record_capability_successor_candidate"] = "record_capability_successor_candidate"
+    candidate: CapabilitySuccessorCandidate
+
+
+class RecordCapabilityFrontier(CommandBase):
+    kind: Literal["record_capability_frontier"] = "record_capability_frontier"
+    frontier: CapabilityFrontier
+
+
+class SealImplementationGoal(CommandBase):
+    kind: Literal["seal_implementation_goal"] = "seal_implementation_goal"
+    goal: ImplementationGoalContract
+
+
+class RecordCandidateEnvironment(CommandBase):
+    kind: Literal["record_candidate_environment"] = "record_candidate_environment"
+    manifest: CandidateEnvironmentManifest
+
+
+class RecordDevelopmentEvidence(CommandBase):
+    kind: Literal["record_development_evidence"] = "record_development_evidence"
+    evidence: DevelopmentEvidence
+
+
+class RecordIndependentReview(CommandBase):
+    kind: Literal["record_independent_review"] = "record_independent_review"
+    review: IndependentReview
+
+
+class DecideProjectSuccessor(CommandBase):
+    kind: Literal["decide_project_successor"] = "decide_project_successor"
+    decision: ProjectSuccessorDecision
+
+
+class RecordPromotionDecision(CommandBase):
+    kind: Literal["record_promotion_decision"] = "record_promotion_decision"
+    decision: PromotionDecision
+
+
+class RecordRecursiveCycleCheckpoint(CommandBase):
+    kind: Literal["record_recursive_cycle_checkpoint"] = "record_recursive_cycle_checkpoint"
+    checkpoint: RecursiveCycleCheckpoint
+
+
+class RecordRecursiveStopDisposition(CommandBase):
+    kind: Literal["record_recursive_stop_disposition"] = "record_recursive_stop_disposition"
+    disposition: RecursiveStopDisposition
+
+
 DomainCommand = Annotated[
     StartInquiry
     | RecordBacklogEffect
@@ -449,6 +547,22 @@ DomainCommand = Annotated[
     | GrantRecoveryLicense
     | LinkRetentionCapability
     | DecideRepresentationSuccessor
-    | ReopenRepresentation,
+    | ReopenRepresentation
+    | RecordProjectAnchor
+    | RecordCapabilityLimitation
+    | RecordQuestionContractCandidate
+    | DecideQuestionRepertoire
+    | RecordMethodBindingCandidate
+    | DecideMethodAdmission
+    | RecordCapabilitySuccessorCandidate
+    | RecordCapabilityFrontier
+    | SealImplementationGoal
+    | RecordCandidateEnvironment
+    | RecordDevelopmentEvidence
+    | RecordIndependentReview
+    | DecideProjectSuccessor
+    | RecordPromotionDecision
+    | RecordRecursiveCycleCheckpoint
+    | RecordRecursiveStopDisposition,
     Field(discriminator="kind"),
 ]

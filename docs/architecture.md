@@ -1,4 +1,4 @@
-# RCI v0.4 architecture
+# RCI v0.5 architecture
 
 This is the implementer-facing architecture for the semantics in
 `RCI_Project_Spec.tex` and the sequencing in `PLAN.md`. It does not broaden an
@@ -34,6 +34,45 @@ The architecture optimizes for:
 - narrow phase gates and honest unsupported results;
 - a path from the small Phase 1–2 kernel into later cognitive, compression,
   recursive-formal, and control work without pretending those capabilities exist.
+
+## Recursive project binding
+
+G3R applies the existing question/return/ratchet discipline to repository development
+without making the repository runtime its own authority:
+
+```text
+verified project anchor
+  -> consequential limitation
+  -> inert question / method / capability candidates
+  -> deterministic partial-order frontier
+  -> sealed implementation Goal and discriminator
+  -> isolated candidate branch or worktree
+  -> exact-head tool, test, benchmark, and CI returns
+  -> fresh independent review
+  -> preserve + typed gain successor decision
+  -> externally observed protected promotion or explicit stop
+  -> next consequential residue
+```
+
+This is a project-level binding, not a second development history. Git remains the
+source-history authority, the event ledger records immutable inquiry evidence, and
+`docs/recursion/` is a derived human-readable handoff. The runtime can describe a
+candidate environment and record its returns but cannot write source, execute arbitrary
+commands, mutate Git, use credentials, change policy, merge, release, deploy, or expand
+authority.
+
+The development agent is simultaneously the inquiry orchestrator and the object being
+improved. Its non-self boundary consists of returns it cannot redefine after the Goal is
+sealed: compiler/type-checker output, property and acceptance tests, independent
+backends or literature, exact-head review, and protected hosted CI. A candidate may
+therefore change how later work is represented or performed, but it cannot certify or
+promote itself merely by generating a plausible patch.
+
+Theory, question/probe repertoire, method repertoire, representation, Goal
+decomposition, and implementation have separate successor relations. G3R does not
+collapse a missing test into a theory failure, a representation gap into a code patch,
+or a generated question into a scheduled contract. Unknown costs and different typed
+gains remain on an explicit frontier; no universal project-quality scalar is introduced.
 
 ## Durable authority and logical ownership
 
@@ -548,6 +587,7 @@ src/rci/
   backends/      exhaustive, optional Z3, later container adapters
   bindings/      circuit, route graph, later linear/compression bindings
   memory/        structural retrieval and non-compressive retention records
+  project/       recursive limitations, repertoires, Goals, frontiers, review records
   recovery/      reacquisition saga, exact costs, frontier/comparison
   evaluation/    deterministic traces and nonblocking live evaluations
   backlog/       governed shadow reconciliation
@@ -593,4 +633,6 @@ rank, and block only. Close remains proposal-only.
 Evidence runners see an explicit captured temporary workspace and receive no
 network, source-writing, Git mutation, policy editing, packaging, deployment,
 release, or permission-expansion port. RCI may propose obligations and ADR
-changes; human review and CI authorize changes.
+changes; a distinct exact-head reviewer and protected CI supply non-self evidence.
+Externally authorized development remains bounded by the previously sealed Goal and
+candidate environment, and promotion is recorded only after it occurs outside RCI.
