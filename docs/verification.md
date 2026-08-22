@@ -553,3 +553,54 @@ completed successfully with all five unique jobs:
 The independent [branch-push workflow](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32576657003)
 also completed all five jobs successfully. The documentation commit and its protected
 checks must pass before merge; the post-merge `main` run remains the final G2B gate.
+
+### G2B post-merge completion
+
+Protected PR #2 merged linearly. Commit
+`a5ac134981494cd126261117828140e7151eaf39` passed post-merge workflow
+`32576841848`; all unique required jobs concluded `success`:
+
+- `base (ubuntu-latest)`;
+- `base (windows-latest)`;
+- `extras (ubuntu-latest)`;
+- `extras (windows-latest)`;
+- `docker`.
+
+G2B and RCI-058 are sealed and verified at that anchor.
+
+## RCI v0.4 governance normalization — 2026-08-22
+
+RCI v0.4 adopts ADR-0011 and distinguishes the replay-complete aggregate fold
+from binding-derived realized history, configuration projection, and a G3
+consequence-sufficient retained state. Requirements RCI-001–RCI-068 retain their
+stable identifiers and RCI-069–RCI-071 add aggregate/state separation,
+continuation compatibility, and representation succession.
+
+The package metadata advances to 0.4.0 without a release or tag. All G1/G2 event
+classes remain schema version 1. Their canonical JSON-schema hashes at
+`a5ac134981494cd126261117828140e7151eaf39` are frozen in
+`tests/fixtures/compat/g2b-event-schema-manifest.json` and checked on every run.
+
+The parity fixture wording is corrected: `{a}*` is an unbounded history carrier
+with a finite two-state quotient. G3A-H must prove it through finite transition
+congruence/base-step reasoning rather than bounded sampling. SymPy remains
+deferred to G3A-L.
+
+Local governance and regression returns:
+
+- authority check: exactly RCI-001 through RCI-071 in both spec and matrix;
+- v0.4 source SHA-256:
+  `30a3c167f6ecf0e14b8c16273addcafa9bdf304bd4e761c0429e1d5c4516a955`;
+- root AGENTS size: 17,550 bytes;
+- `uv lock --check`, base/all-extras synchronization, import/version check,
+  Ruff, mypy over 104 source files, CLI help, and build: exit 0;
+- non-optional pytest: 167 passed, 1 skipped, 4 deselected;
+- full pytest: 171 passed, 1 skipped;
+- acceptance: 16 passed;
+- archived G1 plus sealed G2 schema compatibility: 2 passed;
+- G2A/G2B focused acceptance: 4 passed;
+- package build: 0.4.0 sdist and universal wheel.
+
+The sole skip remains the documented native-Windows symlink privilege case. No
+G3A-H runtime claim is made by this normalization alone. Hosted PR and post-merge
+returns are recorded after the protected workflow completes.

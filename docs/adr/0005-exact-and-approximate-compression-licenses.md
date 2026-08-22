@@ -33,6 +33,12 @@ checked policy.
 
 ## Consequences
 
+ADR-0011 strengthens the exact contract: source and target carrier roles,
+history consequence factorization, continuation compatibility where claimed,
+determination descent, path residue, and representation succession are explicit
+and independently checked. G3A-H implements these generic obligations before
+the exact linear binding in G3A-L.
+
 - G3A can prove exact rational/finite cases without importing approximate
   numerical assumptions.
 - G3B can evaluate bounded loss without upgrading it to exactness.

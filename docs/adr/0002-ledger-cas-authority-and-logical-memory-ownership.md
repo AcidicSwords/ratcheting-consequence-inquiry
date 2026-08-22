@@ -34,6 +34,11 @@ metadata.
 
 ## Consequences
 
+RCI v0.4 and ADR-0011 clarify that the replay-complete `InquiryState` produced by
+the aggregate fold is not a consequence-sufficient retained state. A
+binding-derived history and licensed G3 representation are derived/recorded
+semantic structures; neither replaces the ledger or aggregate.
+
 - Cognitive “memory” does not create parallel databases or a second truth.
 - Event replay can reconstruct every authoritative state transition.
 - Deleting projections or snapshots cannot delete semantic history.

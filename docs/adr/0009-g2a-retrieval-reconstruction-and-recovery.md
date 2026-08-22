@@ -78,6 +78,11 @@ streams must still replay with unchanged G1 semantics.
 
 ## Consequences
 
+ADR-0011 adds a permanent boundary: `RetentionPackage` is not
+`S_H`. G3 must link the unchanged package and provisional routes to an exact
+compression application and route-specific recovery license through new
+records; it must not retrofit fields into sealed G2A records.
+
 - Retrieval/recovery behavior is deterministic, dependency-free, and suitable
   for native Windows/Linux blocking tests.
 - The circuit can measure a scaffold advantage without storing the target answer
@@ -98,4 +103,3 @@ The focused command is:
 ```text
 uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
 ```
-

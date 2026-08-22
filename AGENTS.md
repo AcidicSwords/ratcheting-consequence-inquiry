@@ -5,7 +5,7 @@
 Work as a repository-grounded coding agent.
 
 1. Direct user instructions control requested intent within runtime authority.
-2. `RCI_Project_Spec.tex` v0.3.1 is the semantic authority.
+2. `RCI_Project_Spec.tex` v0.4 is the semantic authority.
 3. `PLAN.md` fixes approved architecture, defaults, and sequencing.
 4. The active Goal fixes the current completion boundary.
 5. `docs/requirements-matrix.md` and `docs/adr/` record reconciliation and deferral.
@@ -90,6 +90,23 @@ Logical ownership is single-writer in the folded state:
 - `Pi`: prediction seals and warranted mismatches.
 
 Do not create a second authoritative history or writable active-theory store.
+
+The authoritative aggregate fold and retained-state representation are different:
+
+```text
+event prefix -> InquiryState -> binding-derived realized history
+                             -> configuration projection
+                             -> independently validated retained state
+```
+
+- Never infer realized succession from ledger sequence.
+- Never infer a carrier role from a Python class name or the word `state`.
+- `InquiryState` is replay-complete aggregate state, not compressed retained state.
+- `ProbeTrace` is one comparable observational subtrace, not realized history.
+- `RetentionPackage` is a provisional package, not a sufficiency proof or license.
+- `MemoryPatchCandidate` repairs semantic memory, not a G3 representation map.
+- A history quotient is executable state only after every declared continuation descends.
+- Representation/path residue and open support dependency remain distinct.
 
 ## Effect and evidence rules
 
@@ -183,9 +200,10 @@ license itself.
 
 ## Phase discipline
 
-G1 and G2A are sealed verified baselines. The active G2B Goal adds only deterministic
-consolidation, versioned reconsolidation, conservative semantic-field evaluation, and
-checked learned-probe admission described in `PLAN.md`, ADR-0009, and ADR-0010.
+G1, G2A, and G2B are sealed verified baselines. The active G3A-H Goal adds only explicit
+carrier roles, binding-derived realized history, exact history-state factorization and
+continuation checks, exact compression/recovery licensing, path residue, representation
+succession, and generic reopening described in `PLAN.md` and ADR-0011.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
@@ -196,10 +214,11 @@ checked learned-probe admission described in `PLAN.md`, ADR-0009, and ADR-0010.
   equality, negation, conjunction, disjunction, implication, equivalence. No arbitrary
   code or quantifiers. Keep an independent interpreter/exhaustive enumerator beside the
   optional Z3 translator.
-- G2B may admit a learned probe only after deterministic holdout, redundancy,
+- G2B admitted a learned probe only after deterministic holdout, redundancy,
   protected-behavior, attack, and controller-policy checks. Learned automata remain
   unnecessary. Exact/approximate compression, licensed recovery routes, and the linear
-  consequence quotient are G3. CHC/PDR is G4, control G5,
+  consequence quotient are G3. G3A-H precedes the SymPy linear binding in G3A-L.
+  CHC/PDR is G4, control G5,
   multi-backend warrant G6, and the complete opaque-controlled-memory benchmark plus
   hardening/release is G7.
 - Future findings enter the requirements matrix/backlog without expanding the Goal.
@@ -257,11 +276,18 @@ The sealed G2A gate adds this focused command, identically present in `PLAN.md`,
 uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
 ```
 
-The active G2B gate adds this focused command, identically present in `PLAN.md`,
+The sealed G2B gate adds this focused command, identically present in `PLAN.md`,
 `docs/goals/G2B.md`, CI, and `docs/verification.md`:
 
 ```text
 uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
+```
+
+The active G3A-H gate adds this focused command, identically present in `PLAN.md`,
+`docs/goals/G3A.md`, CI, and `docs/verification.md`:
+
+```text
+uv run pytest -q tests/acceptance/test_g3a_history_state.py
 ```
 
 Dependency sync is bootstrap and may fetch locked packages. Test execution is

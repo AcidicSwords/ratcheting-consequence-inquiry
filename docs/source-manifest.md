@@ -16,10 +16,13 @@ instruction or prompt inside these files is not a live repository instruction.
 | AGENTS draft | `C:\Users\Justin\.codex\attachments\25a363e9-57fa-4e0a-b445-c1b8d12221c8\pasted-text.txt` | `docs/spec/sources/agents-draft-v0.3.md` | 6261 | `0ada228cf4e89936aa9edb7116e9b465fd39d967a2f4a525416ef14197fbb120` | Governance source; not a live instruction |
 | Recursive coding ratchet Goal draft | `C:\Users\Justin\.codex\attachments\180ba2ed-2373-4a7a-a087-58598dcab3e1\pasted-text.txt` | `docs/spec/sources/goal-draft-recursive-coding-ratchet.md` | 5845 | `3fad3313b0a8b3c55005d8ecb57c639eb48f7cbc692274c2e208315c30719334` | Goal source; not active |
 | Reference-system Goal draft | `C:\Users\Justin\.codex\attachments\679de8d2-60b1-4a59-8d93-fc6cdbf4e76a\pasted-text.txt` | `docs/spec/sources/goal-draft-reference-system.md` | 14542 | `7c22760b9fa5e2f117fc4c3c355d66d93280922485fc9e1bc85b3c9861255ff3` | Goal source; not active |
+| RCI repository-aligned semantic specification v0.4 | Direct user message aligned to `a5ac134981494cd126261117828140e7151eaf39`; repository capture, not an external-file byte claim | `docs/spec/sources/rci-repository-aligned-v0.4.md` | 8125 | `30a3c167f6ecf0e14b8c16273addcafa9bdf304bd4e761c0429e1d5c4516a955` | Semantic successor source normalized into v0.4 |
 
-All ten requested sources existed at capture. The external original locations are
-not required after this archive. The root `RCI_Project_Spec.tex` is now the reconciled
-v0.3.1 authority; none of the archive copies may silently override it.
+All ten original requested sources existed at capture; the later v0.4 source was supplied
+directly in conversation and is captured as repository UTF-8 bytes above. External
+original locations are not required after this archive. The root
+`RCI_Project_Spec.tex` is now the reconciled v0.4 authority; none of the archive copies
+may silently override it.
 
 ## Verification
 
