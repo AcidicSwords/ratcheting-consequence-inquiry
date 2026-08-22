@@ -1,4 +1,4 @@
-# RCI v0.3.1 architecture
+# RCI v0.4 architecture
 
 This is the implementer-facing architecture for the semantics in
 `RCI_Project_Spec.tex` and the sequencing in `PLAN.md`. It does not broaden an
@@ -360,6 +360,31 @@ semantic-field evaluation, and candidate learned probes.
 
 ## Compression architecture (specified now, executable later)
 
+### Two folds and explicit carriers
+
+```text
+immutable ledger prefix
+  -> pure aggregate fold Phi_agg
+  -> InquiryState / complete authoritative standing
+  -> binding-specific partial history derivation rho_B
+  -> realized history Hist_B
+  -> configuration projection p_B -> X_B
+  -> validated retained representation q_H -> S_H
+```
+
+`Phi_agg` is replay reconstruction and `q_H` is consequence-relative
+representation; they are never interchangeable. Ledger succession is not realized
+succession. Carrier roles are pinned by versioned binding/carrier manifests and are not
+inferred from Python types. `ProbeTrace` remains one comparable subtrace,
+`RetentionPackage` remains a G2 package, and `MemoryPatchCandidate` remains semantic
+repair.
+
+An exact history-state contract separately validates protected consequence
+factorization and continuation compatibility. Deterministic recursive execution may use
+`q(h . u) = U(q(h), u)` only for binding-declared realized extensions. Determinations
+descend only after exact saturation. The authoritative aggregate is never replaced or
+compressed.
+
 The permanent pipeline is:
 
 ```text
@@ -376,6 +401,13 @@ The core distinguishes:
 G3 separates `CompressionContract`, independent `CompressionValidation`,
 policy `CompressionLicense`, and `CompressionApplication`. Exact and approximate
 licenses are tagged variants. A reported or empirical loss of zero is not exact.
+
+G3A-H additionally implements explicit `CarrierRole`/carrier contracts, binding-derived
+history, `ExactCompressionLicense`, `RecoveryLicense`, `PathResidue`, route-capability
+links, and representation-successor decisions. A strict successor preserves still-valid
+predecessor capabilities, adds typed gain, and has standing warrant; otherwise the
+candidate is rejected, retained provisionally, or placed on an incomparable frontier.
+G3A-L later plugs the exact linear binding into this generic contract.
 
 In G2A, a `RetentionPackage` references owned typed artifacts and may reference
 separate provisional `DirectUseRoute`, `ReconstructionRoute`,
@@ -421,6 +453,12 @@ or a reacquisition route, the result is Unknown. Reopening can select direct use
 reconstruction, consequence evaluation, provenance retrieval, or a new
 reacquisition inquiry. Forgetting is represented as a checked reduction in
 future recovery capacity, not inferred from failed recall or deletion.
+
+Representation/path residue is distinct from an epistemic open dependency. Generic
+reopening is exact factorization failure: a new protected consequence separates inputs
+that the incumbent representation identifies. A route can expose a protected compressed
+capability only by joining the unchanged G2 package/route to a standing validation,
+compression application, and route-specific recovery license.
 
 The corrected linear theorem is a G3A binding, not a core vector assumption.
 Exact tests use rational/symbolic evidence. Thresholded numerical rank is an

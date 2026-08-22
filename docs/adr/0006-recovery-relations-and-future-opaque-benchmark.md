@@ -34,6 +34,12 @@ family exist.
 
 ## Consequences
 
+Under RCI v0.4, these route relations may consume a licensed history-state
+representation, but a retained package or route declaration alone remains
+neither that representation nor its license. Competence equivalence is
+binding-typed and is identified with history consequence equivalence only when
+the binding declares the same carrier.
+
 - Memory can be evaluated without equating it with recall or historical object
   identity.
 - Reacquisition claims remain empirical, scoped, and reproducible.

@@ -10,7 +10,7 @@
 \title{Ratcheting Consequence Inquiry\\
 Normative Project Specification}
 \author{RCI Project}
-\date{Version 0.3.1 --- 2026-08-22}
+\date{Version 0.4 --- 2026-08-22}
 
 \begin{document}
 \maketitle
@@ -18,7 +18,8 @@ Normative Project Specification}
 \section*{Status, interpretation, and conformance}
 
 This document is the normative semantic specification for Ratcheting Consequence
-Inquiry (RCI) version 0.3.1. It is a reconciled rewrite of the archived research
+Inquiry (RCI) version 0.4. It is the semantic successor to version 0.3.1 and a
+reconciled rewrite of the archived research
 drafts listed in \path{docs/source-manifest.md}. Those drafts are provenance and
 research context, not live instructions. Direct user instructions retain runtime
 precedence; \path{PLAN.md} fixes approved engineering choices and delivery order;
@@ -35,7 +36,7 @@ claim executable support.
 
 \begin{longtable}{p{0.18\linewidth}p{0.30\linewidth}p{0.44\linewidth}}
 \toprule
-Source & Role in 0.3.1 & Reconciliation \\
+Source & Role in 0.4 & Reconciliation \\
 \midrule
 \endhead
 RCI 0.1 & Original project and staged implementation draft &
@@ -73,12 +74,116 @@ established. \\
 AGENTS and Goal drafts & Governance proposals &
 Archived for provenance. They do not override this document, the root
 \path{AGENTS.md}, \path{PLAN.md}, or an active Goal. \\
+RCI 0.4 repository-aligned semantic specification & Aggregate/history/state
+correction and G3 target &
+Adopted as the semantic correction governing G3. It distinguishes the
+replay-complete aggregate fold from a binding-defined consequence-sufficient
+history representation and preserves all sealed G1, G2A, and G2B event meanings. \\
 \bottomrule
 \end{longtable}
 
 The exact source bytes, original locations, archive paths, sizes, and SHA-256
 digests are recorded in \path{docs/source-manifest.md}. No archived prompt or
 document acquires authority merely by being stored in the repository.
+
+\section{Aggregate, history, configuration, and retained state}
+
+For a binding $B$, let $\mathsf E_B$ be the authoritative versioned event
+vocabulary and let $\mathbf e_{\leq n}$ be an immutable ledger prefix. The
+authoritative aggregate fold is
+\[
+ \Phi_{\mathrm{agg}}(\mathbf e_{\leq n})
+ = \Sigma^{\mathrm{agg}}_{B,n},
+ \qquad
+ \Sigma^{\mathrm{agg}}_{B,n+1}
+ = \operatorname{evolve}(\Sigma^{\mathrm{agg}}_{B,n},e_{n+1}).
+\]
+In the reference implementation, $\Sigma^{\mathrm{agg}}$ is
+\texttt{InquiryState}. The fold is deterministic, effect-free under replay, and
+reconstructs authoritative standing. It is not semantic compression.
+
+A binding MAY define a partial derived relation
+\[
+ \rho_B:\Sigma^{\mathrm{agg}}_B\rightharpoonup\mathsf{Hist}_B
+\]
+from authoritative evidence to its realized interaction-history carrier. Ledger
+succession and realized domain succession are distinct unless the binding proves
+their coincidence for the records in question. No universal occurrence type is
+assumed. A further binding-defined projection
+\[
+ p_B:\mathsf{Hist}_B\longrightarrow X_B
+\]
+maps realized history to a configuration carrier.
+
+For a protected experiment horizon $\mathcal H$, exact history consequence
+equivalence is
+\[
+ h\equiv_{\mathcal H}h'
+ \quad\Longleftrightarrow\quad
+ \forall e\in\mathcal H,\;
+ \operatorname{Con}_e(h)=\operatorname{Con}_e(h'),
+\]
+where the binding supplies each consequence codomain and equality semantics. A
+working discriminator relation $\approx_{\mathcal H,W}$ is weaker and MUST NOT
+be promoted to exact equivalence merely because currently admitted probes have
+not separated two histories.
+
+A retained representation is a binding- and horizon-scoped map
+\[
+ q_{\mathcal H}:\mathsf{Hist}_B\longrightarrow S.
+\]
+It is consequence sufficient exactly when equality of represented states implies
+protected history equivalence. Equivalently, every protected consequence map
+factors through $q_{\mathcal H}$. Claiming the exact coarsest quotient additionally
+requires the reverse implication and an independent minimality or isomorphism
+argument. No finite size, computability, linearity, realizability, or bit
+optimality follows merely from the quotient's set-theoretic existence.
+
+The permanent architecture is
+\[
+ \boxed{\Phi_{\mathrm{agg}}\neq q_{\mathcal H}},\qquad
+ \boxed{p_B\neq q_{\mathcal H}},\qquad
+ \boxed{\tau_\pi\neq\mathsf{Hist}_B},\qquad
+ \boxed{P\neq S_{\mathcal H}},
+\]
+where $\tau_\pi$ is one recurrent-probe trace and $P$ is a G2
+\texttt{RetentionPackage}. These are semantic roles even if a binding happens to
+reuse one underlying data type.
+
+For every admitted continuation relation $\rho_a$ on history, a retained state is
+recursively executable only when
+\[
+ q(h)=q(h')\Longrightarrow q[\rho_a(h)]=q[\rho_a(h')].
+\]
+Where extension by $u$ is deterministic, this can be checked as
+\[
+ q(h\mathbin{\cdot}u)=U(q(h),u).
+\]
+The reducer \texttt{evolve} and the retained-state update $U$ are distinct.
+Consequence answer sufficiency and recursive state sufficiency are separate
+claims.
+
+Determination languages are carrier relative. A history determination descends
+to retained state only when it is saturated under $q$, equivalently when it is
+the inverse image of a determination over $S$. Frequent observation or a semantic
+name does not establish descent.
+
+The existing \texttt{PredictionSeal} is a sealed prospective consequence
+commitment, not merely a scalar next-value guess. It MUST precede the actual
+return used in comparison. The existing \texttt{Mismatch} remains a typed
+comparison of a seal with an actual return and cannot select its own repair.
+Updating $s$ under a fixed $q$, refining $q$, extending $\mathcal H$, and rebinding
+$B$ are separate transitions. In particular, a G2B \texttt{MemoryPatchCandidate}
+repairs a semantic lemma relation and is not a G3 representation refinement.
+
+For a representation record $R=(q,\mathcal C,V,L,W)$, a strict successor
+$R'\succ R$ requires preservation of every still-valid protected predecessor
+competence, a typed strict gain, and standing independent warrant. An invalidated
+predecessor competence requires an exact warranted disposition; a mere scope
+tradeoff is incomparable rather than a strict successor. Candidate novelty,
+newer model output, or regenerated skeptical prose is not gain. Active
+representations are derived from immutable lineage and standing decisions; they
+are not a new writable authority.
 
 \section{Normative requirements}
 
@@ -95,7 +200,10 @@ Every inquiry MUST pin a binding revision, typed carriers and relations,
 protected consequence profile and horizon, admissible operations, available
 discharge mechanisms, assumptions, and local scope. Metrics, probability,
 causality, time, utility, continuity, determinism, and observability MUST NOT be
-assumed unless the binding declares them.
+assumed unless the binding declares them. Carrier role is part of semantic
+interpretation. A binding that distinguishes configuration, realized history,
+and retained representation MUST identify those roles in a versioned binding
+manifest or later contract without mutating a sealed inquiry-start event schema.
 
 \paragraph{RCI-003 --- Questions create claims.}
 A question contract MUST bind referents, expose a typed relational role, delimit
@@ -136,6 +244,8 @@ append typed relations or events such as \texttt{supersedes},
 \texttt{splits\_from}, \texttt{merges\_from}, \texttt{rebinds},
 \texttt{refutes}, \texttt{suspends}, \texttt{promotes}, or
 \texttt{reopens}. Historical predecessors MUST remain addressable.
+Ledger succession MUST NOT be interpreted as realized domain succession unless
+the binding establishes their coincidence for the relevant records.
 
 \paragraph{RCI-009 --- Capability and phase gates.}
 The complete research catalog MAY be retained as versioned data, but only an
@@ -245,7 +355,10 @@ A prediction used to assess mismatch MUST be sealed before its attempt can
 produce a return and MUST pin target, scope, assumptions, allowed variation,
 and basis. Only an actually returned and successfully decoded observation MAY
 form semantic mismatch with a sealed prediction. Operational and decode
-failures MUST NOT become fabricated mismatches.
+failures MUST NOT become fabricated mismatches. A prediction seal is a
+prospective consequence commitment and MAY contain exact set-valued,
+relational, bounded, or otherwise typed commitments; no scalar error is
+required.
 
 \paragraph{RCI-024 --- Memory and working views.}
 \(M_E\) owns episodic records and artifact references, not copies of ledger
@@ -253,6 +366,9 @@ events; \(M_S\) owns immutable semantic lemma versions; \(M_P\) owns admitted
 procedures, probes, contracts, and method manifests; \(M_L\) owns retention,
 residue, and compression-application references. Active theory, probe state,
 reopening state, working context, semantic field, and schedule MUST be derived.
+The replay-complete aggregate \texttt{InquiryState} MUST NOT be treated as a
+consequence-sufficient retained state. A probe trace is one comparable
+observational subtrace, not a universal realized history.
 
 \subsection{C. Claims, formalization, support, and warrant}
 
@@ -428,6 +544,11 @@ without substantial new external learning; reacquisition uses new evidence,
 instruction, interaction, or practice. None of those routes implies another.
 Exactness is always relative to a pinned protected horizon and scope, never
 global by default.
+Configuration, realized-history, and retained-state carrier roles MUST remain
+distinct even when a binding reuses an underlying data type. Configuration
+projection and history quotient are different contracts. A G2
+\texttt{RetentionPackage} and a G2B \texttt{MemoryPatchCandidate} MUST NOT be
+treated as a certified retained state or a representation refinement.
 
 \paragraph{RCI-048 --- Compression decision layers.}
 \texttt{CompressionContract}, \texttt{CompressionValidation},
@@ -435,7 +556,11 @@ global by default.
 separate immutable concepts. Exact and approximate licenses MUST be a
 discriminated union, not a Boolean plus optional-field bag. A measured loss of
 zero MUST NOT be relabeled exact without universal or closed-domain separating
-evidence.
+evidence. Every contract MUST pin explicit source and target carrier roles and
+schemas, binding, scope, protected horizon, continuation family, consequence
+family, equality semantics, and recovery semantics. Exact history-state
+validation MUST separately check consequence factorization and every claimed
+continuation descent.
 
 \paragraph{RCI-049 --- Retention capability routes.}
 A retention package MUST reference its representation artifacts and compression
@@ -448,6 +573,10 @@ provenance, failure behavior, and fallback. A reacquisition route MUST reference
 a \texttt{ReacquisitionScaffold} rather than claim to contain the recovered
 competence. Combined modes are derived from explicit routes, not stored as an
 ambiguous enum or optional-field bag.
+A G2 \texttt{RetentionPackage} is only a typed package of references and
+provisional routes. Any route consuming a compressed representation MUST
+identify the independently validated compression application and standing
+recovery license that make it an exposed capability.
 
 \paragraph{RCI-050 --- Residue, debt, and reopening.}
 Compression MUST return retained representation plus dependency residue,
@@ -456,6 +585,8 @@ fallback, and reopening predicates. It MUST NOT erase an open dependency or
 assume that a disappeared representation dependency was discharged.
 Approximate bounds compose only through a pinned checked composition policy;
 otherwise composition fails closed.
+Representation/path residue and epistemic open support dependency are distinct
+records and MUST NOT discharge or substitute for one another.
 
 \paragraph{RCI-051 --- Exact linear family theorem.}
 Let \(Q\subseteq\mathbb R^d\), \(V=\operatorname{span}Q\), and
@@ -509,6 +640,10 @@ When only positive-weight probes are added,
 \(\ker M_{t+1}\subsetneq\ker M_t\). If the discarded distinction has no
 residue or reacquisition route, reopening MUST return Unknown rather than
 fabricating regeneration.
+Generically, reopening occurs whenever a new protected consequence fails to
+factor through the incumbent representation, equivalently when two inputs
+identified by the incumbent have different new consequences. This criterion
+applies independently of vector or linear structure.
 
 \paragraph{RCI-055 --- Approximate geometry is not exact proof.}
 For reconstruction error \(e=x-\hat x\),
@@ -549,9 +684,12 @@ automata, probes, and representations remain hypotheses until separately
 challenged and warranted.
 
 \paragraph{RCI-059 --- G3 boundary.}
-G3A implements generic exact quotient, retention capability routes, exact
-rational finite/linear bindings, residue, horizon reopening, and route-specific
-\texttt{RecoveryLicense} enforcement. G3B implements approximate loss licenses,
+G3A begins with explicit source/target carrier roles, history consequence
+equivalence, exact factorization, continuation compatibility, deterministic
+recursive update where applicable, determination descent, path residue, generic
+reopening, route-specific \texttt{RecoveryLicense} enforcement, and
+representation succession. Its history-state slice precedes the exact
+rational finite/linear bindings. G3B implements approximate loss licenses,
 licensed recovery-frontier budgets, risk/confidence/debt composition, numerical
 candidates, and a deterministic toy quantizer/oracle. G3C adds isolated native
 adapters after license and implementation provenance are verified.
@@ -605,7 +743,9 @@ reconstruction, direct consequence evaluation, and reacquisition as independent
 route relations rather than nominal memory-object kinds. A recovered competence
 \(k'\) need only be consequence-equivalent to \(k\) over the pinned protected
 horizon; historical representation identity is not required. Failure of recall
-or reconstruction MUST NOT be interpreted as absence of retained learning.
+or reconstruction MUST NOT be interpreted as absence of retained learning. A
+route over retained material MAY consume a licensed history-state
+representation, but it acquires no such license from the retained package alone.
 
 \paragraph{RCI-066 --- Reacquisition advantage is baseline-relative.}
 For each evaluated competence, context, and horizon, the baseline state or
@@ -617,6 +757,9 @@ advantage requires a checked strict Pareto improvement, or a binding-authorized
 ordering, relative to the pinned baseline frontier
 \(\mathfrak C^0_{\mathcal H}(c,k)\). No universal scalarization is assumed; a
 scalar savings score is lawful only when the binding explicitly supplies one.
+Competence equivalence MUST use a binding-declared typed relation. History
+consequence equivalence may be reused only when the competence values inhabit
+that declared history carrier.
 
 \paragraph{RCI-067 --- Recovery licence, scaffold, and forgetting.}
 A \texttt{RecoveryLicense} MUST pin consequence fidelity, latency, computation,
@@ -643,6 +786,39 @@ than an RCI reinvention. The exact linear consequence theorem applies only after
 a warranted vector representation and linear protected query family have been
 established; it MUST NOT be imposed on raw memory or an arbitrary nonlinear
 environment.
+The benchmark MUST include two realized histories with the same configuration
+projection but different protected future consequences, and it MUST demonstrate
+discovery and prospective use of the missing path distinction before claiming
+learned predictive state.
+
+\paragraph{RCI-069 --- Aggregate and retained-state folds do not collapse.}
+The project MUST distinguish the authoritative replay fold
+$\Phi_{\mathrm{agg}}:\mathsf E^*\to\Sigma^{\mathrm{agg}}$ from a
+binding-defined retained representation
+$q_{\mathcal H}:\mathsf{Hist}_B\to S_{\mathcal H}$. \texttt{InquiryState},
+\texttt{ProbeTrace}, and \texttt{RetentionPackage} MUST NOT be treated as
+certified minimal consequence-sufficient state merely because they fold or
+retain prior structure. The ledger/CAS remains replay-complete authority even
+when a licensed semantic representation removes protected-irrelevant history
+distinctions.
+
+\paragraph{RCI-070 --- Recursive state sufficiency.}
+A representation claimed as executable retained state under an admitted
+continuation family MUST establish that equal represented states have identical
+sets of represented successors for every admitted operation. Where extension is
+deterministic, an independently checked update law MAY establish this as
+$q(h\mathbin{\cdot}u)=U(q(h),u)$. Failure MUST reject the recursive-state claim
+or narrow its continuation scope without weakening a separately valid answer-
+sufficiency claim.
+
+\paragraph{RCI-071 --- Representation successor ratchet.}
+A generated or newer representation MUST NOT replace an incumbent by novelty or
+recency. Strict succession requires preservation of every still-valid protected
+predecessor competence, at least one typed strict gain, and standing independent
+warrant. Independently invalidated predecessor claims require exact warranted
+dispositions. Scope tradeoffs and candidates that dominate in neither direction
+remain explicit frontier members or provisional candidates; no total order is
+assumed.
 
 \section{Consequence operators retained from prior drafts}
 
@@ -692,7 +868,8 @@ levels and MUST stay coherent with this specification:
 \item \path{docs/architecture.md}: implementer-facing ownership and data flow;
 \item \path{docs/requirements-matrix.md}: requirement disposition and evidence;
 \item \path{docs/adr/}: explicit reconciliations and consequential decisions;
-\item \path{docs/goals/}: bounded milestone targets, including sealed G1/G2A and active G2B;
+\item \path{docs/goals/}: bounded milestone targets, including sealed G1/G2A/G2B
+      and the active G3A history-state target;
 \item \path{docs/verification.md}: executed checks and honest returns;
 \item \path{docs/source-manifest.md}: immutable source provenance.
 \end{itemize}

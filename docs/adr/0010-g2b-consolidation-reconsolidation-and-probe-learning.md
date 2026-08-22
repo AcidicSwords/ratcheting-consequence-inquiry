@@ -50,6 +50,11 @@ the ledger; the SQLite table schema remains v2 unless a real table change become
 
 ## Consequences
 
+RCI v0.4 fixes the G2B/G3 handoff. A representation gap or admitted learned
+probe may expose a separator and refine the protected discriminator family, but
+only G3 may validate, license, apply, or replace a retained-state
+representation. `MemoryPatchCandidate` remains semantic-lemma repair.
+
 - Episodic recurrence cannot self-promote into generalized knowledge.
 - Recent-history bias is attacked by construction when older defeating material exists.
 - Reconsolidation repairs by succession rather than rewriting history.

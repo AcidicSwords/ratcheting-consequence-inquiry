@@ -1,9 +1,9 @@
-# RCI v0.3.1 implementation plan
+# RCI v0.4 implementation plan
 
 ## Status and authority
 
 This document is the approved engineering architecture and delivery sequence for
-`RCI_Project_Spec.tex` v0.3.1. The specification defines RCI semantics; this plan fixes
+`RCI_Project_Spec.tex` v0.4. The specification defines RCI semantics; this plan fixes
 implementation choices, trust boundaries, dependencies, and milestone gates. The active
 Goal fixes the current completion boundary. Ambiguities are recorded in
 `docs/requirements-matrix.md` and, when a decision is required, `docs/adr/`; code does
@@ -54,6 +54,27 @@ deletable/rebuildable. Projection rows and checkpoints commit together.
 All event types carry an explicit version. The greenfield database begins at schema v1.
 Reserve an upcaster registry and fail closed on unknown versions; do not invent legacy
 migrations before real legacy data exists.
+
+### Aggregate, realized history, configuration, and retained state
+
+```text
+event prefix --Phi_agg--> InquiryState (replay-complete authority)
+                              |
+                              | binding-specific rho_B
+                              v
+                        realized history --p_B--> configuration
+                              |
+                              | independently validated q_H
+                              v
+                        retained consequence state
+```
+
+Ledger sequence never implies realized succession. Bindings declare carrier roles,
+history derivation, configuration projection, protected consequence equality, and
+admitted continuation. `InquiryState`, `ProbeTrace`, `RetentionPackage`, and
+`MemoryPatchCandidate` are not certified retained state. A history representation is
+called recursively executable only after every operation in its declared continuation
+family descends lawfully. The aggregate remains complete and is never compressed.
 
 ### Logical ownership
 
@@ -332,7 +353,7 @@ versions advance when required and old derived state rebuilds. Archived G1 strea
 replay with unchanged G1 semantics. Recovery routes remain provisional and unlicensed;
 no comparison can create warrant or a `RecoveryLicense`.
 
-### G2B — consolidation and learned-probe candidates (active)
+### G2B — consolidation and learned-probe candidates (verified)
 
 Use `consolidation-interleave-v1` to create explicit checkpoints selecting up to four
 recent episodes, four older exceptions, and four accepted counterexamples from a pinned
@@ -349,13 +370,18 @@ protected-behavior checks, completed attacks, and controller admission before a 
 probe enters procedural memory. AALpy, learned automata, embeddings, compression,
 licensing, and control remain absent.
 
-G2A and G2B are internal delivery gates under the existing RCI-058; stable requirement
-IDs are not renumbered. RCI-058 finishes only after G2B's bounded Goal passes.
+G2A and G2B are sealed internal delivery gates under RCI-058. Their version-1 event
+schemas and meanings remain immutable under v0.4.
 
-### G3A/G3B/G3C — compression
+### G3A-H/G3A-L/G3B/G3C — retained state and compression
 
-- G3A: generic exact quotient, retention routes, exact rational finite binding, SymPy
-  linear theorem checks, residue, and horizon reopening.
+- G3A-H: explicit carrier roles; binding-derived realized history; exact consequence
+  factorization; continuation compatibility; recursive update; determination descent;
+  path residue; exact compression and recovery licenses; representation succession;
+  generic reopening; unary-parity and order-sensitive history fixtures. It uses current
+  dependencies only.
+- G3A-L: SymPy exact rational linear binding; universal/distributional/vector forms;
+  positive-weight probes; linear-only minimum dimension; exact kernel reopening.
 - G3B: approximate loss licenses, budgets/risk/confidence/debt composition, NumPy
   numerical candidates, and a deterministic toy quantizer/reference oracle.
 - G3C: isolated native adapters. QJL is the first candidate; EDEN/DRIVE remain blocked
@@ -385,9 +411,9 @@ blocks G1.
 ## Dependencies and Docker
 
 G1 base dependencies are Pydantic v2 and Typer; development uses pytest, Hypothesis,
-Ruff, mypy, and build. `openai` and pinned `z3-solver` are optional extras. G3A adds
-SymPy when exact linear capability is implemented; G3B adds NumPy. Future libraries are
-added only with the exercised capability.
+Ruff, mypy, and build. `openai` and pinned `z3-solver` are optional extras. G3A-H adds no
+dependency; G3A-L adds SymPy when exact linear capability is implemented; G3B adds
+NumPy. Future libraries are added only with the exercised capability.
 
 RCI owns its event protocol, reducers, support semantics, and canonical ASTs. Established
 libraries own their native mathematics behind typed ports when their license, failure
@@ -437,11 +463,18 @@ the G2A Goal, CI, and the verification record:
 uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
 ```
 
-Active G2B also requires this focused acceptance command, identically present in AGENTS,
+Verified G2B also requires this focused acceptance command, identically present in AGENTS,
 the G2B Goal, CI, and the verification record:
 
 ```text
 uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
+```
+
+Active G3A-H additionally requires this focused acceptance command, identically present
+in AGENTS, the G3A Goal, CI, and the verification record:
+
+```text
+uv run pytest -q tests/acceptance/test_g3a_history_state.py
 ```
 
 Synchronization may fetch locked packages; test execution is credential-free,
@@ -464,5 +497,10 @@ every parent/child crash-resume boundary; exact Pareto and mismatched-pin negati
 comparison non-promotion; the paired circuit cost improvement; archived G1 replay; both
 existing reference conclusions; and unchanged backlog authority.
 
-Phase 3 adds exact theorem, numeric non-promotion, direct-consequence evaluation,
-license/reopening, residue, budget-composition, and isolated-container adversarial tests.
+G3A-H adds carrier-role rejection, ledger/realized succession separation, exact
+factorization, sufficiency versus coarsest claims, continuation and recursive-update
+checks, determination descent, path-residue separation, license/application staging,
+route-capability linking, representation frontier/ratchet behavior, generic reopening,
+the two exact history fixtures, and unchanged G1/G2 replay. Later Phase 3 gates add the
+linear theorem, numeric non-promotion, approximate budgets/debt, and isolated-container
+adversarial tests.
