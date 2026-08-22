@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -127,11 +128,12 @@ def test_checked_status_cannot_be_asserted_without_captured_evidence(tmp_path: P
     )
 
     assert result.exit_code != 0
-    # Rich wraps error panels to the detected terminal width.  Keep the
-    # behavioral assertion stable in narrow hosted-CI consoles.
-    assert "checked status" in result.output
-    assert "requires" in result.output
-    assert "--evidence-file" in result.output
+    # Rich wraps and ANSI-styles error panels according to its host console.
+    plain_output = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", result.output)
+    normalized_output = "".join(
+        character for character in plain_output if character.isalnum() or character in "-_"
+    )
+    assert "checkedstatusrequires--evidence-file" in normalized_output
     assert not (root / ".rci" / "state.sqlite3").exists()
 
 
