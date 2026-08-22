@@ -1063,3 +1063,48 @@ at exact SHA `5f48d397030b6a063fdca19e51b70a824096e564` passed:
 Branch-protection read-back requires all eight strict current checks, including the new
 goal-synthesis context, with linear history and owner enforcement; force pushes and
 deletion remain blocked. G3G is sealed. No later frontier member is selected or active.
+
+## Active G3V governance and focused local verification — 2026-08-22
+
+The later post-G3G recursion supersedes only the final “no later frontier member” status
+above: it selected bounded model-disconnected review equivalence from exact protected-main
+anchor `b6069c0a58a669eed21005bada407eff1828071a`. The selection rationale is preserved in
+`docs/recursion/cycles/post-g3g-review-frontier.md`; ADR-0015 and `docs/goals/G3V.md`
+confine the active no-budget Goal. RCI-001 through RCI-079 now have exact spec/matrix
+parity, and ADR inventory is 15.
+
+The initial focused implementation return is:
+
+```text
+uv run pytest -q tests/acceptance/test_review_equivalence.py
+......                                                                   [100%]
+6 passed
+```
+
+The complete local predecessor-plus-G3V gate then returned:
+
+| Command | Exact local return |
+|---|---|
+| `uv lock --check` | exit 0; 40 locked packages resolved |
+| `uv sync --dev` | exit 0; base/dev environment synchronized |
+| `uv run python -c "import rci"` | exit 0 |
+| `uv run pytest -q -m "not optional"` | 200 passed, 1 intentional Windows symlink-privilege skip, 4 optional deselected |
+| `uv sync --all-extras --dev` | exit 0; all locked extras synchronized |
+| `uv run ruff format --check .` | 165 files already formatted |
+| `uv run ruff check .` | all checks passed |
+| `uv run mypy src/rci tests` | success; 120 source files checked |
+| `uv run pytest -q` | 204 passed, 1 intentional skip |
+| `uv run pytest -q tests/acceptance` | 41 passed |
+| `uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py` | 3 passed |
+| `uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py` | 1 passed |
+| `uv run pytest -q tests/acceptance/test_g3a_history_state.py` | 2 passed |
+| `uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py` | 7 passed |
+| `uv run pytest -q tests/acceptance/test_regenerative_questions.py` | 7 passed |
+| `uv run pytest -q tests/acceptance/test_goal_synthesis.py` | 3 passed |
+| `uv run pytest -q tests/acceptance/test_review_equivalence.py` | 6 passed |
+| `uv run rci --help` | exit 0; existing command groups plus project inspection, no execution authority |
+| `uv build` | source distribution and wheel built successfully |
+
+The local implementation boundary is verified. Hosted exact-head CI and protected
+promotion remain pending. No `IndependentReview`, successor warrant, protected
+promotion, local-model transport, or unbounded semantic-review conclusion is claimed.

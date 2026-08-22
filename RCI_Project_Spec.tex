@@ -891,6 +891,20 @@ no lawful discriminator, the same blocker recurs three times, evidence is invali
 indeterminate, or progress requires authority outside the active Goal. Recurrence MUST
 NOT relax its own stopping or acceptance rules merely to continue.
 
+\paragraph{RCI-079 --- Bounded review equivalence.}
+A model-disconnected review route MAY establish only
+\texttt{valid\_within\_profile} relative to a closed, versioned fault family and
+exact Goal, candidate-environment, candidate-commit, gate, invariant, evidence,
+and reproducer pins. Every required seeded fault MUST be observed through an
+independent exact-head development return. A surviving seeded fault makes the
+assessment invalid; missing, stale, foreign, malformed, unsupported, or
+indeterminate evidence makes it indeterminate. Passing the profile leaves
+unbounded semantic review \texttt{Unknown}. The assessment MUST NOT be relabelled
+as an \texttt{IndependentReview}, satisfy a fresh-review requirement, warrant a
+project successor, or authorize promotion. Model-generated semantic breakers are
+strictly parsed inert candidates; malformed model output remains an
+indeterminate return and cannot weaken the deterministic profile.
+
 \section{Consequence operators retained from prior drafts}
 
 For a typed relation \(R:X\rightsquigarrow Y\) and target predicate
@@ -939,8 +953,8 @@ levels and MUST stay coherent with this specification:
 \item \path{docs/architecture.md}: implementer-facing ownership and data flow;
 \item \path{docs/requirements-matrix.md}: requirement disposition and evidence;
 \item \path{docs/adr/}: explicit reconciliations and consequential decisions;
-\item \path{docs/goals/}: bounded milestone targets, including sealed G1/G2A/G2B
-      and the active G3A history-state target;
+\item \path{docs/goals/}: bounded milestone targets, including sealed G1 through
+      G3G and the active G3V bounded-review target;
 \item \path{docs/verification.md}: executed checks and honest returns;
 \item \path{docs/source-manifest.md}: immutable source provenance.
 \end{itemize}

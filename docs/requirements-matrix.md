@@ -9,7 +9,9 @@ other link/reparse-point and bounds checks passed. G2A is sealed and verified.
 G2B, G3A-H, G3R, G3Q, and G3G are sealed and verified. The post-G3Q frontier selected
 confined Goal synthesis as G3G; the selection is protected at exact anchor
 `60ff25635f94fb004e6419a09293c5e0fc023074`, and the implementation was promoted through
-protected main as `5f48d397030b6a063fdca19e51b70a824096e564`. G3A-L and later
+protected main as `5f48d397030b6a063fdca19e51b70a824096e564`. G3V is active from exact
+protected-main anchor `b6069c0a58a669eed21005bada407eff1828071a` and is confined to bounded
+model-disconnected review equivalence. G3A-L and later
 phases remain outside the completed implementation boundary.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
@@ -37,7 +39,7 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-001 | Authority and complete traceability | accepted v0.5 | `docs/source-manifest.md`, ADR-0001, ADR-0011–0014, this matrix, and the RCI-001--RCI-078 coverage check in `docs/verification.md` |
+| RCI-001 | Authority and complete traceability | accepted v0.5 | `docs/source-manifest.md`, ADR-0001, ADR-0011–0015, this matrix, and the RCI-001--RCI-079 coverage check in `docs/verification.md` |
 | RCI-002 | Pinned binding, scope, guard, universe, policy, and explicit carrier roles | verified G3A-H | sealed `InquiryContext`/`Scope` remain unchanged; `BindingCarrierManifest` declares exact carrier roles without mutating `InquiryStarted` |
 | RCI-003 | Questions create provisional claims, not facts | verified G1 | `QuestionContract` pins role, `AnswerShape`, `answer_schema_id`, binding policy, and lawful follow-ups; `bind_answer` fails closed on an unregistered shape/schema/policy and produces only a provisional L0 claim. `test_only_core_v1_is_schedulable_and_rendering_is_literal` and the Phase 1 vertical slice cover the typed path. |
 | RCI-004 | Arbitrary payloads remain inert L0 data | verified G1 | `freeze_json`, `InertPayload`, CAS-backed bytes; `test_arbitrary_l0_payload_is_inert_and_artifacts_are_references`, `test_nested_payloads_are_snapshot_immutable`, and replay of binary L0 bytes |
@@ -145,6 +147,7 @@ Status vocabulary:
 | RCI-076 | Project successors use a partial-order frontier and immutable discriminator-first Goal | verified G3G | exact `CapabilitySuccessorCandidate`, permutation-stable frontiers, deterministic `ImplementationGoalCandidate`, one total `GoalAdmissionDecision`, immutable admitted `ImplementationGoalContract`, confined gate/mutation registries, protected PR/main promotion, eight-check hosted CI, and `test_goal_synthesis.py` |
 | RCI-077 | Candidate actualization, evidence, review, successor decision, and promotion remain separate | verified G3R | `CandidateEnvironmentManifest`, exact-head evidence, different-context review, exact reviewed-evidence successor and promotion stages, complete SDK/CLI recording surface, protected merge, and absence of runtime source/Git ports |
 | RCI-078 | Recursive project inquiry has append-only continuity and typed stopping | verified G3R | `RecursiveCycleCheckpoint`, predecessor/phase monotonicity, `RecursiveStopDisposition`, `Unknown` paths, durable cycle handoff/report, and bounded blocker rule |
+| RCI-079 | Bounded mechanical review is exact-profile-relative and never substitutes for fresh semantic review | active G3V | ADR-0015, exact `MechanicalReviewContract`, complete `project-review-faults-v1` observations, `valid_within_profile`/invalid/indeterminate outcomes, permanent semantic `Unknown`, inert breaker parsing, and `test_review_equivalence.py` |
 
 ### RCI-068 staged capability evidence
 
@@ -157,6 +160,7 @@ Status vocabulary:
 | G3R | Verified recursive project inquiry, repertoire/frontier succession, sealed Goals, isolated candidate evidence, fresh review, and externally observed promotion | No runtime source/Git authority |
 | G3Q | Verified confined regenerative question scheduling | No arbitrary code, general planner, source authority, or automatic warrant |
 | G3G | Verified confined implementation-Goal synthesis; selection anchor `60ff25635f94fb004e6419a09293c5e0fc023074`, protected implementation `5f48d397030b6a063fdca19e51b70a824096e564` | No free-form commands/paths, general planner, actuator, or authority expansion |
+| G3V | Active bounded model-disconnected review equivalence from `b6069c0a58a669eed21005bada407eff1828071a` | Only `valid_within_profile`; no fresh semantic-review substitution, model transport, successor warrant, or promotion authority |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

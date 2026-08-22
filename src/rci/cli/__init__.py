@@ -38,10 +38,12 @@ from rci.project import (
     CapabilityLimitation,
     CapabilitySuccessorCandidate,
     DevelopmentEvidence,
+    FaultObservationManifest,
     GoalAdmissionDecision,
     GoalSynthesisUnknown,
     ImplementationGoalContract,
     IndependentReview,
+    MechanicalReviewContract,
     MethodAdmissionDecision,
     MethodBindingCandidate,
     ProjectAnchor,
@@ -920,6 +922,64 @@ def project_review(
     review = IndependentReview.model_validate_json(record.read_bytes(), strict=True)
     state = _sdk(root).record_independent_review(inquiry_id, review)
     typer.echo(_json(state.independent_reviews[-1]))
+
+
+@project_app.command("review-contract")
+def project_review_contract(
+    inquiry_id: str,
+    goal_id: Annotated[str, typer.Option("--goal-id")],
+    candidate_environment_id: Annotated[str, typer.Option("--candidate-environment-id")],
+    evidence_id: Annotated[list[str], typer.Option("--evidence-id")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Derive one exact bounded mechanical-review contract."""
+
+    result = _sdk(root).compile_mechanical_review(
+        inquiry_id,
+        goal_id=goal_id,
+        candidate_environment_id=candidate_environment_id,
+        evidence_ids=tuple(evidence_id),
+    )
+    typer.echo(_json(result))
+
+
+@project_app.command("review-assess")
+def project_review_assess(
+    inquiry_id: str,
+    contract: Annotated[Path, typer.Option("--contract")],
+    manifest: Annotated[Path, typer.Option("--manifest")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Recompute a bounded assessment; never append or promote it."""
+
+    contract_record = MechanicalReviewContract.model_validate_json(
+        contract.read_bytes(), strict=True
+    )
+    manifest_record = FaultObservationManifest.model_validate_json(
+        manifest.read_bytes(), strict=True
+    )
+    result = _sdk(root).assess_mechanical_review(
+        inquiry_id,
+        contract=contract_record,
+        manifest=manifest_record,
+    )
+    typer.echo(_json(result))
+
+
+@project_app.command("review-breaker")
+def project_review_breaker(
+    record: Annotated[Path, typer.Option("--record")],
+    base_commit_sha: Annotated[str, typer.Option("--base-commit-sha")],
+    candidate_commit_sha: Annotated[str, typer.Option("--candidate-commit-sha")],
+) -> None:
+    """Strictly parse optional model output as an inert semantic-breaker candidate."""
+
+    result = RCI.parse_semantic_breaker(
+        record.read_bytes(),
+        expected_base_commit_sha=base_commit_sha,
+        expected_candidate_commit_sha=candidate_commit_sha,
+    )
+    typer.echo(_json(result))
 
 
 @project_app.command("successor")

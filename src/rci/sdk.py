@@ -162,13 +162,18 @@ from rci.project import (
     CapabilityLimitation,
     CapabilitySuccessorCandidate,
     DevelopmentEvidence,
+    FaultObservationManifest,
     GoalAdmissionDecision,
     GoalSynthesisUnknown,
     ImplementationGoalCandidate,
     ImplementationGoalContract,
     IndependentReview,
+    MechanicalReviewAssessment,
+    MechanicalReviewContract,
+    MechanicalReviewIndeterminate,
     MethodAdmissionDecision,
     MethodBindingCandidate,
+    ModelReviewIndeterminate,
     ProjectAnchor,
     ProjectSuccessorDecision,
     PromotionDecision,
@@ -176,7 +181,11 @@ from rci.project import (
     QuestionRepertoireDecision,
     RecursiveCycleCheckpoint,
     RecursiveStopDisposition,
+    SemanticBreakerCandidate,
+    assess_mechanical_review,
     compile_implementation_goal_candidate,
+    compile_mechanical_review_contract,
+    parse_semantic_breaker_candidate,
 )
 from rci.questions import bind_answer, get_contract, render_question
 from rci.questions.catalog import CATALOG_V0_3, CATALOG_V0_4, CORE_V1
@@ -2025,6 +2034,66 @@ class RCI:
                 occurred_at=self.clock(),
                 evidence=evidence,
             )
+        )
+
+    def compile_mechanical_review(
+        self,
+        inquiry_id: str,
+        *,
+        goal_id: str,
+        candidate_environment_id: str,
+        evidence_ids: tuple[str, ...],
+    ) -> MechanicalReviewContract | MechanicalReviewIndeterminate:
+        """Derive a bounded fault-profile contract from exact owned records."""
+
+        state = self.inspect(inquiry_id)
+        goal = next((item for item in state.implementation_goals if item.id == goal_id), None)
+        environment = next(
+            (item for item in state.candidate_environments if item.id == candidate_environment_id),
+            None,
+        )
+        evidence_by_id = {item.id: item for item in state.development_evidence}
+        if goal is None or environment is None:
+            raise ValueError("mechanical review requires an owned Goal and candidate environment")
+        try:
+            evidence = tuple(evidence_by_id[item] for item in evidence_ids)
+        except KeyError as error:
+            raise ValueError("mechanical review references unknown development evidence") from error
+        return compile_mechanical_review_contract(
+            goal=goal,
+            environment=environment,
+            evidence=evidence,
+        )
+
+    def assess_mechanical_review(
+        self,
+        inquiry_id: str,
+        *,
+        contract: MechanicalReviewContract,
+        manifest: FaultObservationManifest,
+    ) -> MechanicalReviewAssessment:
+        """Recompute one bounded review assessment without appending authority."""
+
+        state = self.inspect(inquiry_id)
+        return assess_mechanical_review(
+            contract=contract,
+            manifest=manifest,
+            evidence=state.development_evidence,
+        )
+
+    @staticmethod
+    def parse_semantic_breaker(
+        raw: bytes,
+        *,
+        expected_base_commit_sha: str,
+        expected_candidate_commit_sha: str,
+    ) -> SemanticBreakerCandidate | ModelReviewIndeterminate:
+        """Parse optional model output as an inert candidate or typed indeterminate."""
+
+        return parse_semantic_breaker_candidate(
+            raw,
+            expected_base_commit_sha=expected_base_commit_sha,
+            expected_candidate_commit_sha=expected_candidate_commit_sha,
         )
 
     def record_independent_review(self, inquiry_id: str, review: IndependentReview) -> InquiryState:

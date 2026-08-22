@@ -93,6 +93,24 @@ records do not determine the Goal. Codex may still author a Goal manually outsid
 runtime; the new capability makes the project-level derivation replayable and attackable
 rather than pretending the external orchestrator disappeared.
 
+G3V adds a separate bounded review relation without altering that chain:
+
+```text
+exact Goal + candidate environment + exact head + incumbent gate
+  + complete versioned fault profile + exact development returns
+  -> MechanicalReviewContract
+  -> FaultObservationManifest
+  -> invalid | indeterminate | valid_within_profile
+```
+
+`valid_within_profile` means only that every seeded member of the closed profile was
+detected under the exact pins. It is not a `valid` G3R `IndependentReview`, does not
+establish unbounded semantic coverage, and cannot enter successor or promotion gates;
+the semantic residual is always `Unknown`. Optional local-model output is parsed only as
+an inert `SemanticBreakerCandidate`. Malformed output is a preserved indeterminate
+return, not evidence that the candidate passed and not authority to weaken the profile.
+The route is pure and derived: it adds neither a writable authority nor an event kind.
+
 ## Durable authority and logical ownership
 
 The SQLite event ledger and content-addressed artifact store are the only durable

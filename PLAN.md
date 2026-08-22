@@ -459,7 +459,38 @@ The selection record is protected at exact main anchor
 `docs/goals/G3G.md`. The distinct no-budget G3G Goal began from development anchor
 `defeb5c2dad32b86cc1861d4f3c35522a3f0497f` and was promoted through protected main as
 `5f48d397030b6a063fdca19e51b70a824096e564`; the earlier SHA remains the immutable
-selection anchor. No successor Goal is active until another governed frontier decision.
+selection anchor.
+
+### G3V (active) — bounded review equivalence
+
+- Begin from exact protected-main anchor
+  `b6069c0a58a669eed21005bada407eff1828071a` after the verified G3G evidence closeout.
+- Compile a deterministic `MechanicalReviewContract` only from an exact admitted Goal,
+  candidate environment, candidate SHA, incumbent gate, complete invariant registry,
+  exact development evidence, and the closed `project-review-faults-v1` profile.
+- Seed and observe exact-head substitutions for head binding, evidence ownership,
+  reviewer independence, stage separation, Unknown non-promotion, gate monotonicity,
+  authority-root confinement, and replay/effect freedom. Each observation binds one
+  preserved reproducer digest and one exact development return.
+- Derive `invalid` when a seeded fault survives, `indeterminate` when required evidence
+  is missing, stale, foreign, malformed, unsupported, or inconclusive, and
+  `valid_within_profile` only when every registered fault is independently detected.
+  Unbounded semantic coverage remains `Unknown` in every result.
+- Strictly parse optional model output only as an inert `SemanticBreakerCandidate`.
+  Prose, code fences, invented schemas, wrong commits, unknown invariants, or malformed
+  JSON become a typed indeterminate result rather than review evidence.
+- Preserve sealed G3R `IndependentReview`, successor-decision, and protected-promotion
+  semantics unchanged. A mechanical assessment cannot substitute for fresh review,
+  promote a project successor, or expand authority.
+- Add no model client, network route, arbitrary execution, source/Git mutation,
+  dependency, snapshot field, or event kind. A future local-model adapter must use the
+  persisted effect protocol and a later explicit Goal.
+
+G3V is the componentwise cost-minimal bounded discriminator selected from the post-G3G
+frontier recorded in `docs/recursion/cycles/post-g3g-review-frontier.md`. It does not
+dominate fresh semantic review, schema-constrained local-model review, G3A-L,
+native-method binding, or isolated candidate actuation; those alternatives remain on the
+frontier. ADR-0015 and `docs/goals/G3V.md` fix the exact no-budget boundary.
 
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
@@ -583,6 +614,13 @@ The sealed G3G baseline retains this focused command:
 
 ```text
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
+```
+
+The active G3V gate adds this focused command identically to AGENTS, its Goal, CI, and
+the verification record:
+
+```text
+uv run pytest -q tests/acceptance/test_review_equivalence.py
 ```
 
 Synchronization may fetch locked packages; test execution is credential-free,

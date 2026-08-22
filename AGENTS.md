@@ -241,6 +241,17 @@ successors distinct; a failure in one category does not authorize mutation in an
 - Replacement requires passing exact-head evidence, fresh review by a context distinct
   from the developer, predecessor preservation, typed gain, and protected CI. A merge
   is an externally observed promotion, never a reducer side effect.
+- G3V may derive only `valid_within_profile` from the closed
+  `project-review-faults-v1` registry and exact Goal/environment/head/gate/evidence
+  pins. It never becomes an `IndependentReview`, successor warrant, or promotion
+  authorization; unbounded semantic coverage remains `Unknown`.
+- Every G3V fault observation binds a preserved reproducer digest and an exact-head
+  development return. Missing, stale, foreign, unsupported, or inconclusive evidence
+  is indeterminate; a surviving seeded fault is invalid. The profile cannot omit or
+  rename required faults at runtime.
+- Optional model review is a strictly parsed inert semantic-breaker candidate. Malformed
+  JSON, prose, code fences, wrong commits, invented invariants, or schema drift remain
+  indeterminate and cannot weaken or replace the deterministic review route.
 - Evolve CI by dual gate: add and pass the successor beside the incumbent before any
   later reviewed cleanup removes the incumbent.
 - Append cycle checkpoints and immutable cycle reports. Stop on no consequential
@@ -252,8 +263,9 @@ successors distinct; a failure in one category does not authorize mutation in an
 G1, G2A, G2B, G3A-H, G3R, G3Q, and G3G are sealed verified baselines. The post-G3Q recursive
 frontier selection is protected at exact selection anchor
 `60ff25635f94fb004e6419a09293c5e0fc023074`; G3G was promoted through protected main at
-`5f48d397030b6a063fdca19e51b70a824096e564`. No successor Goal is active until a new
-frontier decision and explicit activation occur.
+`5f48d397030b6a063fdca19e51b70a824096e564`. G3V is the active no-budget Goal from exact
+protected-main anchor `b6069c0a58a669eed21005bada407eff1828071a`; it adds only bounded
+model-disconnected review equivalence under ADR-0015.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
@@ -261,7 +273,9 @@ continuation checks, exact compression/recovery licensing, path residue, represe
 succession, and generic reopening described in `PLAN.md` and ADR-0011. G3Q adds only
 confined, independently admitted, data-only generated question scheduling. G3G adds
 deterministic inert Goal-candidate compilation plus separate admission under ADR-0014.
-G3A-L and the other nondominated successors remain deferred rather than rejected.
+G3V adds a derived fault-profile assessment and inert semantic-breaker parser without
+changing sealed G3R review or promotion semantics. G3A-L and the other nondominated
+successors remain deferred rather than rejected.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
@@ -367,6 +381,13 @@ and verification evidence:
 
 ```text
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
+```
+
+The active G3V gate adds this focused command identically to `PLAN.md`, its Goal, CI,
+and verification evidence:
+
+```text
+uv run pytest -q tests/acceptance/test_review_equivalence.py
 ```
 
 Dependency sync is bootstrap and may fetch locked packages. Test execution is
