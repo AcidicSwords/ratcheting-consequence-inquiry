@@ -6,11 +6,11 @@ returns in `docs/verification.md`. Its sole Windows skip is preserved there: the
 host lacked file-symlink privilege (`WinError 1314`), so the adversarial symlink
 case remains live for Linux CI and privileged Windows while the implementation's
 other link/reparse-point and bounds checks passed. G2A is sealed and verified.
-G2B, G3A-H, G3R, and G3Q are sealed and verified. The post-G3Q frontier selected
+G2B, G3A-H, G3R, G3Q, and G3G are sealed and verified. The post-G3Q frontier selected
 confined Goal synthesis as G3G; the selection is protected at exact anchor
-`60ff25635f94fb004e6419a09293c5e0fc023074`, while implementation remains unbegun pending
-its separate active Goal. G3A-L and later phases remain outside the selected implementation
-boundary.
+`60ff25635f94fb004e6419a09293c5e0fc023074`, and the implementation was promoted through
+protected main as `5f48d397030b6a063fdca19e51b70a824096e564`. G3A-L and later
+phases remain outside the completed implementation boundary.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
 
@@ -142,7 +142,7 @@ Status vocabulary:
 | RCI-073 | A project limitation requires a protected consequential boundary | verified G3R | `CapabilityLimitation` requires current/desired consequence and a separating observation; empty dissatisfaction and novelty cannot enter the frontier |
 | RCI-074 | Question repertoire succession is typed, inert, attacked, and independently admitted | verified G3Q | Exact admission plus the derived `CompiledQuestionContract` registry, context/policy pins, ordinary scheduling, provisional return routing, adversarial acceptance, fresh exact-head review, protected promotion, and seven-check post-merge CI |
 | RCI-075 | Method repertoire succession binds native assumptions and does not install itself | verified G3R | `MethodBindingCandidate`, preserved primary-source/applicability/license pins, exact independently reviewed evidence, separate `MethodAdmissionDecision`, and exact Goal linkage when an adapter is absent |
-| RCI-076 | Project successors use a partial-order frontier and immutable discriminator-first Goal | implemented G3G; hosted gate pending | exact `CapabilitySuccessorCandidate`, permutation-stable frontiers, deterministic `ImplementationGoalCandidate`, one total `GoalAdmissionDecision`, immutable admitted `ImplementationGoalContract`, confined gate/mutation registries, and `test_goal_synthesis.py` |
+| RCI-076 | Project successors use a partial-order frontier and immutable discriminator-first Goal | verified G3G | exact `CapabilitySuccessorCandidate`, permutation-stable frontiers, deterministic `ImplementationGoalCandidate`, one total `GoalAdmissionDecision`, immutable admitted `ImplementationGoalContract`, confined gate/mutation registries, protected PR/main promotion, eight-check hosted CI, and `test_goal_synthesis.py` |
 | RCI-077 | Candidate actualization, evidence, review, successor decision, and promotion remain separate | verified G3R | `CandidateEnvironmentManifest`, exact-head evidence, different-context review, exact reviewed-evidence successor and promotion stages, complete SDK/CLI recording surface, protected merge, and absence of runtime source/Git ports |
 | RCI-078 | Recursive project inquiry has append-only continuity and typed stopping | verified G3R | `RecursiveCycleCheckpoint`, predecessor/phase monotonicity, `RecursiveStopDisposition`, `Unknown` paths, durable cycle handoff/report, and bounded blocker rule |
 
@@ -156,7 +156,7 @@ Status vocabulary:
 | G3A-H | Verified exact history-state carriers, quotient validation, recovery licence, residue, reopening, and representation ratchet | No SymPy linear binding, approximation, native adapter, or control |
 | G3R | Verified recursive project inquiry, repertoire/frontier succession, sealed Goals, isolated candidate evidence, fresh review, and externally observed promotion | No runtime source/Git authority |
 | G3Q | Verified confined regenerative question scheduling | No arbitrary code, general planner, source authority, or automatic warrant |
-| G3G | Selected confined implementation-Goal synthesis; exact selection anchor `60ff25635f94fb004e6419a09293c5e0fc023074` | Implementation unbegun; no free-form commands/paths, planner, actuator, or authority expansion |
+| G3G | Verified confined implementation-Goal synthesis; selection anchor `60ff25635f94fb004e6419a09293c5e0fc023074`, protected implementation `5f48d397030b6a063fdca19e51b70a824096e564` | No free-form commands/paths, general planner, actuator, or authority expansion |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

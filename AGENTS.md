@@ -249,18 +249,19 @@ successors distinct; a failure in one category does not authorize mutation in an
 
 ## Phase discipline
 
-G1, G2A, G2B, G3A-H, G3R, and G3Q are sealed verified baselines. The post-G3Q recursive
+G1, G2A, G2B, G3A-H, G3R, G3Q, and G3G are sealed verified baselines. The post-G3Q recursive
 frontier selection is protected at exact selection anchor
-`60ff25635f94fb004e6419a09293c5e0fc023074`. The no-budget G3G implementation Goal is
-active from development anchor `defeb5c2dad32b86cc1861d4f3c35522a3f0497f`.
+`60ff25635f94fb004e6419a09293c5e0fc023074`; G3G was promoted through protected main at
+`5f48d397030b6a063fdca19e51b70a824096e564`. No successor Goal is active until a new
+frontier decision and explicit activation occur.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
 continuation checks, exact compression/recovery licensing, path residue, representation
 succession, and generic reopening described in `PLAN.md` and ADR-0011. G3Q adds only
-confined, independently admitted, data-only generated question scheduling. The next
-selected discriminator is confined implementation-Goal synthesis under ADR-0014. G3A-L
-and the other nondominated successors remain deferred rather than rejected.
+confined, independently admitted, data-only generated question scheduling. G3G adds
+deterministic inert Goal-candidate compilation plus separate admission under ADR-0014.
+G3A-L and the other nondominated successors remain deferred rather than rejected.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
@@ -361,7 +362,7 @@ The sealed G3Q baseline retains this focused command identically to `PLAN.md`,
 uv run pytest -q tests/acceptance/test_regenerative_questions.py
 ```
 
-The active G3G gate adds this focused command identically to `PLAN.md`, its Goal, CI,
+The sealed G3G baseline retains this focused command identically to `PLAN.md`, its Goal, CI,
 and verification evidence:
 
 ```text

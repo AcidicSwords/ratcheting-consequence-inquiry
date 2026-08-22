@@ -426,7 +426,7 @@ folded-state field, snapshot migration, or dependency. G3A-L, native-method bind
 autonomous Goal synthesis, isolated candidate actuation, and G4 remain nondominated
 frontier members rather than rejected alternatives.
 
-### G3G (active) — confined implementation-Goal synthesis
+### G3G (verified) — confined implementation-Goal synthesis
 
 - Compile only an exact owned admitted project-question return, clean anchor,
   consequential limitation, ready frontier, and its exact selected candidate into an
@@ -456,9 +456,10 @@ componentwise cost-minimal reversible discriminator under two bounded inventory 
 does not totally rank or reject G3A-L, native-method binding, isolated actuation, or G4.
 The selection record is protected at exact main anchor
 `60ff25635f94fb004e6419a09293c5e0fc023074`, which is written into
-`docs/goals/G3G.md`. The distinct no-budget G3G Goal is active from development anchor
-`defeb5c2dad32b86cc1861d4f3c35522a3f0497f`; the earlier SHA remains the immutable
-selection anchor.
+`docs/goals/G3G.md`. The distinct no-budget G3G Goal began from development anchor
+`defeb5c2dad32b86cc1861d4f3c35522a3f0497f` and was promoted through protected main as
+`5f48d397030b6a063fdca19e51b70a824096e564`; the earlier SHA remains the immutable
+selection anchor. No successor Goal is active until another governed frontier decision.
 
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
@@ -578,7 +579,7 @@ and the verification record:
 uv run pytest -q tests/acceptance/test_regenerative_questions.py
 ```
 
-The active G3G gate adds this focused command:
+The sealed G3G baseline retains this focused command:
 
 ```text
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
