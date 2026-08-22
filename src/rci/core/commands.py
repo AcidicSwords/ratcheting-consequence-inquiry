@@ -27,6 +27,14 @@ from rci.core.effects import (
 )
 from rci.core.model import ArtifactRef, FrozenModel, Identifier, InquiryContext, require_utc
 from rci.core.planning import StepPlan
+from rci.memory.models import (
+    ReacquisitionInquiryLink,
+    ReacquisitionRequest,
+    RecoveryComparison,
+    RecoveryObservation,
+    RetentionRegistration,
+    RetrievalQuery,
+)
 from rci.probes.models import (
     CognitiveAttemptPlan,
     Mismatch,
@@ -233,6 +241,37 @@ class CommitSemanticDelta(CommandBase):
     delta: SemanticDelta
 
 
+class RegisterRetentionPackage(CommandBase):
+    kind: Literal["register_retention_package"] = "register_retention_package"
+    registration: RetentionRegistration
+
+
+class RunRetrieval(CommandBase):
+    kind: Literal["run_retrieval"] = "run_retrieval"
+    result_id: Identifier
+    query: RetrievalQuery
+
+
+class RequestReacquisition(CommandBase):
+    kind: Literal["request_reacquisition"] = "request_reacquisition"
+    request: ReacquisitionRequest
+
+
+class LinkReacquisitionInquiry(CommandBase):
+    kind: Literal["link_reacquisition_inquiry"] = "link_reacquisition_inquiry"
+    link: ReacquisitionInquiryLink
+
+
+class RecordRecoveryObservation(CommandBase):
+    kind: Literal["record_recovery_observation"] = "record_recovery_observation"
+    observation: RecoveryObservation
+
+
+class RecordRecoveryComparison(CommandBase):
+    kind: Literal["record_recovery_comparison"] = "record_recovery_comparison"
+    comparison: RecoveryComparison
+
+
 DomainCommand = Annotated[
     StartInquiry
     | RecordBacklogEffect
@@ -264,6 +303,12 @@ DomainCommand = Annotated[
     | RecordProbeObservation
     | RecordReconstruction
     | RecordMismatch
-    | CommitSemanticDelta,
+    | CommitSemanticDelta
+    | RegisterRetentionPackage
+    | RunRetrieval
+    | RequestReacquisition
+    | LinkReacquisitionInquiry
+    | RecordRecoveryObservation
+    | RecordRecoveryComparison,
     Field(discriminator="kind"),
 ]

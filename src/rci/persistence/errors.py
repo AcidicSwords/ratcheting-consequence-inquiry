@@ -17,6 +17,10 @@ class IntegrityError(PersistenceError):
     """Persisted bytes no longer match their recorded digest or metadata."""
 
 
+class SagaIntegrityError(IntegrityError):
+    """A cross-stream saga fact lacks its exact immutable counterpart."""
+
+
 class ArtifactIntegrityError(IntegrityError):
     """Content-addressed artifact material is absent, truncated, or changed."""
 

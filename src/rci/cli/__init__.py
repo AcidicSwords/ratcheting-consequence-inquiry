@@ -24,19 +24,25 @@ from rci.backlog import (
 )
 from rci.bindings import circuit_demonstration, route_demonstration
 from rci.evaluation import evaluate_cases
+from rci.memory import MemoryOwner, OwnedRecordType, RecoveryBranch
 from rci.persistence import DATABASE_SCHEMA_VERSION
 from rci.questions.catalog import CATALOG_V0_3
 from rci.sdk import RCI
+from rci.warrant import CheckReference
 
 app = typer.Typer(no_args_is_help=True, help="Ratcheting Consequence Inquiry")
 contracts_app = typer.Typer(no_args_is_help=True, help="Question contract catalog")
 evaluation_app = typer.Typer(no_args_is_help=True, help="Offline evaluation")
 database_app = typer.Typer(no_args_is_help=True, help="Local event database")
 backlog_app = typer.Typer(no_args_is_help=True, help="Governed backlog reconciliation")
+memory_app = typer.Typer(no_args_is_help=True, help="Deterministic structural memory")
+recovery_app = typer.Typer(no_args_is_help=True, help="Measured reacquisition recovery")
 app.add_typer(contracts_app, name="contracts")
 app.add_typer(evaluation_app, name="eval")
 app.add_typer(database_app, name="db")
 app.add_typer(backlog_app, name="backlog")
+app.add_typer(memory_app, name="memory")
+app.add_typer(recovery_app, name="recovery")
 
 _MAX_WORKSPACE_FILES = 10_000
 _MAX_WORKSPACE_FILE_BYTES = 16 * 1024 * 1024
@@ -388,6 +394,122 @@ def database_verify(
     sdk = _sdk(root)
     state = sdk.replay(inquiry_id)
     typer.echo(_json({"verified": True, "sequence": state.sequence}))
+
+
+@memory_app.command("retrieve")
+def retrieve_memory(
+    inquiry_id: str,
+    query_id: Annotated[str, typer.Option("--query-id")],
+    result_id: Annotated[str, typer.Option("--result-id")],
+    cue: Annotated[list[str] | None, typer.Option("--cue")] = None,
+    tag: Annotated[list[str] | None, typer.Option("--tag")] = None,
+    owner: Annotated[list[MemoryOwner] | None, typer.Option("--owner")] = None,
+    record_type: Annotated[
+        list[OwnedRecordType] | None,
+        typer.Option("--record-type"),
+    ] = None,
+    limit: Annotated[int, typer.Option("--limit", min=1, max=100)] = 20,
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Persist one exact structural retrieval and emit canonical JSON."""
+
+    result = _sdk(root).retrieve(
+        inquiry_id,
+        query_id=query_id,
+        result_id=result_id,
+        owners=tuple(sorted(set(owner or ()), key=lambda item: item.value)),
+        record_types=tuple(sorted(set(record_type or ()), key=lambda item: item.value)),
+        cue_ids=tuple(cue or ()),
+        tag_ids=tuple(tag or ()),
+        limit=limit,
+    )
+    typer.echo(_json(result))
+
+
+@recovery_app.command("start")
+def start_recovery(
+    parent_inquiry_id: str,
+    child_inquiry_id: Annotated[str, typer.Option("--child-inquiry-id")],
+    request_id: Annotated[str, typer.Option("--request-id")],
+    branch: Annotated[RecoveryBranch, typer.Option("--branch")],
+    recovery_protocol_id: Annotated[str, typer.Option("--protocol-id")],
+    retention_package_id: Annotated[
+        str | None,
+        typer.Option("--retention-package-id"),
+    ] = None,
+    scaffold_id: Annotated[str | None, typer.Option("--scaffold-id")] = None,
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Resume a request-to-child-to-link saga and emit its parent state."""
+
+    state = _sdk(root).start_reacquisition(
+        parent_inquiry_id,
+        request_id=request_id,
+        child_inquiry_id=child_inquiry_id,
+        branch=branch,
+        recovery_protocol_id=recovery_protocol_id,
+        retention_package_id=retention_package_id,
+        scaffold_id=scaffold_id,
+    )
+    typer.echo(_json(state))
+
+
+@recovery_app.command("inspect")
+def inspect_recovery(
+    parent_inquiry_id: str,
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Emit only the immutable recovery records owned by a parent inquiry."""
+
+    state = _sdk(root).inspect(parent_inquiry_id)
+    typer.echo(
+        _json(
+            {
+                "comparisons": [
+                    item.model_dump(mode="json") for item in state.recovery_comparisons
+                ],
+                "links": [
+                    item.model_dump(mode="json") for item in state.reacquisition_inquiry_links
+                ],
+                "observations": [
+                    item.model_dump(mode="json") for item in state.recovery_observations
+                ],
+                "requests": [item.model_dump(mode="json") for item in state.reacquisition_requests],
+                "sequence": state.sequence,
+            }
+        )
+    )
+
+
+@recovery_app.command("compare")
+def compare_recovery(
+    parent_inquiry_id: str,
+    comparison_id: Annotated[str, typer.Option("--comparison-id")],
+    baseline_observation: Annotated[
+        list[str],
+        typer.Option("--baseline-observation"),
+    ],
+    retained_observation: Annotated[
+        list[str],
+        typer.Option("--retained-observation"),
+    ],
+    evidence_id: Annotated[str, typer.Option("--evidence-id")],
+    checker_verdict_id: Annotated[str, typer.Option("--checker-verdict-id")],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Record one independently checked provisional exact-frontier comparison."""
+
+    comparison = _sdk(root).compare_recovery(
+        parent_inquiry_id,
+        comparison_id=comparison_id,
+        baseline_observation_ids=tuple(sorted(set(baseline_observation))),
+        retained_observation_ids=tuple(sorted(set(retained_observation))),
+        comparison_check=CheckReference(
+            evidence_id=evidence_id,
+            checker_verdict_id=checker_verdict_id,
+        ),
+    )
+    typer.echo(_json(comparison))
 
 
 def _backlog_policy(root: Path) -> BacklogPolicy:

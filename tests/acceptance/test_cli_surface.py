@@ -27,12 +27,21 @@ def test_root_and_governance_command_groups_are_discoverable() -> None:
         "eval",
         "db",
         "backlog",
+        "memory",
+        "recovery",
     ):
         assert command in root_help.stdout
 
     backlog_help = runner.invoke(app, ["backlog", "--help"])
     assert backlog_help.exit_code == 0
     assert "reconcile" in backlog_help.stdout
+
+    memory_help = runner.invoke(app, ["memory", "--help"])
+    recovery_help = runner.invoke(app, ["recovery", "--help"])
+    assert memory_help.exit_code == recovery_help.exit_code == 0
+    assert "retrieve" in memory_help.stdout
+    for command in ("start", "inspect", "compare"):
+        assert command in recovery_help.stdout
 
     references = runner.invoke(app, ["eval", "references"])
     assert references.exit_code == 0
