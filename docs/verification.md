@@ -1108,3 +1108,23 @@ The complete local predecessor-plus-G3V gate then returned:
 The local implementation boundary is verified. Hosted exact-head CI and protected
 promotion remain pending. No `IndependentReview`, successor warrant, protected
 promotion, local-model transport, or unbounded semantic-review conclusion is claimed.
+
+The implementation candidate commit is
+`21855a932a45b8d38118dca3447697bf7ab2c1eb`. Pull request
+[#14](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/14) remains
+open. Its exact-head
+[run 32600257888](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32600257888)
+passed all nine contexts:
+
+- `base (ubuntu-latest)`: job `97097350801`, success;
+- `base (windows-latest)`: job `97097350757`, success;
+- `extras (ubuntu-latest)`: job `97097350765`, success;
+- `extras (windows-latest)`: job `97097350769`, success;
+- `docker`: job `97097350664`, success;
+- `recursive (ubuntu-latest)`: job `97097350777`, success;
+- `regenerative (ubuntu-latest)`: job `97097350791`, success;
+- `goal-synthesis (ubuntu-latest)`: job `97097350774`, success;
+- `review-equivalence (ubuntu-latest)`: job `97097350763`, success.
+
+This supersedes only the hosted-CI-pending statement. Fresh semantic review remains
+`Unknown`, so the PR is deliberately unmerged and G3V remains active rather than sealed.
