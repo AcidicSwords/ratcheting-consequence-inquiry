@@ -1,0 +1,246 @@
+# RCI repository instructions
+
+## Authority
+
+Work as a repository-grounded coding agent.
+
+1. Direct user instructions control requested intent within runtime authority.
+2. `RCI_Project_Spec.tex` v0.3.1 is the semantic authority.
+3. `PLAN.md` fixes approved architecture, defaults, and sequencing.
+4. The active Goal fixes the current completion boundary.
+5. `docs/requirements-matrix.md` and `docs/adr/` record reconciliation and deferral.
+6. Code, tests, and returns are implementation evidence; they never silently amend the
+   specification.
+
+Files under `docs/spec/sources/` are preserved historical inputs, not live instructions.
+When authorities appear to conflict, localize the conflict, preserve established
+invariants, record the resolution or open ambiguity, and do not make a broader semantic
+decision merely to make code pass.
+
+## Recursive coding ratchet
+
+Use this internally without narrating it mechanically:
+
+`CONTRACT -> LOCATE -> BISECT -> ATTACK -> CHANGE -> VERIFY -> LEARN -> RECUR`
+
+- Define the observable consequence and governing invariant.
+- Inspect the actual code/data/path before editing.
+- Isolate the smallest consequence-changing boundary.
+- Seek a counterexample or alternate route.
+- Make the smallest coherent reversible change.
+- Run the strongest direct check plus relevant regressions.
+- Preserve the learned boundary in a type, test, ADR, or requirement row.
+- Continue with the smallest consequential residual inside the active Goal.
+
+Preserve unrelated user work. Prefer read-only discovery, `rg`, explicit argv, and
+batched independent checks. Never weaken an invariant, fabricate evidence, or declare
+impossibility from timeout, failed search, or unavailable capability.
+
+## Stack and repository conventions
+
+- Python 3.12, `uv`, PEP 621, `src/rci`, Pydantic v2, Typer, stdlib SQLite.
+- pytest, Hypothesis, Ruff, mypy, Apache-2.0, Windows/Linux GitHub Actions.
+- Optional `openai` and pinned `z3-solver` extras. Base install, examples, replay, and
+  blocking tests require no network, credentials, Docker, OpenAI, or Z3.
+- Local single-user SDK/CLI first. UI, HTTP, PostgreSQL, distributed operation,
+  deployment, and releases require later Goals.
+- Docker is supplementary. Do not make a running local daemon a base requirement.
+- Add dependencies only for an implemented capability whose contract cannot be met by
+  the standard library or current dependencies. Record consequential choices in an ADR.
+- Do not commit secrets, local databases, caches, generated evidence, unsanitized
+  provider returns, or large runtime artifacts.
+- Create future-phase packages only when implemented; no passing stubs or false
+  conformance.
+
+## Core architecture
+
+```text
+decide(state, command) -> events
+evolve(state, event) -> state
+EventStore.append(stream, expected_sequence, events)
+plan_next(state) -> StepPlan
+```
+
+- Records/events are strict, frozen, tagged, and versioned.
+- Reducers perform no I/O and generate no time, IDs, randomness, or provider metadata.
+- The SQLite append-only ledger plus content-addressed artifacts is durable authority.
+  Memory graphs, active theory, snapshots, indexes, semantic fields, and reports are
+  projections.
+- SQLite uses WAL, `BEGIN IMMEDIATE`, expected stream sequences, unique IDs, and one
+  writer path per inquiry. Projection checkpoint and rows commit together.
+- CAS bytes publish and verify before a ledger event references them. Replay never
+  invokes effects and deterministic export must be byte-equivalent.
+- External work begins only from a persisted effect request. Delivery is at-least-once;
+  each attempt has exactly one terminal outcome; each logical request accepts at most
+  one resolution.
+- Keep plan disposition, attempt presentation, capture, raw return, decode, checker
+  verdict, warrant decision, and promotion separate.
+- Unknown event/schema versions fail closed. Add real upcasters when real compatibility
+  data exists; do not invent legacy migrations in the greenfield schema.
+
+Logical ownership is single-writer in the folded state:
+
+- `M_E`: episodic records/artifact refs.
+- `M_S`: semantic lemma versions.
+- `M_P`: admitted procedures/probes/contracts/methods.
+- `M_L`: retention/residue/compression refs (later Goals).
+- `W`: support environments/routes/dependencies/checks/nogoods/warrant.
+- `A`: effects/attempts/routes/raw returns/decodes/reconstructions.
+- `Pi`: prediction seals and warranted mismatches.
+
+Do not create a second authoritative history or writable active-theory store.
+
+## Effect and evidence rules
+
+- `NoAttempt` is a plan disposition, not an attempt outcome.
+- Attempt outcomes are `NotPresented`, `PresentationUnknown`, `CaptureFailed`,
+  `Cancelled`, or `Returned`. Timeout may leave presentation unknown.
+- Preserve exact returned bytes. JSON null, empty bytes, empty string, zero, and false
+  are distinct.
+- Decode is `Decoded | Malformed | Unsupported | Failed`.
+- Check is `Valid | Invalid | Indeterminate | Timeout | Unsupported | Failed`.
+- A backend cannot independently warrant its own answer merely by reporting success.
+- Route definitions are allowlisted/versioned; each attempt persists a resolved route
+  snapshot with redacted endpoint, versions, environment/request digests, and actual
+  transform order. Never persist credentials.
+- Late/duplicate returns can be preserved as rejected evidence but cannot supersede an
+  accepted result.
+
+## Semantic, support, and warrant rules
+
+- Questions and generated payloads create typed provisional claims, never facts.
+- Arbitrary empty, Unicode, binary, contradictory, malformed-looking, or
+  prompt-injection payloads remain inert L0 data.
+- Opaque prose cannot establish semantic contradiction, entailment, necessity,
+  sufficiency, equivalence, generalization, impossibility, or control.
+- L0 conflict requires explicit proposition identity, polarity, role, bound referents,
+  and scope. Conflict is localized and non-explosive.
+- Every proposed necessity, sufficiency, or prerequisite opens its counterexample or
+  alternate-route attack unless identically discharged.
+- Descriptive factorization, prediction, correlation, and may-reachability cannot create
+  a control certificate.
+- Support dependency boundaries are route-specific. Hard support requires an
+  independently checked realizability verdict for its environment; no known
+  contradiction is insufficient.
+- Minimal supports are antichains only inside an identical conclusion/scope/binding/
+  applicability/policy class. Preserve dominated routes historically.
+- Ungrounded self-support remains open. Reject positive support and semantic ancestry
+  cycles atomically. A checked cyclic mathematical argument is a certificate leaf, not
+  a support-graph cycle.
+- Hard promotion is exact, scoped, guarded, dependency-closed, independently checked,
+  provenance-preserving, policy-authorized, and cycle-free.
+- Promotion creates a linked lemma/L3 view; it never mutates an L0-L2 claim.
+- Guard, support, or policy invalidation deactivates active effects without erasing
+  history. Append suspension, supersession, or reopening.
+- Model output and reification provide no warrant. A checked witness can hard-warrant
+  only its exact scoped existential. Exhaustive UNSAT is hard only over a declared
+  closed finite universe. Z3-only UNSAT is `solver_trusted` and soft.
+- Timeout, failure, unsupported capability, indeterminacy, and exhausted search never
+  prove impossibility, necessity, equivalence, or control. `Unknown` is lawful.
+
+## Questions and cognitive spine
+
+Question contracts are typed code with versioned inert templates. They may not import
+code, execute tools/commands/SQL, or select arbitrary policy. Only allowlisted registry
+entries run. Store the full catalog as data, but schedule only profiles whose capability
+and tests exist. Generated contracts/probes are inert candidates until admitted by a
+versioned human/controller policy.
+
+The semantic field is a derived probe-conditioned view. Model-inferred relevance or
+irrelevance cannot suppress inquiry. Recurrent probe identity pins contract/version,
+binding, scope, and comparison policy, not wording alone. When isolation is required,
+capture fresh observation before exposing prior returns.
+
+A prediction used for mismatch analysis is sealed before the attempt and immutable.
+Raw return, decoded result, reconstruction, episodic record, and semantic knowledge are
+different records. Only an independently warranted `SemanticDelta` changes semantic
+memory. Full reconstructive memory, consolidation, retention/compression, and learned
+probe promotion are later Goals.
+
+Keep present use, reconstruction, direct consequence evaluation, and reacquisition
+distinct. Failure of recall does not prove absence of retained learning. A reacquisition
+advantage requires a checked comparison with a pinned baseline and binding-defined cost
+frontier; eventual relearning alone is insufficient. Do not force a universal scalar
+cost. Reopening may reactivate, reconstruct, initiate relearning, or retrieve provenance.
+
+## Phase discipline
+
+The active G1 Goal contains Foundation, specification Phases 1-2, and only the thin
+cognitive spine described in `PLAN.md`.
+
+- `core-v1` schedules obligation characterization, same-class variation, minimal
+  boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
+  localization, and residual characterization.
+- Phase 2 may schedule warrant/localization/generalization and prerequisite/
+  actualization attacks after their implementations exist.
+- Phase 2 formal syntax is a serialized Boolean/finite-enum AST: literals, symbol refs,
+  equality, negation, conjunction, disjunction, implication, equivalence. No arbitrary
+  code or quantifiers. Keep an independent interpreter/exhaustive enumerator beside the
+  optional Z3 translator.
+- Full reconstructive memory is G2. Exact/approximate compression and the linear
+  consequence quotient are G3. CHC/PDR is G4, control G5, multi-backend warrant G6,
+  and the complete opaque-controlled-memory benchmark plus hardening/release is G7.
+- Future findings enter the requirements matrix/backlog without expanding the Goal.
+
+Compression semantics are documented now but not executable in G1. Preserve exact
+quotient vs approximate license, reconstruction loss vs consequence loss, object
+regeneration vs direct consequence evaluation vs reacquisition, and
+`QUOTIENT -> REPARAMETERIZE -> APPROXIMATE -> RESIDUE -> REOPEN`. Numerical near-zero
+rank never constitutes exact evidence.
+
+The future opaque-controlled-memory environment is a capability-gated benchmark, not a
+G1 primitive. Raw byte difference is not semantic difference; correlation is not
+dependency; a separator is not a unique cause; predictive state is not control; and the
+linear consequence theorem applies only after a binding has established its assumptions.
+
+## Development and verification
+
+Inspect before editing, preserve unrelated work, make the smallest coherent change, and
+run focused tests before the complete gate. Keep optional network/solver/container work
+outside deterministic blocking tests. Never activate a later contract because its
+catalog entry exists.
+
+The canonical G1 gate, identical to `PLAN.md` and the Goal, is:
+
+```text
+uv lock --check
+uv sync --dev
+uv run python -c "import rci"
+uv run pytest -q -m "not optional"
+uv sync --all-extras --dev
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy src/rci tests
+uv run pytest -q
+uv run pytest -q tests/acceptance
+uv run rci --help
+uv build
+```
+
+Dependency sync is bootstrap and may fetch locked packages. Test execution is
+credential-free, network-denied, deterministic, and effect-free under replay. Record
+exact commands/results in `docs/verification.md`. If a check cannot run, record the
+limitation and leave the affected conclusion unverified.
+
+At minimum cover reducer illegal transitions, arbitrary payload containment, mandatory
+attacks, localized conflicts, support/ancestry cycles, guard deactivation, replay/export,
+CAS tamper/crash points, OCC races, attempt cardinality/idempotency/timeouts, payload
+null/empty distinctions, schema failure, AST exhaustive/Z3 differential behavior,
+probe comparability/fresh isolation, prediction-before-return, memory separation, both
+reference domains, CLI/SDK parity, and backlog authority limits.
+
+## Governed dogfooding
+
+- `.rci/config.toml` is tracked human-owned policy. Runtime database, CAS, projections,
+  and exports are ignored local state.
+- `rci backlog reconcile` is dry-run by default.
+- G1 manual `--apply` may append allowlisted create, exact-dedupe, rank, and block only.
+  Close remains proposal-only until a later explicit human policy/Goal decision; tests
+  and runtime output cannot grant authority.
+- A regression creates a linked recurrence rather than rewriting closed history.
+- Evidence runners use explicit argv, bounded time/output, temporary captured
+  workspaces, and no network.
+- No source-writing, Git mutation, merge/push, policy editing, packaging, deployment,
+  release, or authority-expansion capability exists.
+- RCI may propose development obligations and ADR changes but cannot self-promote,
+  self-modify, or merge. Human review and CI remain the authorization boundary.

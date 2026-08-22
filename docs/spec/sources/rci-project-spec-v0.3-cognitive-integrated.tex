@@ -1,0 +1,7731 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{\textbf{#1}}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Ratcheting Consequence Inquiry},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Ratcheting Consequence Inquiry}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{A Question-Driven, Perception-Capable, Proof-Producing Architecture for
+Domain-Agnostic Inquiry}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Ratcheting Consequence
+Inquiry}\label{ratcheting-consequence-inquiry}
+
+\subsection{A Question-Driven, Proof-Producing Architecture for
+Domain-Agnostic
+Inquiry}\label{a-question-driven-proof-producing-architecture-for-domain-agnostic-inquiry}
+
+\textbf{Suggested filename:} \texttt{RCI\_Project\_Spec.md}\\
+\textbf{Status:} Project specification / formal design document\\
+\textbf{Version:} 0.3
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{Abstract}\label{abstract}
+
+Ratcheting Consequence Inquiry (RCI) is a domain-agnostic architecture for
+recursive inquiry in which questions are lawful relational probes over an
+evolving state. A question does not merely request information. It binds
+referents, exposes a relation as open, constrains what kind of claim an answer
+may instantiate, shapes the locally active semantic field, and determines which
+later operations may consume the result.
+
+RCI separates five structures that are commonly conflated:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  semantic generation --- proposing candidate distinctions, mechanisms,
+  examples, counterexamples, transformations, explanations, prerequisites,
+  methods, and other content;
+\item
+  question structure --- determining which relational role is being probed and
+  which prior objects are bound;
+\item
+  perception --- repeated application of stable relational probes to an
+  evolving state, with comparable returns retained in order so persistence,
+  change, recurrence, boundary crossing, covariation, and path dependence can
+  become visible;
+\item
+  formal control --- composing claims, preserving guards, generating and
+  scheduling obligations, refining and compressing representations, selecting
+  native discharge mechanisms, and localizing failures;
+\item
+  warrant --- deciding which provisional claims may alter retained knowledge.
+\end{enumerate}
+
+Version 0.3 treats prediction, action--return contingency, reconstruction,
+memory consolidation, selective retention, and learned perceptual coordinates
+as executable runtime distinctions rather than as additional universal
+cognitive primitives. Predictive processing, active inference, complementary
+learning systems, pattern separation/completion, reconsolidation, and
+developmental theories may motivate or specialize implementations, but RCI
+imports only the relations whose absence would create a protected operational
+failure.
+
+The central architectural move remains:
+
+\[
+\boxed{
+Q_\tau
+:
+\Sigma
+\rightsquigarrow
+\operatorname{Claim}[\tau]
+}
+\]
+
+rather than:
+
+\[
+Q_\tau:\Sigma\rightsquigarrow\tau.
+\]
+
+The question makes the answer relationally addressable; it does not make the
+answer true. Generated payloads are provisional. Independently constrained
+proof, computation, execution, retrieval, observation, experiment, or another
+licensed return is required before a candidate may enter retained hard
+knowledge.
+
+Version 0.3 adds a second use of question structure. A stable question contract
+may also act as a recurrent probe. If the same relational projection is applied
+to comparable states:
+
+\[
+H_q^t
+=
+\langle e_{t_1},e_{t_2},\ldots,e_{t_n}\rangle,
+\]
+
+the ordered trace becomes an ordinary queryable object. The existing inquiry
+machinery can then ask what persisted, what changed, where a boundary was first
+crossed, what covaried, what dissociated, and whether path or order mattered.
+Perception is therefore not introduced as an independent trusted faculty. It is
+a derived consequence of stable relational projection plus ordered comparable
+returns.
+
+The active semantic field is question-conditioned. A probe can make structures
+that are distant under ordinary linguistic continuation locally adjacent when
+they bear on the same open relation, while occluding structure that cannot
+currently change the protected consequence. RCI distinguishes:
+
+\[
+\boxed{
+\Sigma
+=
+A_{q,\Phi}
+\;\dot\cup\;
+U_{q,\Phi}
+\;\dot\cup\;
+I_{q,\Phi}
+}
+\]
+
+where \(A\) is presently active/relevant, \(U\) has relevance not yet
+established, and \(I\) is warranted irrelevant relative to the current probe
+and protected consequence profile. Only the last class is aggressively hidden,
+and every consequential occlusion carries a reopening condition.
+
+The architecture therefore supports two simultaneous movements:
+
+\[
+\boxed{
+\text{semantic expansion along the open question}
+\qquad\text{and}\qquad
+\text{contextual compression orthogonal to it}.
+}
+\]
+
+RCI combines this question-conditioned semantic control with established
+machinery from relational semantics, abstract interpretation, predicate
+abstraction, CEGAR, active automata learning, IC3/PDR, DPLL(T), constrained
+Horn clauses, predicate transformers, conflict minimization, assumption-based
+truth maintenance, interpolation, controller refinement, optimization,
+retrieval, experiment, and domain-native methods. The generic controller does
+not replace stronger native machinery. It identifies the open relation,
+establishes applicability, invokes a suitable native method or backend, and
+brings the guarded return back into the evolving inquiry state.
+
+The resulting recurrence is:
+
+\[
+\boxed{
+\textbf{ORIENT}
+\to
+\textbf{PROBE}
+\to
+\textbf{COMPARE}
+\to
+\textbf{DISTINGUISH}
+\to
+\textbf{DEFORM}
+\to
+\textbf{ATTACK}
+\to
+\textbf{ACTUALIZE}
+\to
+\textbf{DISCHARGE}
+\to
+\textbf{LEARN}
+\to
+\textbf{REMEMBER}
+\to
+\textbf{REORIENT}.
+}
+\]
+
+The process need not be followed as a rigid global workflow. The current
+relational state determines which operation is locally warranted. Its core
+implementation criterion remains:
+
+\[
+\boxed{
+\textbf{the inquiry must remain lawful even when semantic generation and
+perceived patterns are wrong.}
+}
+\]
+
+Its epistemic criterion remains:
+
+\[
+\boxed{
+\textbf{only independently warranted consequential deformation enters retained
+knowledge.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part I --- Project Thesis}\label{part-i-project-thesis}
+
+\subsection{1. Core claim}\label{core-claim}
+
+Inquiry advances by discovering which distinctions change protected
+consequences and eliminating distinctions that do not.
+
+The two primitive epistemic movements are:
+
+\[
+\boxed{
+\text{remove unsupported possibilities}
+}
+\]
+
+and
+
+\[
+\boxed{
+\text{remove false equivalences}.
+}
+\]
+
+The central ratchet is:
+
+\[
+\boxed{
+\textbf{Never retain a reasoning step merely because content was generated.
+Retain it only if it produces a warranted consequential change.}
+}
+\]
+
+Candidate generation may expand arbitrarily.
+
+Repeated lawful probing may also expand perceptual access. A stable question
+contract can be applied again after the state changes, and its ordered returns
+can expose persistence, change, recurrence, covariation, and path dependence
+that no isolated answer contains. Such perceived patterns are still candidate
+claims until independently warranted.
+
+Retained inquiry must ratchet.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{2. Questions as control
+operators}\label{questions-as-control-operators}
+
+Natural-language questions are treated as executable control operators
+over an evolving inquiry state.
+
+A question does not merely request information.
+
+It establishes:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  which prior objects are being related;
+\item
+  which relation is being requested;
+\item
+  which kind of answer may lawfully be created;
+\item
+  which subsequent operations may consume that answer.
+\end{enumerate}
+
+For example, the surface question
+
+\begin{quote}
+Can the result still hold without this?
+\end{quote}
+
+corresponds formally to a necessity-counterexample obligation.
+
+The controller already knows:
+
+\begin{itemize}
+\tightlist
+\item
+  the protected consequence \(C\);
+\item
+  the proposed necessity \(N\);
+\item
+  that a positive answer is being offered as a candidate member of
+  \(C\land\neg N\).
+\end{itemize}
+
+The language model need not express the logical form itself.
+
+A question also induces a temporary semantic coordinate system. Relative to a
+protected consequence profile, it makes structures locally relevant when they
+can change a live completion, its applicability, its interpretation, or its
+warrant. Structures that cannot presently do so may be occluded from the active
+field, but current non-activation is not evidence of permanent irrelevance.
+
+For a recurrent probe, question identity additionally supplies a stable axis of
+comparison across state revisions. The same relation can therefore be observed
+again without inventing a new semantic coordinate system at every step.
+
+Thus:
+
+\[
+\boxed{
+\textbf{the question carries structural semantics and orients attention;
+the answer supplies local semantic content.}
+}
+\]
+
+and:
+
+\[
+\boxed{
+\textbf{repeated comparable applications of the same relational probe create
+an ordered perceptual trace.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{3. Trusted control, untrusted
+payload}\label{trusted-control-untrusted-payload}
+
+The central separation is:
+
+\[
+\boxed{
+\text{lawful question composition}
+\neq
+\text{truth of answer payload}.
+}
+\]
+
+A generated answer may be:
+
+\begin{itemize}
+\tightlist
+\item
+  correct;
+\item
+  incomplete;
+\item
+  vague;
+\item
+  overly broad;
+\item
+  contradictory;
+\item
+  mis-scoped;
+\item
+  semantically incoherent;
+\item
+  or wrong.
+\end{itemize}
+
+The controller nevertheless remains well-defined because the answer
+initially becomes:
+
+\[
+\operatorname{Claim}[\tau],
+\]
+
+not an established object of type \(\tau\).
+
+Only later may it become:
+
+\[
+\operatorname{Candidate}[\tau],
+\]
+
+and eventually:
+
+\[
+\operatorname{Warranted}[\tau].
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{4. The project objective}\label{the-project-objective}
+
+The project is to build a system in which a general semantic model
+supplies candidate content while a formal controller:
+
+\begin{itemize}
+\tightlist
+\item
+  determines what relational object should be sought next;
+\item
+  compiles that need into a plain-language question;
+\item
+  records the answer under the type implied by that question;
+\item
+  composes the resulting claim with earlier commitments;
+\item
+  deliberately seeks counterexamples and contradictions;
+\item
+  localizes whatever fails;
+\item
+  asks the next question implied by that failure;
+\item
+  invokes formal or external machinery only when needed;
+\item
+  generalizes warranted returns;
+\item
+  compresses distinctions that are warranted irrelevant under the current
+  protected consequence;
+\item
+  preserves undetermined relevance rather than silently discarding it;
+\item
+  reuses stable question contracts when repeated observation is more valuable
+  than a new framing;
+\item
+  retains ordered probe histories and lets those histories become ordinary
+  objects of inquiry;
+\item
+  retrieves distant semantic or domain-native structure by relational fit
+  rather than vocabulary alone;
+\item
+  and recursively repeats the process.
+\end{itemize}
+
+The intended outer loop is:
+
+\[
+\boxed{
+\text{obligation}
+\to
+\text{question}
+\to
+\text{claim}
+\to
+\text{composition}
+\to
+\text{return}
+\to
+\text{warrant}
+\to
+\text{update}
+\to
+\text{next obligation}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part II --- Formal Substrate}\label{part-ii-formal-substrate}
+
+\subsection{5. Typed binding}\label{typed-binding}
+
+An inquiry is conducted relative to a binding
+
+\[
+\boxed{
+\mathfrak B
+=
+(\mathbf X,\mathcal L,\mathcal A,\mathcal U,\mathcal H,\mathcal E)
+}
+\]
+
+where:
+
+\begin{itemize}
+\tightlist
+\item
+  \(\mathbf X=\{X_\tau\}\) is the family of typed carriers;
+\item
+  \(\mathcal L\) is the available relational language;
+\item
+  \(\mathcal A\) is the family of admissible arrangement deformations;
+\item
+  \(\mathcal U\) is the family of admissible successions;
+\item
+  \(\mathcal H\) is the protected consequence horizon;
+\item
+  \(\mathcal E\) is the family of available independent discharge
+  mechanisms.
+\end{itemize}
+
+An inquiry does not assume the existence of:
+
+\begin{itemize}
+\tightlist
+\item
+  a metric;
+\item
+  probability;
+\item
+  temporal order;
+\item
+  determinism;
+\item
+  causality;
+\item
+  scalar utility;
+\item
+  continuity;
+\item
+  total comparability;
+\item
+  or complete observability.
+\end{itemize}
+
+Such structure may be added only when warranted by the binding.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{6. Typed relations}\label{typed-relations}
+
+For carriers \(X,Y\in\mathbf X\), a relation is
+
+\[
+R:X\rightsquigarrow Y
+\]
+
+with
+
+\[
+R\subseteq X\times Y.
+\]
+
+Relations compose:
+
+\[
+S\circ R
+=
+\{(x,z):\exists y,\ xRy\land ySz\}.
+\]
+
+For a relation
+
+\[
+R:X\rightsquigarrow Y
+\]
+
+and a target predicate \(Q\subseteq Y\), define the existential
+predecessor:
+
+\[
+\boxed{
+\Diamond_R(Q)
+=
+\{x:R[x]\cap Q\neq\varnothing\}
+}
+\]
+
+and universal predecessor:
+
+\[
+\boxed{
+\Box_R(Q)
+=
+\{x:R[x]\subseteq Q\}.
+}
+\]
+
+When execution must exist:
+
+\[
+\boxed{
+\operatorname{Must}_R(Q)
+=
+\operatorname{Dom}(R)\cap\Box_R(Q).
+}
+\]
+
+These satisfy:
+
+\[
+\Diamond_{S\circ R}
+=
+\Diamond_R\circ\Diamond_S
+\]
+
+and
+
+\[
+\Box_{S\circ R}
+=
+\Box_R\circ\Box_S.
+\]
+
+This is the mathematical basis of succession, backward prerequisite
+propagation, reachability, and actualization.
+
+Kleene algebra with tests supplies an established algebraic basis for
+compositional reasoning over program-like actions and embedded
+predicates. {[}R1{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part III --- Protected
+Consequence}\label{part-iii-protected-consequence}
+
+\subsection{7. Consequence profile}\label{consequence-profile}
+
+Let
+
+\[
+\Phi:X\rightsquigarrow Z
+\]
+
+be the current protected consequence profile.
+
+A focal binary consequence is
+
+\[
+C:X\to\{0,1\}.
+\]
+
+Define
+
+\[
+C^+=C^{-1}(1),
+\qquad
+C^-=C^{-1}(0).
+\]
+
+The consequence polarity is relational rather than intrinsically
+normative. Either side may be desired, undesired, neutral, unknown, or
+merely contrasting.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{8. Problem and non-problem}\label{problem-and-non-problem}
+
+If the inquiry begins from a recognized problem predicate
+
+\[
+P\subseteq X,
+\]
+
+then the first opposite class is simply
+
+\[
+\boxed{
+\neg P.
+}
+\]
+
+No concrete solution exemplar is required.
+
+However:
+
+\[
+\neg P
+\]
+
+is only the provisional non-problem class.
+
+Further protected consequences may distinguish acceptable resolution
+from merely absence of the original problem.
+
+Thus:
+
+\[
+\boxed{
+\text{problem recognition supplies an opposite pole,
+not necessarily a complete solution specification.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part IV --- Consequence Equivalence and
+Distinction}\label{part-iv-consequence-equivalence-and-distinction}
+
+\subsection{9. Consequence equivalence}\label{consequence-equivalence}
+
+For protected continuations \(h\in\mathcal H\), let
+
+\[
+J_h:X\rightsquigarrow Z_h.
+\]
+
+Define:
+
+\[
+\boxed{
+x\equiv_{\mathcal H}y
+\iff
+\forall h\in\mathcal H,
+\quad
+J_h[x]=J_h[y].
+}
+\]
+
+Therefore:
+
+\[
+x\neq y
+\]
+
+does not imply
+
+\[
+x\not\equiv_{\mathcal H}y.
+\]
+
+The consequence-relative state space is
+
+\[
+\boxed{
+X/{\equiv_{\mathcal H}}.
+}
+\]
+
+This is the formal basis of RCI compression.
+
+For deterministic sequential systems, this resembles the
+continuation-based equivalence underlying Myhill--Nerode; Angluin's
+\(L^*\) algorithm actively learns such behaviorally distinct states by
+membership/equivalence queries and counterexamples. {[}R2{]}
+
+For explicit relational systems, efficient partition-refinement methods
+such as Paige--Tarjan compute coarsest relational partitions. {[}R3{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{10. Elementary distinction}\label{elementary-distinction}
+
+Let
+
+\[
+d:X\to D.
+\]
+
+If
+
+\[
+d(x)\neq d(y),
+\]
+
+then the elementary distinction is:
+
+\[
+\boxed{
+(x,d,y).
+}
+\]
+
+This is triadic:
+
+\begin{itemize}
+\tightlist
+\item
+  first relatum;
+\item
+  second relatum;
+\item
+  common relation under which they differ.
+\end{itemize}
+
+The triad is not an additional algorithmic primitive. It is the minimum
+geometry of a distinction.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{11. Tetradic refinement}\label{tetradic-refinement}
+
+Introduce a second binary distinction
+
+\[
+D:X\to\{0,1\}.
+\]
+
+The joint refinement is:
+
+\[
+\boxed{
+\langle C,D\rangle
+:
+X\to\{0,1\}^2.
+}
+\]
+
+Its realized image is:
+
+\[
+\boxed{
+T_{C,D}
+=
+\operatorname{im}\langle C,D\rangle.
+}
+\]
+
+The logical cells are:
+
+\[
+C\land D,
+\]
+
+\[
+C\land\neg D,
+\]
+
+\[
+\neg C\land D,
+\]
+
+\[
+\neg C\land\neg D.
+\]
+
+The existence of two distinctions does not imply that all four cells are
+realizable.
+
+A missing cell is an inquiry target.
+
+The recursive geometry is therefore:
+
+\[
+\boxed{
+\text{triad}
+\to
+\text{second distinction}
+\to
+\text{tetradic refinement}
+\to
+\text{residual}
+\to
+\text{new triad}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part V --- Arrangement and
+Succession}\label{part-v-arrangement-and-succession}
+
+\subsection{12. Arrangement}\label{arrangement}
+
+Arrangement concerns differences among realizations.
+
+For a reference arrangement \(r\), let
+
+\[
+\preceq_A^r
+\]
+
+be a binding-supplied preorder.
+
+\[
+x\preceq_A^r y
+\]
+
+means that \(x\) preserves at least as much relevant arrangement
+structure of \(r\) as \(y\).
+
+No numerical distance is required.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{13. Succession}\label{succession}
+
+Each
+
+\[
+u\in\mathcal U
+\]
+
+is represented as
+
+\[
+R_u\subseteq X\times X.
+\]
+
+A succession path
+
+\[
+\pi=(u_1,\ldots,u_n)
+\]
+
+has relation:
+
+\[
+R_\pi
+=
+R_{u_n}\circ\cdots\circ R_{u_1}.
+\]
+
+A binding may supply a path preorder:
+
+\[
+\preceq_S.
+\]
+
+Arrangement minimality and succession minimality are distinct.
+
+\[
+\boxed{
+\operatorname{MinArrangement}
+\neq
+\operatorname{MinSuccession}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part VI --- The Central Inquiry
+Geometry}\label{part-vi-the-central-inquiry-geometry}
+
+\subsection{14. Stretch within a consequence
+class}\label{stretch-within-a-consequence-class}
+
+The first geometric pressure is:
+
+\[
+\boxed{
+\text{maximize variation while consequence remains fixed.}
+}
+\]
+
+Given current predicate basis \(B\),
+
+\[
+\Delta_B(x,y)
+=
+\{p\in B:p(x)\neq p(y)\}.
+\]
+
+For \(x\in C^b\),
+
+\[
+\boxed{
+\operatorname{Stretch}_B(x)
+=
+\operatorname{Max}_{\subseteq}
+\{
+\Delta_B(x,y):
+C(y)=C(x)
+\}.
+}
+\]
+
+The purpose is to destroy false necessities and accidental correlation.
+
+Generation therefore prefers cases that:
+
+\begin{itemize}
+\tightlist
+\item
+  preserve consequence;
+\item
+  differ strongly in arrangement;
+\item
+  differ strongly in succession;
+\item
+  violate the current explanation;
+\item
+  need not be realistic;
+\item
+  may be extreme or degenerate.
+\end{itemize}
+
+The generation law is:
+
+\[
+\boxed{
+\textbf{Generate for discrimination, not plausibility.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{15. Squeeze across consequence
+classes}\label{squeeze-across-consequence-classes}
+
+The second pressure is:
+
+\[
+\boxed{
+\text{minimize deformation while consequence changes.}
+}
+\]
+
+For \(x\in C^b\),
+
+\[
+\boxed{
+\operatorname{Squeeze}_B(x)
+=
+\operatorname{Min}_{\subseteq}
+\{
+\Delta_B(x,y):
+C(y)\neq C(x)
+\}.
+}
+\]
+
+More generally, under an arrangement deformation preorder:
+
+\[
+\boxed{
+\operatorname{Cross}_{C,\rho}(x,b)
+=
+\operatorname{Front}_{\preceq_\rho^x}
+\{
+y:
+C(y)=b
+\land
+\operatorname{Adm}_\rho(x,y)
+\}.
+}
+\]
+
+where:
+
+\[
+\operatorname{Front}_{\preceq}(S)
+=
+\{s\in S:\nexists s'\in S,\ s'\prec s\}.
+\]
+
+The boundary law is:
+
+\[
+\boxed{
+\textbf{Between opposite consequences, preserve everything possible
+and minimize the change that flips the consequence.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{16. Bidirectional reversal}\label{bidirectional-reversal}
+
+For every positive anchor:
+
+\[
+x^+\in C^+,
+\]
+
+ask for a minimal reversal into
+
+\[
+C^-.
+\]
+
+For every negative anchor:
+
+\[
+x^-\in C^-,
+\]
+
+ask for a minimal reversal into
+
+\[
+C^+.
+\]
+
+Thus inquiry probes:
+
+\[
+\boxed{
+C^+\to C^-
+}
+\]
+
+and
+
+\[
+\boxed{
+C^-\to C^+.
+}
+\]
+
+For problems:
+
+\[
+P\to\neg P
+\]
+
+and:
+
+\[
+\neg P\to P.
+\]
+
+The boundary is learned from both directions.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part VII --- Factor Discovery}\label{part-vii-factor-discovery}
+
+\subsection{17. Candidate factor}\label{candidate-factor}
+
+Let
+
+\[
+h:X\to H
+\]
+
+be a candidate representation.
+
+Define its factorization defect:
+
+\[
+\boxed{
+FD_\Phi(h)
+=
+\{
+(x,y):
+h(x)=h(y)
+\land
+\Phi(x)\neq\Phi(y)
+\}.
+}
+\]
+
+If:
+
+\[
+FD_\Phi(h)=\varnothing,
+\]
+
+then:
+
+\[
+\boxed{
+\Phi=d\circ h
+}
+\]
+
+for some decoder \(d\) on the declared scope.
+
+Representations are ordered by factorization:
+
+\[
+\boxed{
+h_1\preceq h_2
+\iff
+\exists m,\ h_1=m\circ h_2.
+}
+\]
+
+Inquiry seeks a coarsest or nondominated factor that:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  preserves protected distinctions;
+\item
+  eliminates unnecessary distinctions;
+\item
+  remains noncircular.
+\end{enumerate}
+
+Abstract interpretation provides the established lattice-theoretic
+framework for sound abstraction and approximation, including
+abstraction/concretization relations and fixed-point semantics. {[}R4{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part VIII --- Mandatory
+Falsification}\label{part-viii-mandatory-falsification}
+
+\subsection{18. Necessity}\label{necessity}
+
+Suppose:
+
+\[
+C\Rightarrow N.
+\]
+
+The corresponding counterexample region is:
+
+\[
+\boxed{
+C\land\neg N.
+}
+\]
+
+The claim is attacked by attempting to realize that region.
+
+If realized:
+
+\[
+C\not\Rightarrow N.
+\]
+
+If independently established empty:
+
+\[
+C\land\neg N=\varnothing,
+\]
+
+necessity is warranted relative to scope.
+
+Failure to find a counterexample is not itself proof.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{19. Sufficiency}\label{sufficiency}
+
+Suppose:
+
+\[
+S\Rightarrow C.
+\]
+
+Attack:
+
+\[
+\boxed{
+S\land\neg C.
+}
+\]
+
+If realized, sufficiency fails.
+
+If independently established empty, the implication is warranted in
+scope.
+
+Thus:
+
+\[
+\boxed{
+\textbf{every necessity generates its missing counterexample cell;}
+}
+\]
+
+\[
+\boxed{
+\textbf{every sufficiency generates its missing counterexample cell.}
+}
+\]
+
+SAT/SMT backends can execute these obligations directly once the
+semantic claims have been reified into formulas. DPLL(T) provides a
+modular architecture in which a general Boolean search procedure
+cooperates with specialized theory solvers. {[}R5{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part IX --- Description Is Not
+Control}\label{part-ix-description-is-not-control}
+
+\subsection{20. Descriptive factor}\label{descriptive-factor}
+
+A factor:
+
+\[
+\Phi=d\circ h
+\]
+
+may perfectly describe consequence without supplying any way to change
+it.
+
+Therefore:
+
+\[
+\boxed{
+\text{descriptive factor}
+\neq
+\text{control relation}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{21. Control certificate}\label{control-certificate}
+
+Let \(S\subseteq X\) be a source region and \(T\subseteq X\) a target
+region.
+
+A succession \(\pi\) is a must-control certificate iff:
+
+\[
+\boxed{
+S\subseteq\operatorname{MustPre}_\pi(T).
+}
+\]
+
+For one state:
+
+\[
+x\in\operatorname{MustPre}_\pi(T).
+\]
+
+When reasoning happens on an abstraction, a separate
+concrete-to-abstract control-refinement relation is required. Feedback
+refinement relations were developed specifically to guarantee that
+symbolic controllers synthesized over abstractions can be concretely
+implemented while preserving specifications. {[}R6{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part X --- Actualization}\label{part-x-actualization}
+
+\subsection{22. Desired region}\label{desired-region}
+
+Let:
+
+\[
+T\subseteq X
+\]
+
+be the desired consequence region.
+
+For current arrangement \(x\), define:
+
+\[
+\boxed{
+\operatorname{Emb}(x,T)
+=
+\operatorname{Front}_{\preceq_A^x}(T).
+}
+\]
+
+This seeks target realizations that preserve the present arrangement as
+far as possible.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{23. Arrangement obstruction}\label{arrangement-obstruction}
+
+If the target cannot coexist with retained arrangement constraints,
+identify a conflict.
+
+Let:
+
+\[
+\Gamma_x
+\]
+
+be retained constraints and \(I\) the target relation.
+
+A conflict:
+
+\[
+K\subseteq\Gamma_x\cup\{I\}
+\]
+
+is minimal iff:
+
+\[
+K\text{ is inconsistent}
+\]
+
+and:
+
+\[
+\forall K'\subsetneq K,\quad
+K'\text{ is consistent}.
+\]
+
+QuickXPlain is an established divide-and-conquer approach for extracting
+preferred/minimal explanations or relaxations from overconstrained
+systems. {[}R7{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{24. Succession obstruction}\label{succession-obstruction}
+
+If compatible target arrangements exist but cannot be reached, define:
+
+\[
+\Pi(x,T)
+=
+\{
+\pi:
+R_\pi[x]\cap T\neq\varnothing
+\}.
+\]
+
+If:
+
+\[
+\Pi(x,T)=\varnothing,
+\]
+
+regress through predecessor conditions.
+
+Any missing predecessor becomes an inquiry obligation.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{25. Prerequisite attack}\label{prerequisite-attack}
+
+Suppose \(N\) is proposed as necessary to reach \(T\).
+
+Define:
+
+\[
+Reach_{\neg N}(x)
+\]
+
+as the region reachable while keeping \(N\) absent.
+
+Then test:
+
+\[
+\boxed{
+Reach_{\neg N}(x)\cap T.
+}
+\]
+
+If nonempty, \(N\) is route-specific.
+
+Only prerequisites that survive alternate-route attack are retained as
+genuine requirements.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XI --- Candidate Claims and
+Warrant}\label{part-xi-candidate-claims-and-warrant}
+
+\subsection{26. Claim wrapper}\label{claim-wrapper}
+
+The crucial architecture type is:
+
+\[
+\boxed{
+\operatorname{Claim}[\tau].
+}
+\]
+
+A question requesting an object of role \(\tau\) returns a claim of that
+role, not an established object.
+
+Formally:
+
+\[
+\boxed{
+Q_\tau
+:
+\Sigma
+\rightsquigarrow
+\operatorname{Claim}[\tau].
+}
+\]
+
+A claim may contain arbitrary natural-language payload.
+
+Define:
+
+\[
+\boxed{
+c=
+(
+id,
+role,
+args,
+payload,
+scope,
+provenance,
+status,
+parents,
+level
+).
+}
+\]
+
+Where:
+
+\begin{itemize}
+\tightlist
+\item
+  \(id\) uniquely identifies the claim;
+\item
+  \(role\) is the type requested by the question;
+\item
+  \(args\) are the bound referents;
+\item
+  \(payload\) is the answer content;
+\item
+  \(scope\) records context;
+\item
+  \(provenance\) records source;
+\item
+  \(status\) records epistemic standing;
+\item
+  \(parents\) records dependency;
+\item
+  \(level\) records formalization depth.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{27. Claim status}\label{claim-status}
+
+Recommended statuses:
+
+\[
+\boxed{
+\{
+proposed,
+contested,
+reified,
+supported,
+warranted,
+refuted,
+inactive,
+unknown
+\}.
+}
+\]
+
+A claim's question type does not imply truth.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{28. Lazy semantic
+formalization}\label{lazy-semantic-formalization}
+
+Semantic formalization proceeds only as far as needed.
+
+\subsubsection{\texorpdfstring{Level \(L_0\): opaque typed
+claim}{Level L\_0: opaque typed claim}}\label{level-l_0-opaque-typed-claim}
+
+Stored:
+
+\begin{itemize}
+\tightlist
+\item
+  question role;
+\item
+  bound references;
+\item
+  answer payload.
+\end{itemize}
+
+No logical parsing required.
+
+\subsubsection{\texorpdfstring{Level \(L_1\): relational
+slots}{Level L\_1: relational slots}}\label{level-l_1-relational-slots}
+
+Extract only:
+
+\begin{itemize}
+\tightlist
+\item
+  referenced objects;
+\item
+  named difference;
+\item
+  proposed condition;
+\item
+  transformation;
+\item
+  scope;
+\item
+  polarity.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{Level \(L_2\): formal
+candidate}{Level L\_2: formal candidate}}\label{level-l_2-formal-candidate}
+
+Produce a partial formalization:
+
+\[
+Candidate[\tau].
+\]
+
+For example:
+
+\begin{itemize}
+\tightlist
+\item
+  predicate;
+\item
+  relation;
+\item
+  constraint set;
+\item
+  transition;
+\item
+  guard;
+\item
+  formula;
+\item
+  path.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{Level \(L_3\): warranted
+object}{Level L\_3: warranted object}}\label{level-l_3-warranted-object}
+
+A verified or otherwise licensed object enters the hard retained theory.
+
+Thus:
+
+\[
+\boxed{
+L_0
+\to
+L_1
+\to
+L_2
+\to
+L_3
+}
+\]
+
+is demand-driven rather than mandatory.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{29. Candidate store}\label{candidate-store}
+
+Let:
+
+\[
+\boxed{
+\mathcal C_t
+}
+\]
+
+be the candidate claim graph.
+
+It may contain:
+
+\begin{itemize}
+\tightlist
+\item
+  incompatible claims;
+\item
+  contradictory claims;
+\item
+  unverified claims;
+\item
+  alternate interpretations;
+\item
+  speculative claims.
+\end{itemize}
+
+It is explicitly non-explosive.
+
+From:
+
+\[
+P
+\]
+
+and:
+
+\[
+\neg P
+\]
+
+in the candidate store, the system does not infer arbitrary \(Q\).
+
+Instead:
+
+\[
+\boxed{
+P,\neg P
+\to
+\operatorname{Conflict}(P,\neg P).
+}
+\]
+
+Conflict becomes an inquiry obligation.
+
+This architecture is compatible with the spirit of assumption-based
+truth maintenance, which was designed to track conclusions under
+assumption sets and to work with inconsistent information without
+globally retracting everything. {[}R8{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XII --- Warranted Conditional
+Theory}\label{part-xii-warranted-conditional-theory}
+
+\subsection{30. Learned lemma}\label{learned-lemma}
+
+A retained learned object is:
+
+\[
+\boxed{
+\lambda
+=
+(g,\ell,\sigma,w,\Gamma,\pi)
+}
+\]
+
+where:
+
+\begin{itemize}
+\tightlist
+\item
+  \(g\) is an activation guard;
+\item
+  \(\ell\) is the learned relation;
+\item
+  \(\sigma\) is scope;
+\item
+  \(w\) is warrant class;
+\item
+  \(\Gamma\) is dependency set;
+\item
+  \(\pi\) is proof/certificate/provenance.
+\end{itemize}
+
+The permanent store is:
+
+\[
+\boxed{
+\Theta_t.
+}
+\]
+
+Learning is append-only:
+
+\[
+\boxed{
+\Theta_{t+1}
+=
+\Theta_t\cup\{\lambda\}.
+}
+\]
+
+This---not the current possibility region---is the primary monotone
+ratchet.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{31. Active theory}\label{active-theory}
+
+For current context \(\gamma\):
+
+\[
+\boxed{
+\Theta_t^\gamma
+=
+\{
+\ell_i:
+\gamma\models g_i
+\}.
+}
+\]
+
+The live model region is:
+
+\[
+\boxed{
+Q_t^\gamma
+=
+Models(\Theta_t^\gamma).
+}
+\]
+
+If a guard ceases to hold, its lemma becomes inactive rather than being
+erased.
+
+Thus:
+
+\[
+\boxed{
+\textbf{reopening is guard deactivation, not epistemic amnesia.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{32. Warrant acyclicity}\label{warrant-acyclicity}
+
+Let \(W_t\) be the warrant dependency graph.
+
+For newly accepted warrant \(w_{t+1}\):
+
+\[
+\boxed{
+Parents(w_{t+1})
+\subseteq
+V(W_t).
+}
+\]
+
+Positive warrant may not depend on itself.
+
+Control may recurse.
+
+Warrant may not circle.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XIII --- Question
+Contracts}\label{part-xiii-question-contracts}
+
+\subsection{33. Question contract}\label{question-contract}
+
+Every question family is defined by:
+
+\[
+\boxed{
+\mathcal Q
+=
+(
+id,
+\tau_{in},
+\tau_{claim},
+Pre,
+Render,
+Bind,
+Reify,
+Check,
+Update,
+Next,
+Probe
+).
+}
+\]
+
+Where:
+
+\begin{itemize}
+\tightlist
+\item
+  \(id\) identifies the question operator;
+\item
+  \(\tau_{in}\) specifies input referent types;
+\item
+  \(\tau_{claim}\) specifies the role of the claim produced;
+\item
+  \(Pre\) determines whether the question is well-typed;
+\item
+  \(Render\) generates ordinary-language wording;
+\item
+  \(Bind\) wraps the answer as a typed claim;
+\item
+  \(Reify\) optionally converts the claim to a formal candidate;
+\item
+  \(Check\) tests or warrants the candidate;
+\item
+  \(Update\) changes inquiry state;
+\item
+  \(Next\) generates possible subsequent obligations;
+\item
+  \(Probe\) optionally declares recurrent-probe identity, comparison semantics,
+  canonical rendering, applicability guards, and history policy.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{34. Binding law}\label{binding-law}
+
+Given semantic answer \(a\):
+
+\[
+\boxed{
+Bind_Q(a)
+=
+Claim_Q(a).
+}
+\]
+
+This operation does not assert:
+
+\[
+a:\tau.
+\]
+
+It asserts only:
+
+\[
+\boxed{
+\text{“payload }a\text{ was offered as an answer to a question of role }\tau.”}
+\]
+
+This operation must be total for ordinary answer payloads.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{35. Reification law}\label{reification-law}
+
+Formalization is partial:
+
+\[
+\boxed{
+Reify_\tau
+:
+Claim[\tau]
+\rightharpoonup
+Candidate[\tau].
+}
+\]
+
+Failure to reify is itself an inquiry event.
+
+It may generate:
+
+\begin{itemize}
+\tightlist
+\item
+  clarification;
+\item
+  decomposition;
+\item
+  re-expression;
+\item
+  rebind;
+\item
+  or unknown.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36. Promotion law}\label{promotion-law}
+
+A candidate becomes hard knowledge only through:
+
+\[
+\boxed{
+Promote(c,\pi)
+=
+\lambda
+}
+\]
+
+when:
+
+\[
+Check(\pi)=\top.
+\]
+
+The central safety rule is:
+
+\[
+\boxed{
+\textbf{question type may create a claim;
+only warrant may create a hard lemma.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\section{Part XIII-A --- Recurrent Probes and Perceptual
+State}\label{part-xiii-a-recurrent-probes-and-perceptual-state}
+
+\subsection{36A. Recurrent probe}\label{recurrent-probe}
+
+A question contract may be designated a recurrent probe when repeated
+applications are intended to observe the same relational projection over
+comparable state revisions.
+
+Probe identity is not merely stable wording. It requires stable relational role,
+binding schema, comparison semantics, applicability guard, and protected
+consequence horizon, or an explicit bridge proving that two changed bindings
+remain comparable.
+
+\[
+\boxed{
+SameProbe(e_i,e_j)
+\Rightarrow
+Comparable_{q,\Phi}(e_i,e_j).
+}
+\]
+
+Canonical rendering is preferred for recurrent probes when wording stability
+improves semantic comparability, but surface identity is neither necessary nor
+sufficient for probe identity.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36B. Probe event}\label{probe-event}
+
+For one application of probe \(q\), preserve:
+
+\[
+\boxed{
+e_t=
+(
+q,
+\beta_t,
+S_t,
+\mathcal F_t,
+a_t,
+E_t,
+r_t,
+\iota_t,
+\omega_t
+).
+}
+\]
+
+Where:
+
+\begin{itemize}
+\tightlist
+\item \(q\): recurrent question contract;
+\item \(\beta_t\): bound referents and local guards;
+\item \(S_t\): observed state revision;
+\item \(\mathcal F_t\): semantic field actually supplied;
+\item \(a_t\): generated semantic answer;
+\item \(E_t\): evidence or return channels consulted;
+\item \(r_t\): preserved independent raw return, when one exists;
+\item \(\iota_t\): interpretation of that return;
+\item \(\omega_t\): sequence order.
+\end{itemize}
+
+The constitutional separation is:
+
+\[
+\boxed{
+\text{generated answer}
+\neq
+\text{environmental return}
+\neq
+\text{interpretation}
+\neq
+\text{warrant}.
+}
+\]
+
+Repeated model answers can reveal patterns in the generated inquiry trace.
+Perception of an independently constrained environment requires that the probe
+events also retain independently produced repository, tool, proof, execution,
+measurement, observation, experiment, retrieval, or other licensed returns.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36C. Probe trace}\label{probe-trace}
+
+For recurrent probe \(q\):
+
+\[
+\boxed{
+H_q^t
+=
+\langle e_{t_1},e_{t_2},\ldots,e_{t_n}\rangle,
+\qquad
+\omega_{t_1}<\cdots<\omega_{t_n}.
+}
+\]
+
+A probe trace is an ordinary queryable carrier. No special trusted perception
+operator is required. Existing question contracts may be applied to traces.
+Examples include:
+
+\[
+Q_{Persistence}:H_q\rightsquigarrow Claim[Invariant],
+\]
+
+\[
+Q_{ChangePoint}:H_q\rightsquigarrow Claim[Boundary],
+\]
+
+\[
+Q_{Covariation}:(H_q,H_r)\rightsquigarrow Claim[Relation],
+\]
+
+and:
+
+\[
+Q_{Path}:H_q\rightsquigarrow Claim[PathDependence].
+\]
+
+The resulting perceived pattern remains provisional. A pattern seen in an
+ordered trace does not become a warranted invariant merely because it is
+salient to the semantic generator.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36D. Fresh observation and comparison}\label{fresh-observation-and-comparison}
+
+Prior answers can improve comparison but can also anchor the next answer. When
+the environment can be independently re-observed, RCI should prefer a two-stage
+probe:
+
+\[
+\boxed{
+\text{fresh observation}
+\to
+\text{trace comparison}.
+}
+\]
+
+First obtain the current observation with previous semantic interpretations
+withheld when practicable:
+
+\[
+a_t^0=Q_q(S_t,\mathcal F_t^0).
+\]
+
+Then compare the new event against prior history:
+
+\[
+p_t
+=
+Q_{Compare}(H_q^{t-1},e_t)
+\rightsquigarrow
+Claim[Pattern].
+\]
+
+This does not prohibit history-conditioned probing. It prevents continuity in
+model wording from being silently mistaken for persistence in the observed
+system.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36E. Active, undetermined, and irrelevant
+structure}\label{active-undetermined-and-irrelevant-structure}
+
+Relative to a current probe \(q\) and protected consequence profile \(\Phi\),
+partition available semantic structure as:
+
+\[
+\boxed{
+\Sigma
+=
+A_{q,\Phi}
+\;\dot\cup\;
+U_{q,\Phi}
+\;\dot\cup\;
+I_{q,\Phi}.
+}
+\]
+
+Where:
+
+\begin{itemize}
+\tightlist
+\item \(A_{q,\Phi}\): structure established or strongly implicated as capable
+  of changing a live completion, applicability, interpretation, warrant, or
+  protected successor consequence;
+\item \(U_{q,\Phi}\): structure whose relevance has not yet been discriminated;
+\item \(I_{q,\Phi}\): structure warranted irrelevant to the current probe and
+  protected consequence under an explicit guard.
+\end{itemize}
+
+Only \(I_{q,\Phi}\) may be aggressively occluded as consequence-null. Each such
+occlusion retains a reopening predicate \(\rho_x\):
+
+\[
+\boxed{
+\rho_x(\Sigma,q,\Phi)
+\Rightarrow
+x\text{ returns to the active or undetermined field.}
+}
+\]
+
+Therefore:
+
+\[
+\boxed{
+\textbf{not currently perceived}
+\neq
+\textbf{warranted irrelevant}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36F. Question-conditioned semantic
+field}\label{question-conditioned-semantic-field}
+
+The semantic field supplied to generation may be constructed as:
+
+\[
+\boxed{
+Context_t(q)
+=
+A_t(q)
++
+History_t(q)
++
+CrossProbe_t(q)
++
+Retrieve_{rel}(q)
++
+Methods(q)
++
+Reopening_t(q).
+}
+\]
+
+Where:
+
+\begin{itemize}
+\tightlist
+\item \(History_t(q)\) contains relevant comparable events from the same probe;
+\item \(CrossProbe_t(q)\) contains traces whose changes may covary with the
+  current relation;
+\item \(Retrieve_{rel}(q)\) retrieves semantic or documentary structure by the
+  relation the question exposes, not only lexical similarity;
+\item \(Methods(q)\) contains native methods whose input/output relation can
+  discharge the open relation;
+\item \(Reopening_t(q)\) exposes guards whose change could reactivate currently
+  occluded structure.
+\end{itemize}
+
+A question therefore performs simultaneous semantic expansion and contextual
+compression:
+
+\[
+\boxed{
+\text{bring consequence-bearing distant structure inward}
+\quad\land\quad
+\text{push consequence-null structure outward without forgetting reopening}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36G. Perception as a derived
+phenomenon}\label{perception-as-a-derived-phenomenon}
+
+RCI does not postulate an infallible perceptual faculty. Computational
+perception is the derived structure produced by:
+
+\[
+\boxed{
+\text{stable relational projection}
++
+\text{ordered comparable returns}
++
+\text{retained difference}.
+}
+\]
+
+A family of recurrent probes induces a time-indexed relational signature:
+
+\[
+\boxed{
+\chi_t
+=
+(q_1(\Sigma_t),q_2(\Sigma_t),\ldots,q_n(\Sigma_t)).
+}
+\]
+
+The ordered sequence \(\chi_1,\chi_2,\ldots\) forms a trajectory over which
+persistence, transition, recurrence, covariation, and boundary crossing may be
+proposed and tested. Probe dimensions that never distinguish protected
+consequences may be compressed; newly exposed distinctions may generate new
+probes. The perceptual basis is therefore itself subject to inquiry.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\section{Part XIII-B --- Prediction, Action--Return Reconstruction, and
+Memory}\label{part-xiii-b-prediction-action-return-reconstruction-and-memory}
+
+\subsection{36H. Sealed prediction}\label{sealed-prediction}
+
+A consequential probe or action may carry an explicit prediction of the class
+of return expected before the environment is queried. The prediction is not
+required for every operation, and it need not be probabilistic. Its role is to
+make mismatch inspectable rather than retrospectively redefinable.
+
+\[
+\boxed{
+PredictionSeal
+=
+(
+id,
+attempt,
+\widehat r,
+\widehat C,
+\epsilon,
+scope,
+basis
+).
+}
+\]
+
+The seal must be fixed before the corresponding attempt produces a return:
+
+\[
+\boxed{
+created(PredictionSeal)
+<
+created(ExternalReturn).
+}
+\]
+
+After execution:
+
+\[
+\boxed{
+\widehat r\neq r
+\Rightarrow
+Mismatch(\widehat r,r).
+}
+\]
+
+A mismatch is itself a typed inquiry object. It does not automatically identify
+which prediction premise failed.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36I. Three-sided transition}\label{three-sided-transition}
+
+The fundamental learning transition is operationally three-sided:
+
+\[
+\boxed{
+\Sigma_t
+\xrightarrow{V_t}
+A_t
+\xrightarrow{E}
+r_t
+\xrightarrow{R}
+\Sigma'_{t+1}
+\xrightarrow{W}
+\Sigma_{t+1}.
+}
+\]
+
+Here \(V_t\) is an internally selected variation, probe, action, or attempted
+transformation; \(E\) is an independently constrained environment or backend;
+\(r_t\) is a raw return the system did not get to choose; \(R\) is
+reconstruction/reconciliation; and \(W\) is warrant-controlled commit.
+
+Thus:
+
+\[
+\boxed{
+\text{selected variation}
+\neq
+\text{external return}
+\neq
+\text{reconstruction}
+\neq
+\text{warranted update}.
+}
+\]
+
+The system learns from action--return contingencies, not merely from static
+semantic answers.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36J. Reconstructive memory}\label{reconstructive-memory}
+
+Operational memory is not defined primarily as replay of stored surface text.
+Given cue \(c\), protected horizon \(\mathcal H\), current context \(\gamma\),
+and resource budget \(K\), memory may reconstruct a working representation:
+
+\[
+\boxed{
+\widehat x=G(m,c,\mathcal H,\gamma,K).
+}
+\]
+
+The criterion is protected regenerative sufficiency, not literal historical
+identity:
+
+\[
+\boxed{
+\widehat x\equiv_{\mathcal H}x.
+}
+\]
+
+Generated reconstruction detail is not historical fact merely because it
+appears in a successful reconstruction.
+
+A memory request returns a set of candidate reconstructions:
+
+\[
+\boxed{
+Reconstruct(c,\mathcal H,\gamma,K)
+=
+\{\widehat x_1,\ldots,\widehat x_n\}.
+}
+\]
+
+If all candidates lie in one protected consequence class, retrieval is resolved
+for that continuation. Otherwise:
+
+\[
+\boxed{
+\left|
+Reconstruct(c,\mathcal H,\gamma,K)/{\equiv_{\mathcal H}}
+\right|>1
+\Rightarrow
+\text{memory retrieval becomes inquiry}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36K. Episodic and semantic learning}\label{episodic-and-semantic-learning}
+
+RCI separates rapid episodic retention from slower generalized semantic
+promotion.
+
+\[
+\boxed{
+ProbeEvent,\ ExternalReturn,\ Attempt
+\longrightarrow
+M_E
+}
+\]
+
+may occur immediately, but:
+
+\[
+\boxed{
+M_E\not\Rightarrow\Theta.
+}
+\]
+
+Generalized semantic knowledge requires:
+
+\[
+\boxed{
+M_E
+\xrightarrow{Consolidate}
+Claim[Generalization]
+\xrightarrow{Attack+Warrant}
+\Theta.
+}
+\]
+
+A consolidation pass should interleave consequential recent episodes with
+relevant older episodes, exceptions, and counterexamples; ask which relation
+survives; attack that relation; and promote only what those returns warrant.
+Consolidation may be triggered at obligation closure, before major compression,
+under context-budget pressure, or at another explicit policy checkpoint.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36L. Pattern separation and completion}\label{pattern-separation-and-completion}
+
+Memory supports two opposite operations.
+
+If similar retained events have different protected consequences:
+
+\[
+\boxed{
+Similar(e_i,e_j)
+\land
+Consequence_{\Phi}(e_i)\neq Consequence_{\Phi}(e_j)
+\Rightarrow
+Separate(e_i,e_j).
+}
+\]
+
+Similarity must not erase the distinction.
+
+Conversely, a partial cue may activate several retained packages. If all
+completion candidates are protected-consequence-equivalent, one regenerative
+working representative may be used. If not:
+
+\[
+\boxed{
+\text{completion ambiguity}
+\to
+\text{discrimination obligation}.
+}
+\]
+
+Hence:
+
+\[
+\boxed{
+\textbf{SEPARATE WHAT PROTECTED CONSEQUENCE DISTINGUISHES;
+COMPLETE WHAT A CONSEQUENTIAL CUE REQUIRES.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36M. Reconsolidation and versioned repair}\label{reconsolidation-and-versioned-repair}
+
+Retrieval followed by protected mismatch may reopen retained knowledge, but it
+must not destructively rewrite the historical object.
+
+\[
+\boxed{
+\lambda_t
+\to
+Challenge(\lambda_t,r)
+\to
+MemoryPatchCandidate
+\to
+Warrant
+\to
+\lambda_{t+1}.
+}
+\]
+
+The predecessor remains historically available with the guard, scope, and
+warrant under which it originally stood. The triggering return does not choose
+its own repair.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36N. Retention and self-cleaning}\label{retention-and-self-cleaning}
+
+Self-cleaning means minimizing active interference while preserving protected
+regenerative competence and authoritative ancestry.
+
+\[
+\boxed{
+RetentionPackage
+=
+(
+representation,
+\mathcal H,
+regen,
+neighbors,
+warrant,
+debt,
+\rho,
+fallback
+).
+}
+\]
+
+Permitted operations include dropping inactive candidates, retiring redundant
+probes, chunking trace regions after regenerative checks, deactivating lemmas
+whose guards fail, compressing consequence-null distinctions, and deleting
+deterministically reconstructible caches.
+
+Operational irrelevance alone never licenses deletion of authoritative
+provenance.
+
+\[
+\boxed{
+\textbf{REMOVE ACTIVE STRUCTURE THAT NO LONGER EARNS ITS INTERFERENCE COST,
+WHILE PRESERVING RECONSTRUCTION, WARRANT, AND REOPENING.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36O. Structural plasticity and learned probes}\label{structural-plasticity-and-learned-probes}
+
+Failure of the current perceptual or representational basis is a typed event:
+
+\[
+\boxed{
+RepresentationGap
+=
+(
+O,
+X,
+\Delta_{\Phi},
+FailedProbes,
+kind
+).
+}
+\]
+
+Canonical kinds include:
+
+\[
+NO\_SEPARATOR,\quad
+BINDING\_INADEQUATE,\quad
+PROBE\_BASIS\_INADEQUATE,\quad
+LANGUAGE\_INADEQUATE.
+\]
+
+A representation gap may generate a candidate probe or representation patch:
+
+\[
+GenerateProbe(g)\rightsquigarrow Claim[ProbeContract],
+\]
+
+\[
+GenerateRebind(g)\rightsquigarrow Claim[RepresentationPatch].
+\]
+
+A generated probe is learned only after subsequent use demonstrates
+nonredundant protected discrimination, retrieval, reasoning, or control benefit
+and passes a redundancy check.
+
+Thus:
+
+\[
+\boxed{
+\text{learning what relation stands}
+\neq
+\text{learning how to perceive a relation}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{36P. Optional prediction policy}\label{optional-prediction-policy}
+
+A deployment with justified probabilities, a generative model, preferences, or
+uncertainty estimates may use a probabilistic policy to schedule probes and
+actions. This is binding-specific, not a universal RCI primitive.
+
+The universal scheduler remains a nondominated frontier such as:
+
+\[
+\boxed{
+Frontier(
+Discrimination,
+Continuity,
+Cost,
+Risk,
+Warrant,
+Novelty
+).
+}
+\]
+
+No global free-energy, scalar utility, neural architecture, sleep mechanism, or
+developmental stage is required by the kernel.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XIV --- Protocol Safety}\label{part-xiv-protocol-safety}
+
+\subsection{37. Protocol-safety
+proposition}\label{protocol-safety-proposition}
+
+Assume:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  every question answer is wrapped as \(\operatorname{Claim}[\tau]\),
+  never coerced directly into \(\tau\);
+\item
+  formal reification is partial and may fail safely;
+\item
+  candidate-store contradictions do not imply arbitrary claims;
+\item
+  hard theory updates require independent warrant;
+\item
+  warrant dependencies are acyclic;
+\item
+  perceived patterns over probe traces remain candidate claims until checked;
+\item
+  continuity of generated wording is never accepted as evidence that the
+  independently observed system remained unchanged.
+\end{enumerate}
+
+Then arbitrary semantic payloads cannot by themselves make the hard
+inquiry state formally unsound.
+
+A bad answer may cause:
+
+\begin{itemize}
+\tightlist
+\item
+  bad candidate claims;
+\item
+  unproductive branches;
+\item
+  conflicts;
+\item
+  extra obligations;
+\item
+  failed reification;
+\item
+  or misleading provisional paths.
+\end{itemize}
+
+But it cannot lawfully become a hard fact merely by being generated.
+
+This gives the key implementation principle:
+
+\[
+\boxed{
+\textbf{the question graph must remain lawful even if every answer is wrong.}
+}
+\]
+
+This does not guarantee useful progress. It guarantees containment of
+semantic fallibility.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XV --- The Adaptive Abstract Transition
+System}\label{part-xv-the-adaptive-abstract-transition-system}
+
+\subsection{38. Intermediate structure}\label{intermediate-structure}
+
+The formal architecture maintains:
+
+\[
+\boxed{
+\mathcal I_t
+=
+(
+B_t,
+V_t,
+\alpha_t,
+\widehat{\mathcal U}_t,
+\widehat\Phi_t,
+\mathcal P_t,
+\mathcal C_t,
+\Theta_t,
+\mathcal O_t,
+W_t
+).
+}
+\]
+
+Where:
+
+\begin{itemize}
+\tightlist
+\item
+  \(B_t\): predicate/distinction basis;
+\item
+  \(V_t\): abstract carrier;
+\item
+  \(\alpha_t\): abstraction map;
+\item
+  \(\widehat{\mathcal U}_t\): abstract transitions;
+\item
+  \(\widehat\Phi_t\): protected abstract consequence;
+\item
+  \(\mathcal P_t\): recurrent probe registry and ordered probe traces;
+\item
+  \(\mathcal C_t\): candidate claim graph;
+\item
+  \(\Theta_t\): warranted conditional store;
+\item
+  \(\mathcal O_t\): unresolved obligations;
+\item
+  \(W_t\): warrant DAG.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{39. Predicate abstraction}\label{predicate-abstraction}
+
+Let:
+
+\[
+B_t=\{p_1,\ldots,p_n\}.
+\]
+
+Define:
+
+\[
+\boxed{
+\alpha_t(x)
+=
+(p_1(x),\ldots,p_n(x)).
+}
+\]
+
+The realized abstract carrier is:
+
+\[
+\boxed{
+V_t
+=
+\operatorname{im}\alpha_t.
+}
+\]
+
+No nonexistent Boolean combination is silently treated as concrete
+reality.
+
+Predicate abstraction and counterexample-guided abstraction refinement
+provide established machinery for starting with a coarse abstraction and
+adding distinctions when spurious behavior reveals inadequacy. {[}R9{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{40. Abstraction/concretization
+law}\label{abstractionconcretization-law}
+
+Extend abstraction to sets:
+
+\[
+\alpha_t^\sharp(S)
+=
+\{\alpha_t(x):x\in S\}.
+\]
+
+Define concretization:
+
+\[
+\gamma_t(A)
+=
+\{x:\alpha_t(x)\in A\}.
+\]
+
+Require:
+
+\[
+\boxed{
+\alpha_t^\sharp(S)\subseteq A
+\iff
+S\subseteq\gamma_t(A)
+}
+\]
+
+when using a Galois-insertion-style exact realized abstraction.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XVI --- Lawfulness
+Conditions}\label{part-xvi-lawfulness-conditions}
+
+\subsection{41. L1 --- Realizability}\label{l1-realizability}
+
+If an abstract state is treated as actual:
+
+\[
+v\in V_t
+\]
+
+must correspond to at least one concrete realization.
+
+Otherwise its overapproximate status must be explicit.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{42. L2 --- Consequence
+soundness}\label{l2-consequence-soundness}
+
+Hard abstract claims must not entail false concrete consequences.
+
+For exact consequence compression:
+
+\[
+\boxed{
+FD_{\mathcal H}(\alpha_t)=\varnothing.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{43. L3 --- Transition
+soundness}\label{l3-transition-soundness}
+
+Every concrete transition must be represented abstractly:
+
+\[
+\boxed{
+xR_uy
+\Rightarrow
+\alpha_t(x)\widehat R_u\alpha_t(y).
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{44. L4 --- Control refinement}\label{l4-control-refinement}
+
+Any abstract control action used to guarantee a concrete outcome must
+satisfy an implementation/refinement relation sufficient to transport
+the guarantee to the concrete system.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{45. L5 --- Conservative
+refinement}\label{l5-conservative-refinement}
+
+If \(B_{t+1}\) refines \(B_t\), require a forgetting map:
+
+\[
+\boxed{
+\rho_{t+1,t}
+:
+V_{t+1}\to V_t
+}
+\]
+
+such that:
+
+\[
+\boxed{
+\alpha_t
+=
+\rho_{t+1,t}\circ\alpha_{t+1}.
+}
+\]
+
+Old abstraction is recoverable by forgetting newly introduced
+distinctions.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{46. L6 --- Compression
+exactness}\label{l6-compression-exactness}
+
+A quotient:
+
+\[
+q:V_t\to V'
+\]
+
+may be used only if protected consequence factors through it:
+
+\[
+\boxed{
+\widehat\Phi_t
+=
+\Phi'\circ q.
+}
+\]
+
+If control or succession is protected, relevant transition behavior must
+factor as well.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{47. L7 --- Hard-lemma
+soundness}\label{l7-hard-lemma-soundness}
+
+Every irreversible hard update requires adequate warrant:
+
+\[
+\boxed{
+Check(\pi)=\top
+\Longrightarrow
+g\models_\sigma\ell.
+}
+\]
+
+Proof-producing SMT systems and frameworks such as LFSC illustrate the
+established pattern of complex solvers returning certificates that can
+be checked by a smaller trusted mechanism. {[}R10{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{48. L8 --- Warrant acyclicity}\label{l8-warrant-acyclicity}
+
+The proof graph must remain acyclic.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XVII --- Established Algorithmic
+Spine}\label{part-xvii-established-algorithmic-spine}
+
+\subsection{49. Relational semantics}\label{relational-semantics}
+
+\textbf{Role:} represent succession, composition, predicates, may/must
+reachability.
+
+\textbf{Established basis:} relational algebra, predicate transformers,
+Kleene algebra with tests.
+
+KAT provides an equational system combining programs/actions with tests.
+{[}R1{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{50. Abstract interpretation}\label{abstract-interpretation}
+
+\textbf{Role:} lawful abstraction, concretization, consequence-relative
+compression, fixed-point approximation.
+
+Cousot and Cousot's abstract interpretation framework explicitly relates
+concrete computations to abstract universes and provides the
+lattice-theoretic basis for sound approximation. {[}R4{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{51. CEGAR}\label{cegar}
+
+\textbf{Role:} split false equivalences when a coarse abstraction
+produces spurious behavior.
+
+CEGAR iteratively checks an abstraction and refines it from
+counterexamples. {[}R9{]}
+
+RCI correspondence:
+
+\[
+\boxed{
+\text{protected consequence separator}
+\to
+\text{new predicate}
+\to
+\text{refined abstraction}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{\texorpdfstring{52. \(L^*\) and behavioral quotient
+learning}{52. L\^{}* and behavioral quotient learning}}\label{l-and-behavioral-quotient-learning}
+
+\textbf{Role:} learn consequence-distinguishable state classes through
+queries and counterexamples.
+
+Angluin's \(L^*\) algorithm learns regular languages using membership
+and equivalence queries and uses counterexamples to refine the learned
+structure. {[}R2{]}
+
+RCI correspondence:
+
+\[
+\boxed{
+\text{false equivalence}
+\to
+\text{counterexample}
+\to
+\text{separator}
+\to
+\text{new state distinction}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{53. Partition refinement}\label{partition-refinement}
+
+\textbf{Role:} compute coarsest stable partitions when the system is
+explicit.
+
+Paige--Tarjan gives efficient algorithms for relational coarsest
+partition problems. {[}R3{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{54. DPLL(T)}\label{dpllt}
+
+\textbf{Role:} modular backend architecture for satisfiability and
+theory-specific obligations.
+
+DPLL(T) provides a general search engine parameterized by theory
+solvers, including theory propagation and learned constraints. {[}R5{]}
+
+RCI uses the same architectural principle:
+
+\[
+\boxed{
+\text{generic inquiry controller}
++
+\text{specialized discharge engines}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{55. IC3/PDR}\label{ic3pdr}
+
+\textbf{Role:} property-directed recursion, predecessor obligations,
+generalized blocking clauses, inductive accumulation.
+
+Bradley's IC3 incrementally generates inductive clauses relative to
+reachability approximations and either strengthens a property to an
+invariant or finds a counterexample trace. {[}R11{]}
+
+RCI correspondence:
+
+\[
+\boxed{
+\text{obligation}
+\to
+\text{predecessor}
+\to
+\text{recursive obligation}
+}
+\]
+
+and:
+
+\[
+\boxed{
+\text{failure/unreachability}
+\to
+\text{generalized reusable cut}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{56. Constrained Horn clauses and
+Spacer}\label{constrained-horn-clauses-and-spacer}
+
+\textbf{Role:} encode recursively dependent obligations and predecessor
+requirements.
+
+Z3's Spacer implements generalized PDR for constrained Horn clauses and
+supports infinite-state systems over several SMT theories. {[}R12{]}
+
+An RCI subproblem can therefore compile to a relation such as:
+
+\[
+O_j(y)
+\leftarrow
+\varphi(x,y)
+\land
+O_i(x).
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{57. Craig interpolation}\label{craig-interpolation}
+
+\textbf{Role:} derive a relation over shared vocabulary that summarizes
+why two constraint sets cannot coexist.
+
+McMillan demonstrated interpolation as a basis for SAT-based model
+checking and abstraction. {[}R13{]}
+
+RCI uses interpolation as one possible implementation of:
+
+\[
+\boxed{
+\text{conflict}
+\to
+\text{generalized shared boundary relation}.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{58. MUS/MCS and QuickXPlain}\label{musmcs-and-quickxplain}
+
+\textbf{Role:} localize minimal conflict and minimal repair.
+
+QuickXPlain computes preferred explanations and relaxations for
+overconstrained systems through a solver-independent divide-and-conquer
+method. {[}R7{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{59. ATMS}\label{atms}
+
+\textbf{Role:} maintain conclusions under assumption environments,
+tolerate incompatible candidate worlds, activate/deactivate
+context-dependent claims.
+
+De Kleer's ATMS explicitly represents assumption sets and supports
+reasoning with inconsistent information and multiple potential
+solutions. {[}R8{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{60. Feedback refinement}\label{feedback-refinement}
+
+\textbf{Role:} transport abstract control results to concrete systems.
+
+Feedback refinement relations characterize when abstract symbolic
+controllers can be implemented on concrete nondeterministic plants while
+preserving specifications. {[}R6{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XVIII --- Mapping RCI to Established
+Machinery}\label{part-xviii-mapping-rci-to-established-machinery}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+RCI relation
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Formal object
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Established machinery
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+succession & relation / program & relational algebra, KAT \\
+may predecessor & existential predicate transformer & backward
+reachability \\
+must predecessor & universal predicate transformer &
+weakest-precondition style reasoning \\
+consequence quotient & equivalence partition & Myhill--Nerode,
+bisimulation, Paige--Tarjan \\
+adaptive abstraction & Galois abstraction & abstract interpretation \\
+false-equivalence split & new predicate/separator & CEGAR,
+interpolation \\
+same-class stretching & diverse satisfying assignments & SAT/SMT
+enumeration, OMT, MaxSAT \\
+cross-class squeezing & minimal correction & MCS, optimization,
+QuickXPlain \\
+necessity attack & satisfiability of \(C\land\neg N\) & SAT/SMT \\
+sufficiency attack & satisfiability of \(N\land\neg C\) & SAT/SMT \\
+recursive target descent & Horn clauses & CHC, Spacer \\
+generalized failure cut & inductive/blocking lemma & CDCL, PDR \\
+conflict explanation & minimal inconsistent subset & MUS, QuickXPlain \\
+conditional activation & assumption environment & ATMS \\
+control implementation & abstraction refinement relation & feedback
+refinement \\
+proof checking & certificate & LFSC / proof-producing SMT \\
+\end{longtable}
+
+No one existing algorithm implements RCI as a whole.
+
+The novel synthesis lies principally in:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  making extremal same-class variation and minimal cross-class
+  deformation the universal inquiry geometry;
+\item
+  using plain-language typed question contracts as the interface to
+  semantic generators;
+\item
+  allowing generated answers to remain opaque typed claims rather than
+  requiring full semantic parsing;
+\item
+  treating contradictions created by those claims as recursive inquiry
+  obligations;
+\item
+  unifying all backend returns as guarded reusable relational cuts;
+\item
+  scheduling questions based on expected consequential structural
+  refinement.
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XIX --- Full Inquiry
+State}\label{part-xix-full-inquiry-state}
+
+\subsection{61. Runtime state}\label{runtime-state}
+
+The recommended state is:
+
+\[
+\boxed{
+\Sigma_t
+=
+(
+\mathfrak B,
+\gamma_t,
+\Phi_t,
+\mathcal P_t,
+\mathcal F_t,
+\rho_t,
+B_t,
+\alpha_t,
+\widehat R_t,
+\mathcal C_t,
+\Theta_t,
+\mathcal O_t,
+W_t,
+\mu_t,
+\mathcal M_t,
+\Pi_t,
+\mathcal A_t
+).
+}
+\]
+
+Where:
+
+\begin{itemize}
+\tightlist
+\item \(\mathfrak B\): binding;
+\item \(\gamma_t\): reconstructed active context;
+\item \(\Phi_t\): protected consequence profile;
+\item \(\mathcal P_t\): recurrent probe registry and comparable ordered traces;
+\item \(\mathcal F_t\): current question-conditioned semantic field;
+\item \(\rho_t\): reopening predicates for occluded distinctions;
+\item \(B_t\): active distinction basis;
+\item \(\alpha_t\): current abstraction;
+\item \(\widehat R_t\): abstract succession structure;
+\item \(\mathcal C_t\): candidate claim graph;
+\item \(\Theta_t\): warranted conditional semantic theory;
+\item \(\mathcal O_t\): unresolved obligations;
+\item \(W_t\): warrant DAG;
+\item \(\mu_t\): current inquiry mode;
+\item \(\mathcal M_t=(M_E,M_S,M_P,M_L)\): episodic, semantic,
+  procedural, and latent memory stores;
+\item \(\Pi_t\): sealed predictions and mismatch records;
+\item \(\mathcal A_t\): attempt, external-return, reconstruction, and semantic
+  delta ledger.
+\end{itemize}
+
+Working context is regenerated from retained state rather than assumed to be a
+literal replay of the previous context:
+
+\[
+\boxed{
+\gamma_t
+=
+Reconstruct(\mathcal M_t,c_t,\Phi_t,K_t).
+}
+\]
+
+If reconstruction leaves multiple protected-consequence-distinct candidates,
+the ambiguity enters \(\mathcal O_t\) rather than being silently collapsed.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XX --- Obligations}\label{part-xx-obligations}
+
+\subsection{62. Obligation type}\label{obligation-type}
+
+Define:
+
+\[
+\boxed{
+O
+=
+(
+id,
+kind,
+carrier,
+args,
+scope,
+priority,
+parents
+).
+}
+\]
+
+Canonical kinds include:
+
+\[
+\operatorname{Establish}(C),
+\]
+
+\[
+\operatorname{Eliminate}(C),
+\]
+
+\[
+\operatorname{Distinguish}(x,y),
+\]
+
+\[
+\operatorname{TestNec}(N,C),
+\]
+
+\[
+\operatorname{TestSuff}(N,C),
+\]
+
+\[
+\operatorname{CrossBoundary}(x,C),
+\]
+
+\[
+\operatorname{ResolveConflict}(K),
+\]
+
+\[
+\operatorname{EstablishPrereq}(N),
+\]
+
+\[
+\operatorname{TestPrereq}(N,T),
+\]
+
+\[
+\operatorname{LocalizeFailure}(f,s),
+\]
+
+\[
+\operatorname{Reify}(c),
+\]
+
+\[
+\operatorname{RefineAbstraction}(x,y),
+\]
+
+\[
+\operatorname{ValidateWarrant}(c),
+\]
+
+\[
+\operatorname{Reopen}(g).
+\]
+
+\[
+\operatorname{ResolveMismatch}(p,r),
+\qquad
+\operatorname{Reconstruct}(c,\mathcal H),
+\]
+
+\[
+\operatorname{Consolidate}(E),
+\qquad
+\operatorname{SeparateMemory}(e_i,e_j),
+\]
+
+\[
+\operatorname{ResolveCompletion}(R),
+\qquad
+\operatorname{LearnProbe}(g),
+\]
+
+\[
+\operatorname{RetireProbe}(q),
+\qquad
+\operatorname{ValidateRetention}(K).
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXI --- Question Modes}\label{part-xxi-question-modes}
+
+\subsection{63. Inquiry modes}\label{inquiry-modes}
+
+Use the following principal modes:
+
+\[
+\mathsf V=\text{Variation},
+\]
+
+\[
+\mathsf B=\text{Boundary},
+\]
+
+\[
+\mathsf F=\text{Falsification},
+\]
+
+\[
+\mathsf A=\text{Actualization},
+\]
+
+\[
+\mathsf W=\text{Warrant},
+\]
+
+\[
+\mathsf C=\text{Compression}.
+\]
+
+A useful regulatory rhythm is:
+
+\[
+\boxed{
+\mathsf V
+\to
+\mathsf B
+\to
+\mathsf F
+\to
+\mathsf A
+\to
+\mathsf W
+\to
+\mathsf C.
+}
+\]
+
+However, the mature controller is event-driven.
+
+The return determines the next mode.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXII --- Main Algorithm}\label{part-xxii-main-algorithm}
+
+\subsection{64. Macro algorithm}\label{macro-algorithm}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{RATCHETING CONSEQUENCE INQUIRY 0.3}
+
+\NormalTok{INPUT}
+\NormalTok{    inquiry binding B}
+\NormalTok{    protected consequence profile Phi}
+\NormalTok{    initial obligation O}
+\NormalTok{    semantic generator M}
+\NormalTok{    native/discharge backends E}
+\NormalTok{    retained memory package Memory}
+
+\NormalTok{STATE}
+\NormalTok{    recurrent probe registry P}
+\NormalTok{    ordered probe traces H}
+\NormalTok{    episodic memory ME}
+\NormalTok{    warranted semantic memory MS / Theta}
+\NormalTok{    procedural memory MP}
+\NormalTok{    latent compressed memory ML with reopening guards rho}
+\NormalTok{    question-conditioned semantic field F}
+\NormalTok{    candidate claim graph C}
+\NormalTok{    active predicate basis Bp}
+\NormalTok{    abstraction alpha}
+\NormalTok{    abstract transition relation Rhat}
+\NormalTok{    sealed predictions and mismatches Pi}
+\NormalTok{    attempt/return/reconstruction ledger A}
+\NormalTok{    obligation set Oset}
+\NormalTok{    warrant DAG W}
+
+\NormalTok{LOOP}
+\NormalTok{1. RECONSTRUCT CURRENT WORKING WORLD}
+\NormalTok{   Build the working context from retained semantic, episodic, procedural,}
+\NormalTok{   and latent memory under the present cue, protected horizon, and budget.}
+\NormalTok{   Multiple consequential reconstruction classes open inquiry.}
+
+\NormalTok{2. ORIENT}
+\NormalTok{   Select an unresolved consequential obligation.}
+\NormalTok{   Prefer an existing recurrent probe if it already observes the relation.}
+\NormalTok{   Otherwise derive the smallest lawful question contract that exposes it.}
+
+\NormalTok{3. BUILD ACTIVE FIELD}
+\NormalTok{   Bind referents and protected consequences.}
+\NormalTok{   Activate structure that can change a live completion or its warrant.}
+\NormalTok{   Preserve relevance-undetermined structure as exploration reserve.}
+\NormalTok{   Occlude only guarded consequence-null structure.}
+\NormalTok{   Retrieve distant material and native methods by relational fit.}
+
+\NormalTok{4. OBSERVE / GENERATE}
+\NormalTok{   Where possible obtain a fresh observation before exposing prior semantic}
+\NormalTok{   interpretations. Render the locally required question and obtain semantic}
+\NormalTok{   payloads only for the requested claim roles. Bind them as provisional claims.}
+
+\NormalTok{5. COMPOSE AND SELECT DISCRIMINATOR}
+\NormalTok{   Compose current claims, warranted structure, traces, and domain relations.}
+\NormalTok{   Choose the cheapest nondominated probe, method, experiment, execution,}
+\NormalTok{   or action capable of discriminating the live alternatives.}
+
+\NormalTok{6. SEAL EXPECTED CONSEQUENCE WHEN USEFUL}
+\NormalTok{   Before the selected attempt returns, preserve any consequential prediction:}
+\NormalTok{       predicted return class; predicted protected consequence;}
+\NormalTok{       acceptable variation; scope; basis claims.}
+\NormalTok{   The seal is immutable after actualization.}
+
+\NormalTok{7. ACTUALIZE / DISCHARGE}
+\NormalTok{   Execute the selected probe, action, repository command, formal solver,}
+\NormalTok{   native method, simulation, experiment, retrieval, observation, or other}
+\NormalTok{   licensed mechanism.}
+
+\NormalTok{8. PRESERVE RAW RETURN}
+\NormalTok{   Store the external return before interpretation.}
+\NormalTok{   Do not let the return rewrite the sealed prediction, target, method,}
+\NormalTok{   assumptions, or warrant policy that preceded it.}
+
+\NormalTok{9. APPEND EPISODE AND PROBE EVENT}
+\NormalTok{   Retain the attempt, state revision, raw return, generated answer, and order}
+\NormalTok{   in episodic memory. If q is recurrent, append a comparable ProbeEvent to H_q.}
+
+\NormalTok{10. COMPARE}
+\NormalTok{    Compare actual return vs sealed prediction, current probe event vs prior}
+\NormalTok{    comparable events, and relevant cross-probe traces.}
+\NormalTok{    Generate provisional mismatch, persistence, change-point, covariation,}
+\NormalTok{    dissociation, recurrence, novelty, or path-dependence claims.}
+
+\NormalTok{11. DETECT / REIFY CONSEQUENCES}
+\NormalTok{    Detect new distinctions, counterexamples, conflicts, possible equivalences,}
+\NormalTok{    boundary witnesses, prerequisites, targets, representation gaps, memory}
+\NormalTok{    ambiguity, reification needs, warrant needs, reopening conditions, or no}
+\NormalTok{    consequential change. Reify only consequential claims.}
+
+\NormalTok{12. RECONSTRUCT CANDIDATE SUCCESSOR}
+\NormalTok{    From prior state plus raw return, construct candidate interpretations,}
+\NormalTok{    repairs, splits, merges, guard changes, rebinds, and residual obligations.}
+\NormalTok{    Generated reconstruction detail is not historical fact.}
+
+\NormalTok{13. LOCALIZE AND ATTACK}
+\NormalTok{    Localize the smallest supported failure or success boundary.}
+\NormalTok{    Attack necessity, sufficiency, prerequisites, perceived invariants, and}
+\NormalTok{    the basis of any violated prediction without assuming a unique cause.}
+
+\NormalTok{14. WARRANT}
+\NormalTok{    Determine exactly which candidate changes the licensed return supports.}
+\NormalTok{    Positive warrant remains acyclic and cannot be manufactured by the candidate.}
+
+\NormalTok{15. LEARN}
+\NormalTok{    Episodic: retain consequential action-return events immediately.}
+\NormalTok{    Semantic: promote only warranted guarded relations into Theta/MS.}
+\NormalTok{    Representational: promote a new probe or representation only after}
+\NormalTok{    demonstrated nonredundant discrimination and redundancy checks.}
+
+\NormalTok{16. CONSOLIDATE WHEN TRIGGERED}
+\NormalTok{    Interleave consequential recent episodes with older episodes, exceptions,}
+\NormalTok{    and counterexamples; propose the relation that survives; attack it before}
+\NormalTok{    semantic promotion.}
+
+\NormalTok{17. REFINE, COMPRESS, AND SELF-CLEAN}
+\NormalTok{    Split any representation or memory class that protected consequence distinguishes.}
+\NormalTok{    Complete cue-induced reconstructions only when remaining candidates are}
+\NormalTok{    protected-consequence-equivalent. Compress or retire active structure that}
+\NormalTok{    no longer earns its interference cost while preserving regeneration,}
+\NormalTok{    authoritative provenance, debt, and reopening.}
+
+\NormalTok{18. RECONSOLIDATE / REOPEN}
+\NormalTok{    A protected mismatch challenges retained knowledge and creates a versioned}
+\NormalTok{    MemoryPatchCandidate. Never mutate the predecessor in place.}
+\NormalTok{    Reactivate hidden distinctions whenever their reopening conditions fire.}
+
+\NormalTok{19. PROGRESS TEST}
+\NormalTok{    Distinguish perceptual progress, epistemic progress, and representational}
+\NormalTok{    progress. Retain no semantic step merely because content was generated.}
+
+\NormalTok{20. RECONSTRUCT NEXT WORKING WORLD AND RECUR}
+\NormalTok{    Apply only warranted SemanticDelta changes.}
+\NormalTok{    Rebuild active context from retained memory.}
+\NormalTok{    Convert the consequential residual into the next obligation.}
+
+\NormalTok{STOP WHEN}
+\NormalTok{    the obligation is warranted satisfied;}
+\NormalTok{    the obligation is warranted impossible in the declared binding;}
+\NormalTok{    all remaining alternatives are protected-consequence-equivalent;}
+\NormalTok{    the resource horizon is reached;}
+\NormalTok{    or no available probe, method, backend, authorized external return, or}
+\NormalTok{    admissible representation extension can distinguish what remains.}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXIII --- Stretch/Squeeze
+Subalgorithm}\label{part-xxiii-stretchsqueeze-subalgorithm}
+
+\subsection{65. Stretch}\label{stretch}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{STRETCH(C, explanation E)}
+
+\NormalTok{Generate or retrieve cases satisfying the same consequence C.}
+
+\NormalTok{Prefer cases that:}
+\NormalTok{    disagree with E;}
+\NormalTok{    differ from previous cases in arrangement;}
+\NormalTok{    differ in succession;}
+\NormalTok{    remove proposed necessities;}
+\NormalTok{    use distinct mechanisms;}
+\NormalTok{    are extreme when this improves discrimination.}
+
+\NormalTok{For each surviving common relation N:}
+\NormalTok{    create TestNec(N, C).}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{66. Squeeze}\label{squeeze}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{SQUEEZE(x, C)}
+
+\NormalTok{Seek an opposite{-}consequence realization y.}
+\NormalTok{Preserve as much of x as possible.}
+
+\NormalTok{Minimize:}
+\NormalTok{    arrangement difference,}
+\NormalTok{    succession difference,}
+\NormalTok{    or a nondominated combination if no common scalar exists.}
+
+\NormalTok{Compare boundary witnesses from both consequence directions.}
+\NormalTok{Any residual relation becomes a candidate factor.}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXIV --- Question
+Scheduling}\label{part-xxiv-question-scheduling}
+
+\subsection{67. Dependency order}\label{dependency-order}
+
+Define:
+
+\[
+q_i\prec q_j
+\]
+
+when the answer to \(q_i\) can change:
+
+\begin{itemize}
+\tightlist
+\item
+  the referent of \(q_j\);
+\item
+  whether \(q_j\) is well-typed;
+\item
+  what answers to \(q_j\) mean;
+\item
+  or which outputs are possible.
+\end{itemize}
+
+Questions related by \(\prec\) should normally be sequenced.
+
+Independent questions may be batched.
+
+Thus:
+
+\[
+\boxed{
+\textbf{batch antichains; sequence dependencies.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{68. Order robustness}\label{order-robustness}
+
+For questions expected to be independent, compare:
+
+\[
+U_{q_2}(U_{q_1}(\Sigma))
+\]
+
+with:
+
+\[
+U_{q_1}(U_{q_2}(\Sigma)).
+\]
+
+If protected consequences differ, inquire whether:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  the underlying relations genuinely interact; or
+\item
+  the language model exhibits irrelevant order sensitivity.
+\end{enumerate}
+
+Question-order permutation is therefore itself a diagnostic.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{69. Question value}\label{question-value}
+
+Without a justified scalar objective, retain nondominated questions.
+
+Possible dimensions:
+
+\begin{itemize}
+\tightlist
+\item
+  cost;
+\item
+  expected discrimination;
+\item
+  expected generalizability;
+\item
+  risk;
+\item
+  destructiveness;
+\item
+  reversibility;
+\item
+  warrant quality;
+\item
+  prediction/return mismatch localization;
+\item
+  reconstructive fidelity under protected continuation;
+\item
+  consolidation error and exception retention;
+\item
+  probe-basis growth and retirement;
+\item
+  active-memory interference cost.
+\end{itemize}
+
+With a valid measure \(\nu\):
+
+\[
+q^\star
+\in
+\arg\min_q
+\left[
+Cost(q)
++
+\lambda
+\max_r
+\nu
+(
+Q_t\cap[\![Gen(q,r)]\!]
+)
+\right].
+\]
+
+This is optional policy, not foundational structure.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{69A. Perceptual continuity}\label{perceptual-continuity}
+
+Question scheduling has two legitimate pressures:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item maximize consequential discrimination of the current frontier;
+\item preserve stable relational axes when another observation under an existing
+  recurrent probe would make change, persistence, recurrence, or path dependence
+  visible.
+\end{enumerate}
+
+Therefore:
+
+\[
+\boxed{
+q^\star
+\in
+Frontier(
+Discrimination,
+Continuity,
+Cost,
+Risk,
+Reversibility,
+WarrantQuality
+).
+}
+\]
+
+If an existing recurrent probe already exposes the needed distinction, prefer
+reusing it unless a new probe has a nondominated informational advantage. If no
+existing probe can expose the distinction, derive the smallest new relational
+probe and add it provisionally to the perceptual repertoire.
+
+Stable axes should not become permanent dogma. Probe usefulness is itself
+consequence-relative and subject to compression or reopening.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXV --- Full Typed Question
+Library}\label{part-xxv-full-typed-question-library}
+
+The following questions are intentionally domain-agnostic and
+goal-agnostic.
+
+The surface wording may vary. Their formal roles may not.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{70. Present-obligation
+questions}\label{present-obligation-questions}
+
+\textbf{Input:} inquiry state\\
+\textbf{Output:} \texttt{Claim{[}ObligationCharacterization{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What, exactly, is unresolved here?
+\item
+  Is the unresolved thing something to establish, eliminate,
+  distinguish, compare, explain, actualize, repair, test, or determine
+  possible?
+\item
+  What kind of thing could constitute an answer to this?
+\item
+  Which parts of the present situation are already fixed?
+\item
+  Which parts remain open?
+\item
+  Which possible answers would lead to different consequences?
+\item
+  Which possible answers would lead to different next questions?
+\item
+  What would count as an independently constrained return?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{71. Binding questions}\label{binding-questions}
+
+\textbf{Output roles:} \texttt{Claim{[}Carrier{]}},
+\texttt{Claim{[}Relation{]}}, \texttt{Claim{[}Operation{]}},
+\texttt{Claim{[}ExpressibilityGap{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What kinds of things can this inquiry currently refer to?
+\item
+  What type of thing is the present object?
+\item
+  What distinctions can currently be expressed about it?
+\item
+  What relations can currently be expressed?
+\item
+  What changes to it are admissible to consider?
+\item
+  What transformations are admissible to consider?
+\item
+  Which consequences are currently protected?
+\item
+  What available mechanisms could independently constrain an answer?
+\item
+  Am I assuming a distance that has not been supplied?
+\item
+  Am I assuming probability that has not been supplied?
+\item
+  Am I assuming causality that has not been supplied?
+\item
+  Am I assuming temporal order that has not been supplied?
+\item
+  Am I assuming determinism that has not been supplied?
+\item
+  Is the distinction I need expressible in the present representation?
+\item
+  If not, what new relation or representation would make it expressible?
+\item
+  Can the old representation be recovered merely by forgetting that new
+  distinction?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{72. Consequence questions}\label{consequence-questions}
+
+\textbf{Output:} \texttt{Claim{[}ProtectedConsequence{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  With respect to what consequence are these possibilities being
+  compared?
+\item
+  What would count as one side of that consequence distinction?
+\item
+  What would count as its opposite?
+\item
+  If something is a problem, what would it mean merely for that problem
+  not to be present?
+\item
+  Would every non-problem state count as acceptable?
+\item
+  If not, what additional consequence separates acceptable from
+  unacceptable non-problem states?
+\item
+  If no goal is given, what distinction still changes something
+  protected?
+\item
+  If only relative improvement is known, what makes one possibility
+  preferable to another?
+\item
+  What would make this consequence trivially true?
+\item
+  What would make its opposite trivially true?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{73. Distinction questions}\label{distinction-questions}
+
+\textbf{Output:} \texttt{Claim{[}Separator{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What are the two things being distinguished?
+\item
+  Under what one relation are they comparable?
+\item
+  What does that relation return differently?
+\item
+  Would they still differ if that relation were removed from
+  consideration?
+\item
+  Does their bare nonidentity matter?
+\item
+  What would have to remain fixed for this to remain the same
+  distinction?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{74. Equivalence questions}\label{equivalence-questions}
+
+\textbf{Output:} \texttt{Claim{[}Separator{]}} or
+\texttt{Claim{[}Equivalence{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Can any protected continuation distinguish these two?
+\item
+  If so, which one?
+\item
+  What consequence differs?
+\item
+  If none separates them, what reason remains to distinguish them
+  actively?
+\item
+  Can they be treated as one state for this inquiry?
+\item
+  What would make their suppressed difference consequential again?
+\item
+  Has a newly admitted consequence split a previously folded class?
+\item
+  Are these truly equivalent, or have we merely failed to distinguish
+  them so far?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{75. Second-distinction / tetrad
+questions}\label{second-distinction-tetrad-questions}
+
+\textbf{Output:} \texttt{Claim{[}Predicate{]}},
+\texttt{Claim{[}CellWitness{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What second distinction could explain why these sides have different
+  consequences?
+\item
+  Can that distinction be present while the consequence is present?
+\item
+  Can it be absent while the consequence is present?
+\item
+  Can it be present while the consequence is absent?
+\item
+  Can both it and the consequence be absent?
+\item
+  Which combinations are expressible?
+\item
+  Which are constructible?
+\item
+  Which are compatible?
+\item
+  Which are realizable?
+\item
+  Which are reachable?
+\item
+  Which are actual?
+\item
+  If a cell is missing, is it impossible or merely unobserved?
+\item
+  Which missing cell would refute necessity?
+\item
+  Which missing cell would refute sufficiency?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{76. Arrangement questions}\label{arrangement-questions}
+
+\textbf{Output:} \texttt{Claim{[}ArrangementDifference{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What differs about what is present?
+\item
+  What differs about what is absent?
+\item
+  What differs about how the parts are related?
+\item
+  What changes if the arrangement changes while the path is held fixed?
+\item
+  Which arrangement change is smaller relative to the reference state?
+\item
+  Can this deformation be weakened while preserving the same
+  consequence?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{77. Succession questions}\label{succession-questions}
+
+\textbf{Output:} \texttt{Claim{[}SuccessionDifference{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What differs only about how one state becomes another?
+\item
+  What differs in order?
+\item
+  What differs in dependency?
+\item
+  What differs in path?
+\item
+  What changes if the path changes while the relevant arrangement is
+  held fixed?
+\item
+  Can this succession be weakened while preserving the result?
+\item
+  If neither arrangement nor succession alone explains the difference,
+  does their interaction do so?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{78. Stretch-positive
+questions}\label{stretch-positive-questions}
+
+\textbf{Output:} \texttt{Claim{[}SameClassWitness{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What could make this consequence unmistakably true while sharing as
+  little as possible with the cases already considered?
+\item
+  What radically different arrangement preserves the same consequence?
+\item
+  What radically different succession preserves it?
+\item
+  What extreme or implausible case would preserve the consequence while
+  violating as much of the current explanation as possible?
+\item
+  Can the consequence occur without this proposed feature?
+\item
+  Can it occur through a completely different mechanism?
+\item
+  What else can vary while it remains true?
+\item
+  Can the same-consequence cases differ along one more live distinction?
+\item
+  What still survives after maximally different positive cases are
+  compared?
+\item
+  Has that survivor actually been shown necessary?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{79. Stretch-negative
+questions}\label{stretch-negative-questions}
+
+\textbf{Output:} \texttt{Claim{[}SameClassWitness{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What could make the opposite consequence unmistakably true while
+  sharing as little as possible with existing negative cases?
+\item
+  What radically different arrangement gives the same negative
+  consequence?
+\item
+  What radically different path gives the same negative consequence?
+\item
+  What shared structure is present only because the negative cases have
+  not varied enough?
+\item
+  What proposed explanation of failure can be violated while preserving
+  failure?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{80. Squeeze-positive-to-negative
+questions}\label{squeeze-positive-to-negative-questions}
+
+\textbf{Output:} \texttt{Claim{[}BoundaryWitness{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Starting from this positive case, what is the least arrangement change
+  that could make the consequence negative?
+\item
+  Can more of the original arrangement be preserved while still flipping
+  it?
+\item
+  What is the least succession change that could flip it?
+\item
+  Can that succession be weakened further?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{81. Squeeze-negative-to-positive
+questions}\label{squeeze-negative-to-positive-questions}
+
+\textbf{Output:} \texttt{Claim{[}BoundaryWitness{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Starting from this negative case, what is the least arrangement change
+  that could make the consequence positive?
+\item
+  Can more of the original arrangement be preserved?
+\item
+  What is the least succession change that could make the consequence
+  positive?
+\item
+  Can that succession be weakened further?
+\item
+  What relation is common to minimal crossings from both directions?
+\item
+  If the directions differ, what explains the asymmetry?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{82. Extreme reversal
+questions}\label{extreme-reversal-questions}
+
+\textbf{Output:} \texttt{Claim{[}Breaker{]}},
+\texttt{Claim{[}HiddenGuard{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  If this makes the consequence overwhelmingly obvious, what would
+  nevertheless have to be true for it to fail?
+\item
+  What is the least additional difference required to make that reversal
+  coherent?
+\item
+  Can that reversing condition be weakened?
+\item
+  If this makes the opposite overwhelmingly obvious, what would
+  nevertheless make the original consequence hold?
+\item
+  What least additional difference makes that reversal coherent?
+\item
+  Does this reveal an unstated guard?
+\item
+  Does this reveal that the consequence itself was defined too coarsely?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{83. Problem/non-problem
+questions}\label{problemnon-problem-questions}
+
+\textbf{Output:} \texttt{Claim{[}ProblemBoundary{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  If the problem is present, what is the least change that would make it
+  absent?
+\item
+  If the problem were absent, what is the least change that would make
+  it present?
+\item
+  What can be removed while the problem remains?
+\item
+  What must be introduced before the problem appears?
+\item
+  What relation appears in both problem-removal and
+  problem-reconstruction?
+\item
+  If the two directions differ, what explains the difference?
+\item
+  Once the problem is absent, what other protected consequence could
+  still distinguish this from an acceptable resolution?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{84. Factor questions}\label{factor-questions}
+
+\textbf{Output:} \texttt{Claim{[}Factor{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What smaller relation appears to determine the protected consequence?
+\item
+  Can two cases be identical under that relation while differing in
+  consequence?
+\item
+  If so, what missing distinction separates them?
+\item
+  Can that distinction be added without changing anything else?
+\item
+  Can the factor be made coarser while preserving consequence?
+\item
+  What represented distinction can be forgotten?
+\item
+  Is the proposed factor merely a renaming of the consequence?
+\item
+  Can the factor be expressed without invoking the consequence itself?
+\item
+  Do several nondominated factors remain?
+\item
+  What question would separate them?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{85. Necessity questions}\label{necessity-questions}
+
+\textbf{Output:} \texttt{Claim{[}NecessityCounterexample{]}} or
+\texttt{Claim{[}NoCounterexampleCertificate{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Can the consequence still hold if this is false?
+\item
+  Can this be removed from a positive case while preserving everything
+  else possible?
+\item
+  If removing it breaks the consequence, can something else compensate?
+\item
+  Can the remaining structure be rearranged so the consequence returns
+  without restoring it?
+\item
+  If that works, what role did the original condition actually play?
+\item
+  If every attempt fails, what common reason causes those failures?
+\item
+  Is that common reason a deeper necessity?
+\item
+  Can that deeper necessity itself be removed?
+\item
+  Was the search exhaustive?
+\item
+  What independent result would establish that the
+  consequence-without-this region is empty?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{86. Sufficiency questions}\label{sufficiency-questions}
+
+\textbf{Output:} \texttt{Claim{[}SufficiencyCounterexample{]}} or
+\texttt{Claim{[}NoCounterexampleCertificate{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Can this be true while the consequence is false?
+\item
+  Can this condition be made strongly present while the consequence
+  still fails?
+\item
+  What additional condition had to change?
+\item
+  Does that reveal an unstated guard?
+\item
+  Can the consequence remain without that guard?
+\item
+  Has the counterexample region been established empty, or merely not
+  encountered?
+\item
+  What independent return would warrant sufficiency?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{87. Abstraction questions}\label{abstraction-questions}
+
+\textbf{Output:} \texttt{Claim{[}Separator{]}},
+\texttt{Claim{[}Equivalence{]}}, \texttt{Claim{[}AbstractionDefect{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Does every abstract state treated as realized correspond to a concrete
+  realization?
+\item
+  If not, is its overapproximate status explicit?
+\item
+  Can two concrete realizations map to the same abstract state while
+  differing in protected consequence?
+\item
+  What predicate would separate them?
+\item
+  Does every concrete transition have an abstract representative?
+\item
+  Can the old abstraction be recovered by forgetting the new
+  distinction?
+\item
+  Can old warranted statements be transported into the refined
+  representation?
+\item
+  Can this abstraction be compressed further without losing protected
+  consequence?
+\item
+  Can it be compressed without losing protected succession or control
+  behavior?
+\item
+  What first distinction would be lost by one more compression step?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{88. Description/control
+questions}\label{descriptioncontrol-questions}
+
+\textbf{Output:} \texttt{Claim{[}ControlRelation{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Does this relation merely predict the consequence, or can it be
+  established?
+\item
+  What admissible transformation would establish it?
+\item
+  Is that transformation available here?
+\item
+  Can it be implemented from every concrete state represented by this
+  abstract state?
+\item
+  Could any allowed successor still leave the target region?
+\item
+  Does the proposed route merely permit success, or guarantee it?
+\item
+  What connects the abstract action to a concrete action?
+\item
+  Does every concrete successor remain represented abstractly?
+\item
+  What additional distinction is needed if not?
+\item
+  What would constitute a genuine control certificate?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{89. Actualization questions}\label{actualization-questions}
+
+\textbf{Output:} \texttt{Claim{[}Target{]}},
+\texttt{Claim{[}Conflict{]}}, \texttt{Claim{[}Path{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What consequence region counts as the desired result for this
+  obligation?
+\item
+  What target realization preserves the most current structure?
+\item
+  Can the target coexist with the present arrangement?
+\item
+  If not, what smallest set of retained conditions makes coexistence
+  impossible?
+\item
+  What can be changed to dissolve that conflict?
+\item
+  Are several repairs incomparable?
+\item
+  What distinguishes which repair should be preferred?
+\item
+  If coexistence is possible, can the target be reached?
+\item
+  What succession could reach it?
+\item
+  Does that succession permit or guarantee the target?
+\item
+  Is there a nondominated alternative?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{90. Prerequisite questions}\label{prerequisite-questions}
+
+\textbf{Output:} \texttt{Claim{[}Prerequisite{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What must already be true before this transformation can establish the
+  target?
+\item
+  Which part of that is already true?
+\item
+  Which part is missing?
+\item
+  What would have to be true for the missing part itself to hold?
+\item
+  Is that the first unresolved subproblem?
+\item
+  Can the target be reached without this proposed prerequisite?
+\item
+  Can another succession bypass it?
+\item
+  Is it genuinely necessary or merely route-specific?
+\item
+  If every route without it fails, what common relation explains the
+  failure?
+\item
+  Can that common relation itself be falsified as necessary?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{91. Discharge-selection
+questions}\label{discharge-selection-questions}
+
+\textbf{Output:} \texttt{Claim{[}DischargeMethod{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What exact proposition or relation is being tested?
+\item
+  What kind of return would settle it?
+\item
+  Would a witness settle it?
+\item
+  Would an impossibility proof settle it?
+\item
+  Would a predecessor settle it?
+\item
+  Would a minimal conflict settle it?
+\item
+  Would observation settle it?
+\item
+  Would execution settle it?
+\item
+  Would retrieval settle it?
+\item
+  Which available mechanism can produce the needed return with adequate
+  warrant?
+\item
+  What exact query must be sent?
+\item
+  What raw return did it provide?
+\item
+  What interpretation does the return license?
+\item
+  What interpretation does it not license?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{92. Warrant questions}\label{warrant-questions}
+
+\textbf{Output:} \texttt{Claim{[}Warrant{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What independently checks this return?
+\item
+  What exactly would a successful check establish?
+\item
+  Under what assumptions?
+\item
+  Over what scope?
+\item
+  Is the return a proof, observation, execution, retrieval, simulation,
+  hypothesis, or another warrant class?
+\item
+  Does it support a hard exclusion or only provisional preference?
+\item
+  What stronger statement would exceed the warrant?
+\item
+  Does the warrant depend on its own conclusion?
+\item
+  What independent antecedent would remove that circularity?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{93. Success-localization
+questions}\label{success-localization-questions}
+
+\textbf{Output:} \texttt{Claim{[}MinimalSupport{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What was present in the successful case?
+\item
+  What can be removed while success remains?
+\item
+  What can be changed?
+\item
+  What can be replaced?
+\item
+  What can be reordered?
+\item
+  Which survivor has not yet been adequately challenged?
+\item
+  Can success be reconstructed without it?
+\item
+  What is the smallest support still sufficient here?
+\item
+  Is that support sufficient only here or across scope?
+\item
+  What counterexample would distinguish those possibilities?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{94. Failure-localization
+questions}\label{failure-localization-questions}
+
+\textbf{Output:} \texttt{Claim{[}FailureResidual{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What is the nearest relevant successful case?
+\item
+  What differs in arrangement?
+\item
+  What differs in succession?
+\item
+  If the arrangement difference is removed, does failure remain?
+\item
+  If the succession difference is removed, does failure remain?
+\item
+  If neither alone suffices, does their interaction?
+\item
+  What part of the failure difference can be removed while failure
+  remains?
+\item
+  Can the residual be reduced further?
+\item
+  What larger class of failures follows from that residual?
+\item
+  Under what condition does the generalized failure relation stop
+  applying?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{95. Contradiction-repair
+questions}\label{contradiction-repair-questions}
+
+\textbf{Output:} \texttt{Claim{[}ConflictResolution{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Can these two commitments both hold here?
+\item
+  If not, which one fails?
+\item
+  Is one claim too broad?
+\item
+  Do they apply under different scopes?
+\item
+  Did a term change meaning?
+\item
+  Is there a hidden guard separating them?
+\item
+  Is the supposed counterexample invalid?
+\item
+  What is the smallest distinction that makes the two claims compatible?
+\item
+  Does that distinction actually apply here?
+\item
+  Can the conflict still occur without that distinction?
+\item
+  Which earlier commitment must be restricted, refuted, or reopened?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{96. Generalization
+questions}\label{generalization-questions}
+
+\textbf{Output:} \texttt{Claim{[}GeneralizedRelation{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What broader relation is supported by the same reason as this return?
+\item
+  Can its conditions be weakened?
+\item
+  Can its conclusion be strengthened?
+\item
+  Are several incomparable generalizations supported?
+\item
+  Which are dominated?
+\item
+  What counterexample would falsify this generalization?
+\item
+  Does it survive that attack?
+\item
+  What is the broadest reusable relation that remains warranted?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{97. Conditional-learning
+questions}\label{conditional-learning-questions}
+
+\textbf{Output:} \texttt{Claim{[}Guard{]}}, \texttt{Claim{[}Scope{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Under what condition is this learned relation active?
+\item
+  Over what scope?
+\item
+  Which earlier results does it depend on?
+\item
+  What warrant supports it?
+\item
+  What does it let us exclude?
+\item
+  What does it let us merge?
+\item
+  What does it force us to split?
+\item
+  Is it already implied by the retained theory?
+\item
+  If so, does storing it add anything?
+\item
+  What condition would make it stop applying?
+\item
+  Would that make it false or merely inactive?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{98. Reopening questions}\label{reopening-questions}
+
+\textbf{Output:} \texttt{Claim{[}ReopenCondition{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Which folded distinction was suppressed under a condition that no
+  longer holds?
+\item
+  What changed?
+\item
+  Which stored relations depended on the old condition?
+\item
+  Which become inactive?
+\item
+  Which remain warranted?
+\item
+  What alternatives must now be represented separately?
+\item
+  Can the old relation remain stored under its original guard?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{99. Compression questions}\label{compression-questions}
+
+\textbf{Output:} \texttt{Claim{[}Equivalence{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Which active distinctions can no protected consequence inspect?
+\item
+  Can they be merged without changing protected consequence?
+\item
+  Can they be merged without changing protected succession behavior?
+\item
+  Can they be merged without invalidating control guarantees?
+\item
+  What is the coarsest representation that still answers all protected
+  questions correctly?
+\item
+  What further merge would first create an error?
+\item
+  What new separator requires a split?
+\item
+  Can that separator be added conservatively?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{100. Intermediate-lawfulness
+questions}\label{intermediate-lawfulness-questions}
+
+\textbf{Output:} \texttt{Claim{[}ArchitectureDefect{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Does every abstract state treated as real correspond to a concrete
+  state?
+\item
+  Can any hard abstract consequence be false concretely?
+\item
+  Can any concrete transition occur without abstract representation?
+\item
+  Can an abstract control action fail to be concretely implementable?
+\item
+  Can refinement recover the old abstraction by forgetting?
+\item
+  Does compression preserve all protected consequences?
+\item
+  Does it preserve protected transition behavior?
+\item
+  Does every hard lemma have adequate warrant?
+\item
+  Does any warrant depend positively on itself?
+\item
+  What smallest architecture change would restore the violated law?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{101. Question-selection
+questions}\label{question-selection-questions}
+
+\textbf{Output:} \texttt{Claim{[}NextQuestionPreference{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Which unresolved distinction could still change a protected
+  consequence?
+\item
+  Which could change the next obligation?
+\item
+  Which available question separates the largest consequentially
+  different region?
+\item
+  Which is likely to yield the broadest reusable relation?
+\item
+  What would each possible answer let us eliminate, split, merge,
+  establish, or reopen?
+\item
+  Is another question cheaper, safer, more reversible, or better
+  warranted without producing a weaker result?
+\item
+  If no question dominates, which remain nondominated?
+\item
+  Do all answers to this proposed question lead to the same
+  consequential state?
+\item
+  If so, why ask it?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{102. Progress questions}\label{progress-questions}
+
+\textbf{Output:} \texttt{Claim{[}ProgressStatus{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Did this establish a new nonredundant warranted relation?
+\item
+  Did it remove a live possibility?
+\item
+  Did it falsify a necessity?
+\item
+  Did it falsify a sufficiency?
+\item
+  Did it expose a separator?
+\item
+  Did it justify an equivalence?
+\item
+  Did it localize a boundary?
+\item
+  Did it discharge a prerequisite?
+\item
+  Did it identify an obstruction?
+\item
+  Did it establish a reopening condition?
+\item
+  Did it change any downstream obligation?
+\item
+  If none occurred, what semantic progress was made?
+\item
+  If none was made, why should this step enter retained history?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{103. Residual questions}\label{residual-questions}
+
+\textbf{Output:} \texttt{Claim{[}NextObligation{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  What consequential difference remains unresolved?
+\item
+  Is it a counterexample?
+\item
+  Is it an unexplained boundary?
+\item
+  Is it an arrangement conflict?
+\item
+  Is it a succession obstruction?
+\item
+  Is it an unverified prerequisite?
+\item
+  Is it a factorization defect?
+\item
+  Is it an expressibility failure?
+\item
+  Is it a warrant gap?
+\item
+  What consequence distinction does that residual create?
+\item
+  What are its two sides?
+\item
+  Under what relation are they comparable?
+\item
+  What second distinction could explain them?
+\item
+  What question now separates them?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{104. Stopping questions}\label{stopping-questions}
+
+\textbf{Output:} \texttt{Claim{[}StopStatus{]}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Is the present obligation warranted satisfied?
+\item
+  Is it warranted impossible within the declared binding?
+\item
+  Do all remaining possibilities have the same protected consequences?
+\item
+  Can any available continuation distinguish them?
+\item
+  Can any available question change the next warranted action or
+  conclusion?
+\item
+  If not, what consequential reason remains to continue?
+\item
+  If a distinction remains but cannot be represented, asked, observed,
+  or discharged, is the proper result unknown under the present binding?
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{104A. Recurrent perceptual questions}\label{recurrent-perceptual-questions}
+
+These are derived question contracts over \(ProbeTrace\) carriers rather than new
+trusted primitives.
+
+\paragraph{Persistence.}
+
+\textbf{Input:} \(H_q\)\\
+\textbf{Output:} \texttt{Claim[Invariant]}
+
+\begin{quote}
+What has remained the same across comparable applications of this probe?
+\end{quote}
+
+\paragraph{Change.}
+
+\textbf{Input:} consecutive comparable events\\
+\textbf{Output:} \texttt{Claim[Difference]}
+
+\begin{quote}
+What changed in the current return relative to the previous comparable return?
+\end{quote}
+
+\paragraph{Change point.}
+
+\textbf{Input:} ordered \(H_q\)\\
+\textbf{Output:} \texttt{Claim[Boundary]}
+
+\begin{quote}
+At what transition did this relation first materially change?
+\end{quote}
+
+\paragraph{Covariation.}
+
+\textbf{Input:} \((H_q,H_r)\)\\
+\textbf{Output:} \texttt{Claim[Relation]}
+
+\begin{quote}
+What changed in these probe histories at the same consequential transitions?
+\end{quote}
+
+\paragraph{Dissociation.}
+
+\begin{quote}
+What changed while this probe's protected consequence remained the same?
+\end{quote}
+
+\paragraph{Recurrence.}
+
+\begin{quote}
+Has this relational pattern appeared earlier under a comparable probe state?
+\end{quote}
+
+\paragraph{Path dependence.}
+
+\begin{quote}
+Did apparently equivalent states produce different returns after different
+succession paths?
+\end{quote}
+
+\paragraph{Novelty.}
+
+\begin{quote}
+What appears in this return that has not appeared in the comparable trace?
+\end{quote}
+
+Each answer is wrapped as a provisional claim and subjected to ordinary
+variation, boundary, falsification, actualization, and warrant operations.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXVI --- Minimal Question
+Kernel}\label{part-xxvi-minimal-question-kernel}
+
+\subsection{105. Four primary question
+families}\label{four-primary-question-families}
+
+Most of the library can be regenerated from four primary pressures.
+
+\subsubsection{Variation}\label{variation}
+
+\[
+\boxed{
+\text{What can change while this consequence remains the same?}
+}
+\]
+
+\subsubsection{Boundary}\label{boundary}
+
+\[
+\boxed{
+\text{What is the least change that makes the consequence different?}
+}
+\]
+
+\subsubsection{Falsification}\label{falsification}
+
+\[
+\boxed{
+\text{Can the consequence still occur without this?}
+}
+\]
+
+and:
+
+\[
+\boxed{
+\text{Can this still occur without the consequence?}
+}
+\]
+
+\subsubsection{Actualization}\label{actualization}
+
+\[
+\boxed{
+\text{What would have to be true for this relation to hold here?}
+}
+\]
+
+followed by:
+
+\[
+\boxed{
+\text{Can it hold without that supposed requirement?}
+}
+\]
+
+The same primary pressures may be applied to ordered probe traces. This
+regenerates persistence, change-point, covariation, dissociation, recurrence,
+novelty, and path-dependence questions without adding a new primitive
+perception calculus.
+
+Two additional questions complete the epistemic ratchet:
+
+\[
+\boxed{
+\text{What does this return warrant beyond this single case?}
+}
+\]
+
+and:
+
+\[
+\boxed{
+\text{What distinction can now be forgotten, and what would make it matter again?}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXVII --- Question-Only Executable
+Form}\label{part-xxvii-question-only-executable-form}
+
+The entire architecture may be driven by the following recursive
+sequence:
+
+
+What is unresolved?
+
+What consequence makes the live alternatives different?
+
+Which stable probe, if any, is already observing that relation?
+
+What does that probe return now before comparison with its previous semantic
+interpretations, where fresh observation is available?
+
+What previous comparable returns to this same probe exist, in order?
+
+What remained the same?
+
+What changed?
+
+Where did it first change?
+
+What else changed at the same transition?
+
+Has the same pattern appeared before?
+
+What would make the consequence unmistakably true?
+
+What would make its opposite unmistakably true?
+
+What can be radically different while the consequence stays the same?
+
+What can differ as little as possible while making the consequence flip?
+
+What relation survives those comparisons?
+
+Can the consequence still hold without that relation?
+
+Can that relation still hold while the consequence fails?
+
+What smaller relation survives both attacks?
+
+Can any protected consequence distinguish cases that relation identifies?
+
+If so, what missing distinction separates them?
+
+If not, is the distinction warranted irrelevant, or merely of undetermined
+relevance?
+
+What condition would make an occluded distinction relevant again?
+
+Does the surviving relation merely describe the consequence, or can it be
+established?
+
+What would have to be true for it to hold here?
+
+Can it coexist with what is already here?
+
+If not, what smallest conflict prevents it?
+
+What smallest change dissolves that conflict?
+
+If it can coexist, can it be reached?
+
+If not, what would have to be true beforehand?
+
+Can it be reached without that proposed prerequisite?
+
+If not, what would establish the prerequisite?
+
+What native method or independently constrained mechanism can answer the
+remaining question?
+
+What did that mechanism actually return?
+
+What does that return warrant?
+
+What broader relation follows for the same reason?
+
+What would falsify that generalization?
+
+Under what guard does it remain valid?
+
+What can now be excluded?
+
+What can now be merged?
+
+What must now be split?
+
+What belongs in ordered episodic probe memory?
+
+What belongs in guarded semantic memory?
+
+What useful question or method should become procedural memory?
+
+What may now be occluded, and what would make it matter again?
+
+Did this cycle produce perceptual, epistemic, or representational progress?
+
+What consequential residual remains?
+
+Which existing probe should observe it next?
+
+If none is adequate, what smallest new relational probe would expose it?
+
+Then recur.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXVIII --- Implementation
+Layers}\label{part-xxviii-implementation-layers}
+
+\subsection{106. Layer 1 --- Formal
+controller}\label{layer-1-formal-controller}
+
+Responsibilities:
+
+\begin{itemize}
+\tightlist
+\item
+  maintain inquiry state;
+\item
+  maintain obligations;
+\item
+  choose question contracts;
+\item
+  enforce type compatibility;
+\item
+  maintain claim graph;
+\item
+  maintain guard and warrant graph;
+\item
+  choose backends;
+\item
+  compute formal updates;
+\item
+  prevent candidate claims from becoming hard facts without promotion.
+\end{itemize}
+
+The formal controller should not depend on the language model
+understanding the whole architecture.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{107. Layer 2 --- Question
+compiler}\label{layer-2-question-compiler}
+
+Input:
+
+\[
+O_t.
+\]
+
+Output:
+
+\[
+Q_\tau(args).
+\]
+
+Responsibilities:
+
+\begin{itemize}
+\tightlist
+\item
+  choose question role;
+\item
+  bind referents;
+\item
+  render plain-language form;
+\item
+  preserve role metadata;
+\item
+  resolve deixis such as ``this,'' ``that,'' and ``what changed?'' to
+  explicit object IDs.
+\end{itemize}
+
+Surface wording may vary.
+
+Formal question identity does not.
+
+Two surface questions are equivalent when they instantiate the same
+contract with the same bound arguments.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{107A. Layer 2A --- Probe and semantic-field
+manager}\label{layer-2a-probe-and-semantic-field-manager}
+
+Responsibilities:
+
+\begin{itemize}
+\tightlist
+\item register recurrent probe contracts;
+\item determine event comparability under explicit guards and bridges;
+\item maintain ordered \(ProbeTrace\) objects;
+\item construct question-conditioned active fields;
+\item separate active, relevance-undetermined, and guarded-irrelevant structure;
+\item expose relevant prior probe history after fresh observation when possible;
+\item retrieve cross-probe traces whose changes may covary;
+\item retrieve distant semantic/domain material by relational fit;
+\item preserve reopening edges for occluded structure;
+\item prevent generated continuity from masquerading as environmental persistence.
+\end{itemize}
+
+This layer need not determine whether a perceived pattern is true. It preserves
+the comparison conditions under which such a claim is meaningful.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{107B. Layer 2B --- Prediction and attempt
+manager}\label{layer-2b-prediction-and-attempt-manager}
+
+Responsibilities:
+
+\begin{itemize}
+\tightlist
+\item create immutable prediction seals before consequential attempts when a
+  prediction is available;
+\item bind each seal to the exact probe/action plan, scope, and basis claims;
+\item record actualized attempts separately from proposed plans;
+\item preserve external raw returns immutably before interpretation;
+\item generate mismatch objects without assigning a cause prematurely;
+\item prevent post-return mutation of the prediction, target, assumptions,
+  method, or warrant policy.
+\end{itemize}
+
+This layer supplies the explicit action--return contingency channel.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{108. Layer 3 --- Semantic
+generator}\label{layer-3-semantic-generator}
+
+The language model receives:
+
+\begin{itemize}
+\tightlist
+\item
+  the question-conditioned active semantic field;
+\item
+  one question or a dependency-safe batch;
+\item
+  referent material;
+\item
+  relevant ordered prior probe history when comparison is intended;
+\item
+  cross-probe histories, reopening edges, and native method candidates only
+  when they can change the open relation.
+\end{itemize}
+
+Its task is:
+
+\[
+\boxed{
+\textbf{provide semantic content of the requested claim role.}
+}
+\]
+
+It is not entrusted with:
+
+\begin{itemize}
+\tightlist
+\item
+  deciding what question comes next;
+\item
+  promoting its own answers to truth;
+\item
+  preserving formal consistency;
+\item
+  selecting its own warrant;
+\item
+  or changing protected consequences silently.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{109. Layer 4 --- Claim binder}\label{layer-4-claim-binder}
+
+The binder creates:
+
+\[
+Claim_Q(a).
+\]
+
+It should perform minimal processing.
+
+At the thinnest implementation, it needs only:
+
+\begin{itemize}
+\tightlist
+\item
+  question ID;
+\item
+  input object IDs;
+\item
+  raw answer text;
+\item
+  local scope;
+\item
+  provenance.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{110. Layer 5 --- Semantic
+reifier}\label{layer-5-semantic-reifier}
+
+Reification is invoked only when required.
+
+Possible implementations:
+
+\begin{itemize}
+\tightlist
+\item
+  structured LLM extraction;
+\item
+  symbolic parser;
+\item
+  ontology mapper;
+\item
+  constraint compiler;
+\item
+  embedding-backed entity linker;
+\item
+  human confirmation;
+\item
+  domain adapter.
+\end{itemize}
+
+Failure is acceptable.
+
+A failed reification creates another obligation rather than corrupting
+state.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{111. Layer 6 --- Formal
+backends}\label{layer-6-formal-backends}
+
+Candidate adapters include:
+
+\begin{itemize}
+\tightlist
+\item
+  SAT solver;
+\item
+  SMT solver;
+\item
+  MaxSAT/OMT;
+\item
+  CHC solver;
+\item
+  PDR/IC3;
+\item
+  theorem prover;
+\item
+  symbolic executor;
+\item
+  planning engine;
+\item
+  simulator;
+\item
+  experiment runner;
+\item
+  database/retrieval system;
+\item
+  controller synthesizer;
+\item
+  external human or machine oracle.
+\end{itemize}
+
+Each backend exposes one common interface:
+
+\[
+\boxed{
+\operatorname{Discharge}(O,e)\Downarrow r.
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{112. Layer 7 --- Warrant
+checker}\label{layer-7-warrant-checker}
+
+The warrant checker determines whether a backend return licenses
+promotion.
+
+Recommended warrant classes:
+
+\begin{itemize}
+\tightlist
+\item
+  formal proof;
+\item
+  checked certificate;
+\item
+  exhaustive computation;
+\item
+  authenticated observation;
+\item
+  experiment;
+\item
+  reproducible execution;
+\item
+  trusted retrieval;
+\item
+  corroborated evidence;
+\item
+  heuristic support;
+\item
+  model proposal.
+\end{itemize}
+
+Only classes authorized by policy may make hard cuts.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+
+\subsection{112A. Layer 8 --- Reconstruction, consolidation, and retention
+manager}\label{layer-8-reconstruction-consolidation-retention-manager}
+
+Responsibilities:
+
+\begin{itemize}
+\tightlist
+\item maintain episodic, semantic, procedural, and latent memory stores;
+\item reconstruct working context from cues under protected consequence and
+  resource contracts;
+\item preserve the distinction between historical facts and generated
+  reconstruction detail;
+\item turn consequential reconstruction ambiguity into inquiry;
+\item enforce pattern separation for similar episodes with different protected
+  consequences;
+\item perform consequence-safe pattern completion;
+\item create consolidation candidates from interleaved recent and older
+  episodes;
+\item reopen retained relations after protected mismatch using versioned memory
+  patches;
+\item compress, retire, or deactivate operational structure only after
+  regenerative checks;
+\item preserve authoritative provenance independently of active retention;
+\item manage candidate new probes and representation patches arising from
+  representation gaps.
+\end{itemize}
+
+No neural architecture is required by this layer. Its semantics may be realized
+with ordinary databases, indexed traces, an LLM, schedulers, proof/checking
+backends, and domain-specific adapters.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXVIII-A --- Native Method
+Repertoire}\label{part-xxviii-a-native-method-repertoire}
+
+\subsection{112B. Method contract}\label{method-contract}
+
+The generic controller should not reproduce mature domain machinery when an
+established native method already realizes the required relation. A method may
+be registered by a compact relational certificate:
+
+\[
+\boxed{
+\mathcal M
+=
+(
+id,
+X,
+O,
+Pre,
+Vary,
+Return,
+Warrant,
+Failure,
+Bridge
+).
+}
+\]
+
+Where:
+
+\begin{itemize}
+\tightlist
+\item \(X\): admissible input carriers;
+\item \(O\): open relation the method is designed to establish or discriminate;
+\item \(Pre\): applicability conditions and prerequisites;
+\item \(Vary\): what the method varies, holds fixed, traverses, or decomposes;
+\item \(Return\): native return type;
+\item \(Warrant\): conditions under which that return can license a claim;
+\item \(Failure\): characteristic failure and non-applicability modes;
+\item \(Bridge\): neighboring methods or cross-binding transport relations.
+\end{itemize}
+
+Method selection is therefore relational unification rather than name matching:
+
+\[
+\boxed{
+Shape(O_t)
+\approx
+InputOutputShape(\mathcal M).
+}
+\]
+
+The semantic model may propose a distant method or precedent because a question
+makes the underlying relation locally adjacent even when vocabulary is remote.
+The controller checks applicability; the native method owns its mathematics;
+the returned result is brought back with its scope, assumptions, residue,
+provenance, and warrant.
+
+Examples include formal solvers, numerical simulation, statistical inference,
+optimization, experiment, repository execution, engineering analysis methods,
+scientific instruments, retrieval systems, and human expertise. The repertoire
+is open-ended and regeneratively extensible.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXIX --- Backend Adapter
+Contract}\label{part-xxix-backend-adapter-contract}
+
+\subsection{113. Generic adapter}\label{generic-adapter}
+
+Every backend \(e\) implements:
+
+\[
+\boxed{
+Encode_e
+:
+O
+\to
+Query_e
+}
+\]
+
+\[
+\boxed{
+Run_e
+:
+Query_e
+\to
+Return_e
+}
+\]
+
+\[
+\boxed{
+Decode_e
+:
+Return_e
+\to
+Result
+}
+\]
+
+\[
+\boxed{
+Check_e
+:
+Result
+\to
+WarrantStatus.
+}
+\]
+
+A result should expose:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Result \{}
+\NormalTok{    kind}
+\NormalTok{    proposition\_or\_relation}
+\NormalTok{    scope}
+\NormalTok{    assumptions}
+\NormalTok{    witness\_or\_certificate}
+\NormalTok{    provenance}
+\NormalTok{    confidence\_or\_warrant\_class}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXX --- Return Types}\label{part-xxx-return-types}
+
+\subsection{114. Canonical return
+taxonomy}\label{canonical-return-taxonomy}
+
+A backend return is normalized to one of:
+
+\[
+\boxed{
+\begin{aligned}
+&Witness\\
+&Counterexample\\
+&Separator\\
+&EquivalenceCertificate\\
+&Conflict\\
+&Prerequisite\\
+&ReachabilityWitness\\
+&UnreachabilityCertificate\\
+&Success\\
+&Failure\\
+&Unknown.
+\end{aligned}
+}
+\]
+
+The controller maps each return to an update and a next-obligation set.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXI --- Conflict
+Handling}\label{part-xxxi-conflict-handling}
+
+\subsection{115. Candidate contradiction}\label{candidate-contradiction}
+
+If candidate claims \(c_i,c_j\) conflict:
+
+\[
+\boxed{
+Conflict(c_i,c_j)
+}
+\]
+
+is added.
+
+Do not:
+
+\begin{itemize}
+\tightlist
+\item
+  delete both automatically;
+\item
+  choose one arbitrarily;
+\item
+  infer arbitrary claims.
+\end{itemize}
+
+Generate:
+
+\[
+\boxed{
+ResolveConflict(c_i,c_j).
+}
+\]
+
+Possible resolutions:
+
+\begin{itemize}
+\tightlist
+\item
+  refute \(c_i\);
+\item
+  refute \(c_j\);
+\item
+  narrow one scope;
+\item
+  introduce hidden guard;
+\item
+  distinguish meanings;
+\item
+  discover invalid counterexample;
+\item
+  rebind representation;
+\item
+  retain unresolved conflict.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{116. Warrant conflict}\label{warrant-conflict}
+
+If two active warranted lemmas produce inconsistency, treat this as a
+higher-priority warrant failure.
+
+Suspend any irreversible downstream step that depends on the
+inconsistent conjunction until the conflict is localized.
+
+Possible causes:
+
+\begin{itemize}
+\tightlist
+\item
+  invalid certificate;
+\item
+  incompatible scopes;
+\item
+  changed context;
+\item
+  unsound backend;
+\item
+  incorrect abstraction;
+\item
+  hidden assumption mismatch.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXII --- Generalization}\label{part-xxxii-generalization}
+
+\subsection{117. Generalization frontier}\label{generalization-frontier}
+
+For return \(r\), let:
+
+\[
+\boxed{
+Gen(r)
+}
+\]
+
+be the nondominated frontier of warranted generalizations.
+
+No unique strongest generalization is assumed.
+
+Generalization may be implemented by:
+
+\begin{itemize}
+\tightlist
+\item
+  CDCL conflict analysis;
+\item
+  PDR inductive generalization;
+\item
+  Craig interpolation;
+\item
+  minimal support extraction;
+\item
+  MUS/MCS;
+\item
+  symbolic simplification;
+\item
+  theory-specific explanation;
+\item
+  contrast minimization.
+\end{itemize}
+
+Every generalized claim is itself attackable.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXIII --- Compression and
+Refinement}\label{part-xxxiii-compression-and-refinement}
+
+\subsection{118. Refinement}\label{refinement}
+
+If:
+
+\[
+\alpha(x)=\alpha(y)
+\]
+
+but:
+
+\[
+\Phi(x)\neq\Phi(y),
+\]
+
+the current abstraction is too coarse.
+
+Seek:
+
+\[
+p(x)\neq p(y)
+\]
+
+and refine:
+
+\[
+B_{t+1}=B_t\cup\{p\}.
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{119. Compression}\label{compression}
+
+A distinction \(p\in B_t\) is removable if deleting it preserves:
+
+\begin{itemize}
+\tightlist
+\item
+  protected consequence;
+\item
+  protected transition semantics;
+\item
+  protected control semantics.
+\end{itemize}
+
+The representation may therefore move both ways:
+
+\[
+\boxed{
+\text{split when consequence requires distinction;}
+}
+\]
+
+\[
+\boxed{
+\text{merge when consequence permits equivalence.}
+}
+\]
+
+The representation is not monotonic.
+
+The warrant store is.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXIV --- Progress Law}\label{part-xxxiv-progress-law}
+
+\subsection{120. Accepted progress}\label{accepted-progress}
+
+A step counts as retained progress iff it produces at least one of:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  new nonredundant warranted conditional relation;
+\item
+  elimination of live possibility;
+\item
+  separator requiring refinement;
+\item
+  equivalence permitting compression;
+\item
+  localized consequence boundary;
+\item
+  falsified necessity;
+\item
+  falsified sufficiency;
+\item
+  established or eliminated prerequisite;
+\item
+  localized arrangement obstruction;
+\item
+  localized succession obstruction;
+\item
+  reopening condition;
+\item
+  changed consequential obligation.
+\end{enumerate}
+
+Otherwise the semantic output may be discarded.
+
+Thus:
+
+\[
+\boxed{
+\textbf{search may wander;
+retained inquiry may not.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXV --- Stopping Law}\label{part-xxxv-stopping-law}
+
+\subsection{121. Stop when}\label{stop-when}
+
+Stop an obligation when one of the following holds:
+
+\subsubsection{Satisfied}\label{satisfied}
+
+The desired claim is adequately warranted.
+
+\subsubsection{Impossible}\label{impossible}
+
+The target is adequately shown impossible within the declared binding.
+
+\subsubsection{Consequence-equivalent
+residual}\label{consequence-equivalent-residual}
+
+All remaining alternatives yield identical protected consequence.
+
+\subsubsection{No available
+discriminator}\label{no-available-discriminator}
+
+No representable question or available backend can distinguish the
+remaining alternatives.
+
+The final status is then:
+
+\[
+\boxed{
+\text{unknown under the present binding}
+}
+\]
+
+rather than an invented conclusion.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXVI --- Minimum Viable
+Implementation}\label{part-xxxvi-minimum-viable-implementation}
+
+\subsection{122. Phase 1 --- Question-driven claim
+graph}\label{phase-1-question-driven-claim-graph}
+
+Implement first:
+
+\begin{itemize}
+\tightlist
+\item
+  typed question contracts;
+\item
+  claim wrapper;
+\item
+  bound referents;
+\item
+  candidate graph;
+\item
+  conflict edges;
+\item
+  recursive question selection;
+\item
+  no hard formalization requirement.
+\end{itemize}
+
+Goal:
+
+prove that lawful question composition can drive an LLM through coherent
+recursive inquiry while tolerating bad answers.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{123. Phase 2 --- Lazy
+formalization}\label{phase-2-lazy-formalization}
+
+Add:
+
+\begin{itemize}
+\tightlist
+\item
+  L0--L3 semantic levels;
+\item
+  reification adapters;
+\item
+  SAT/SMT predicates where possible;
+\item
+  explicit necessity/sufficiency checks;
+\item
+  scope and guard extraction.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{124. Phase 3 --- Abstract
+state}\label{phase-3-abstract-state}
+
+Add:
+
+\begin{itemize}
+\tightlist
+\item
+  predicate basis;
+\item
+  abstraction map;
+\item
+  separator-driven refinement;
+\item
+  consequence-relative compression;
+\item
+  CEGAR-style spurious-counterexample handling.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{125. Phase 4 --- Recursive formal
+engine}\label{phase-4-recursive-formal-engine}
+
+Add:
+
+\begin{itemize}
+\tightlist
+\item
+  CHC obligation compilation;
+\item
+  Spacer/PDR;
+\item
+  predecessor propagation;
+\item
+  inductive cuts;
+\item
+  generalized failure learning.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{126. Phase 5 --- Control}\label{phase-5-control}
+
+Add:
+
+\begin{itemize}
+\tightlist
+\item
+  action relations;
+\item
+  may/must predecessors;
+\item
+  controller synthesis;
+\item
+  feedback refinement;
+\item
+  concrete execution verification.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{127. Phase 6 --- Multi-backend
+warrant}\label{phase-6-multi-backend-warrant}
+
+Add:
+
+\begin{itemize}
+\tightlist
+\item
+  proof-producing SMT;
+\item
+  retrieval adapters;
+\item
+  observational evidence;
+\item
+  experiment adapters;
+\item
+  provenance and certificate checker.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXVII --- Data
+Structures}\label{part-xxxvii-data-structures}
+
+\subsection{128. QuestionContract}\label{questioncontract}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{QuestionContract \{}
+\NormalTok{    id}
+\NormalTok{    input\_roles[]}
+\NormalTok{    output\_claim\_role}
+\NormalTok{    precondition}
+\NormalTok{    render\_template}
+\NormalTok{    bind\_policy}
+\NormalTok{    reifier}
+\NormalTok{    verifier}
+\NormalTok{    update\_rule}
+\NormalTok{    next\_obligation\_rules[]}
+\NormalTok{    recurrent\_probe: bool}
+\NormalTok{    comparison\_semantics?}
+\NormalTok{    canonical\_probe\_rendering?}
+\NormalTok{    applicability\_guard?}
+\NormalTok{    history\_policy?}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{128A. ProbeEvent}\label{probeevent}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ProbeEvent \{}
+\NormalTok{    id}
+\NormalTok{    question\_contract\_id}
+\NormalTok{    bound\_referents[]}
+\NormalTok{    binding\_guard}
+\NormalTok{    state\_revision}
+\NormalTok{    semantic\_field\_id}
+\NormalTok{    generated\_answer\_claim\_id?}
+\NormalTok{    external\_return\_ids[]}
+\NormalTok{    interpretation\_claim\_ids[]}
+\NormalTok{    sequence\_index}
+\NormalTok{    comparability\_bridge?}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{128B. ProbeTrace}\label{probetrace}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ProbeTrace \{}
+\NormalTok{    question\_contract\_id}
+\NormalTok{    ordered\_event\_ids[]}
+\NormalTok{    protected\_consequence\_profile}
+\NormalTok{    comparison\_policy}
+\NormalTok{    active\_guard}
+\NormalTok{    reopening\_conditions[]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{128C. PredictionSeal}\label{predictionseal}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{PredictionSeal \{}
+\NormalTok{    id}
+\NormalTok{    probe\_or\_action\_id}
+\NormalTok{    predicted\_return\_class}
+\NormalTok{    predicted\_consequence}
+\NormalTok{    acceptable\_variation}
+\NormalTok{    scope}
+\NormalTok{    basis\_claim\_ids[]}
+\NormalTok{    created\_before\_attempt: true}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{128D. Mismatch}\label{mismatch}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Mismatch \{}
+\NormalTok{    prediction\_id}
+\NormalTok{    actual\_return\_id}
+\NormalTok{    difference\_claim\_id}
+\NormalTok{    protected\_consequence\_changed}
+\NormalTok{    classification}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{128E. VariationAttempt and ExternalReturn}\label{variationattempt-externalreturn}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{VariationAttempt \{}
+\NormalTok{    id}
+\NormalTok{    source\_state\_revision}
+\NormalTok{    probe\_or\_action\_plan}
+\NormalTok{    prediction\_id?}
+\NormalTok{    actualization\_status}
+\NormalTok{\}}
+
+\NormalTok{ExternalReturn \{}
+\NormalTok{    id}
+\NormalTok{    attempt\_id}
+\NormalTok{    source}
+\NormalTok{    raw\_payload}
+\NormalTok{    source\_revision}
+\NormalTok{    immutable: true}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{128F. Reconstruction and SemanticDelta}\label{reconstruction-semanticdelta}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Reconstruction \{}
+\NormalTok{    id}
+\NormalTok{    prior\_state\_revision}
+\NormalTok{    return\_id}
+\NormalTok{    activated\_memory\_ids[]}
+\NormalTok{    candidate\_claims[]}
+\NormalTok{    candidate\_repairs[]}
+\NormalTok{    residual\_obligations[]}
+\NormalTok{\}}
+
+\NormalTok{SemanticDelta \{}
+\NormalTok{    reconstruction\_id}
+\NormalTok{    warranted\_changes[]}
+\NormalTok{    reopened\_structures[]}
+\NormalTok{    retired\_structures[]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{128G. Reconstructive memory objects}\label{reconstructive-memory-objects}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{MemoryCue \{}
+\NormalTok{    anchor\_ids[]}
+\NormalTok{    relation\_roles[]}
+\NormalTok{    obligation\_ids[]}
+\NormalTok{    protected\_horizon}
+\NormalTok{    current\_context}
+\NormalTok{\}}
+
+\NormalTok{ReconstructionCandidate \{}
+\NormalTok{    retained\_package\_ids[]}
+\NormalTok{    generated\_working\_structure}
+\NormalTok{    protected\_equivalence\_status}
+\NormalTok{    historical\_fact\_ids[]}
+\NormalTok{    generated\_detail\_ids[]}
+\NormalTok{\}}
+
+\NormalTok{ReconstructionSet \{}
+\NormalTok{    cue}
+\NormalTok{    candidates[]}
+\NormalTok{    resolved\_consequence\_classes[]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{128H. Consolidation and memory patch}\label{consolidation-memory-patch}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ConsolidationCandidate \{}
+\NormalTok{    source\_episode\_ids[]}
+\NormalTok{    replay\_context\_ids[]}
+\NormalTok{    proposed\_relation}
+\NormalTok{    exceptions[]}
+\NormalTok{    guard}
+\NormalTok{    challenge\_obligations[]}
+\NormalTok{    status}
+\NormalTok{\}}
+
+\NormalTok{MemoryPatchCandidate \{}
+\NormalTok{    target\_retained\_id}
+\NormalTok{    triggering\_return\_id}
+\NormalTok{    mismatch\_id}
+\NormalTok{    proposed\_guard\_change?}
+\NormalTok{    proposed\_relation\_change?}
+\NormalTok{    proposed\_split?}
+\NormalTok{    proposed\_rebind?}
+\NormalTok{    warrant\_requirements[]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{128I. RetentionPackage}\label{retentionpackage}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{RetentionPackage \{}
+\NormalTok{    representation}
+\NormalTok{    protected\_horizon}
+\NormalTok{    regeneration\_program}
+\NormalTok{    required\_neighbors[]}
+\NormalTok{    warrant\_ids[]}
+\NormalTok{    compression\_debt}
+\NormalTok{    reopening\_condition}
+\NormalTok{    fallback}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{128J. RepresentationGap and ProbePromotion}\label{representationgap-probepromotion}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{RepresentationGap \{}
+\NormalTok{    obligation\_id}
+\NormalTok{    states\_or\_claims[]}
+\NormalTok{    protected\_consequence\_difference}
+\NormalTok{    failed\_probe\_ids[]}
+\NormalTok{    failure\_kind}
+\NormalTok{\}}
+
+\NormalTok{ProbePromotion \{}
+\NormalTok{    candidate\_probe\_id}
+\NormalTok{    witness\_trace\_ids[]}
+\NormalTok{    discrimination\_gain}
+\NormalTok{    redundancy\_check}
+\NormalTok{    protected\_behavior\_check}
+\NormalTok{    status}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{129. Claim}\label{claim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Claim \{}
+\NormalTok{    id}
+\NormalTok{    role}
+\NormalTok{    bound\_args[]}
+\NormalTok{    payload}
+\NormalTok{    scope}
+\NormalTok{    provenance}
+\NormalTok{    status}
+\NormalTok{    representation\_level}
+\NormalTok{    parents[]}
+\NormalTok{    conflicts[]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{130. FormalCandidate}\label{formalcandidate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{FormalCandidate \{}
+\NormalTok{    claim\_id}
+\NormalTok{    formal\_type}
+\NormalTok{    expression}
+\NormalTok{    carrier}
+\NormalTok{    scope}
+\NormalTok{    assumptions[]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{131. WarrantedLemma}\label{warrantedlemma}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{WarrantedLemma \{}
+\NormalTok{    id}
+\NormalTok{    guard}
+\NormalTok{    relation}
+\NormalTok{    scope}
+\NormalTok{    warrant\_class}
+\NormalTok{    dependencies[]}
+\NormalTok{    certificate}
+\NormalTok{    source\_claims[]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{132. Obligation}\label{obligation}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Obligation \{}
+\NormalTok{    id}
+\NormalTok{    kind}
+\NormalTok{    carrier}
+\NormalTok{    args[]}
+\NormalTok{    scope}
+\NormalTok{    parent\_obligations[]}
+\NormalTok{    priority\_vector}
+\NormalTok{    status}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{133. InquiryState}\label{inquirystate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{InquiryState \{}
+\NormalTok{    binding}
+\NormalTok{    context}
+\NormalTok{    protected\_consequences}
+\NormalTok{    recurrent\_probe\_registry}
+\NormalTok{    probe\_traces}
+\NormalTok{    active\_semantic\_field}
+\NormalTok{    reopening\_guards}
+\NormalTok{    candidate\_claim\_graph}
+\NormalTok{    warranted\_lemma\_store}
+\NormalTok{    predicate\_basis}
+\NormalTok{    abstraction}
+\NormalTok{    abstract\_transitions}
+\NormalTok{    obligations}
+\NormalTok{    warrant\_graph}
+\NormalTok{    current\_mode}
+\NormalTok{    episodic\_memory}
+\NormalTok{    semantic\_memory}
+\NormalTok{    procedural\_memory}
+\NormalTok{    latent\_memory}
+\NormalTok{    prediction\_seals}
+\NormalTok{    mismatch\_records}
+\NormalTok{    attempt\_return\_reconstruction\_ledger}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXVIII --- System
+Invariants}\label{part-xxxviii-system-invariants}
+
+\subsection{134. Invariant I --- Claim/fact
+separation}\label{invariant-i-claimfact-separation}
+
+\[
+\boxed{
+Claim[\tau]\not\Rightarrow Warranted[\tau].
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{135. Invariant II --- No candidate
+explosion}\label{invariant-ii-no-candidate-explosion}
+
+Contradictory candidate claims create conflicts, not arbitrary
+entailments.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{136. Invariant III --- Guarded
+retention}\label{invariant-iii-guarded-retention}
+
+Every retained hard relation has:
+
+\begin{itemize}
+\tightlist
+\item
+  guard;
+\item
+  scope;
+\item
+  dependencies;
+\item
+  warrant.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{137. Invariant IV --- No hidden control
+promotion}\label{invariant-iv-no-hidden-control-promotion}
+
+Descriptive factorization cannot itself create a control certificate.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{138. Invariant V --- Counterexample
+pressure}\label{invariant-v-counterexample-pressure}
+
+Every claimed necessity, sufficiency, and prerequisite creates the
+corresponding counterexample obligation unless already discharged.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{139. Invariant VI --- Consequence-relative
+representation}\label{invariant-vi-consequence-relative-representation}
+
+No active distinction may be compressed if a protected consequence,
+transition, or control relation can inspect it.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{140. Invariant VII --- Warrant
+DAG}\label{invariant-vii-warrant-dag}
+
+Positive warrant remains acyclic.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{141. Invariant VIII --- Unknown is
+legal}\label{invariant-viii-unknown-is-legal}
+
+Failure to distinguish is not converted into equivalence without
+warrant.
+
+Failure to find a counterexample is not converted into necessity.
+
+Failure to actualize is not converted into impossibility without
+adequate warrant.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{141A. Invariant IX --- Perception is
+provisional}\label{invariant-ix-perception-is-provisional}
+
+\[
+\boxed{
+\text{pattern perceived in a probe trace}
+\neq
+\text{warranted invariant}.
+}
+\]
+
+Trace regularity creates a typed candidate claim. It acquires hard standing only
+through ordinary attack and independent warrant.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{141B. Invariant X --- Probe comparability}\label{invariant-x-probe-comparability}
+
+\[
+\boxed{
+\text{same wording}
+\neq
+\text{same probe}
+}
+\]
+
+and:
+
+\[
+\boxed{
+\text{changed binding without bridge}
+\neq
+\text{comparable observation}.
+}
+\]
+
+A recurrent trace may compare events only under a stable relational contract or
+an explicitly warranted comparison bridge.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{141C. Invariant XI --- Unknown relevance}\label{invariant-xi-unknown-relevance}
+
+\[
+\boxed{
+\text{not active}
+\neq
+\text{irrelevant}.
+}
+\]
+
+Relevance-undetermined structure remains available for exploration. Only
+guarded consequence-null structure may be aggressively compressed.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{141D. Invariant XII --- Prediction precedes return}\label{invariant-xii-prediction-precedes-return}
+
+A prediction used for mismatch analysis is immutable after the corresponding
+attempt begins producing a return:
+
+\[
+\boxed{
+PredictionSeal\prec ExternalReturn.
+}
+\]
+
+\subsection{141E. Invariant XIII --- Raw return is preserved}\label{invariant-xiii-raw-return-preserved}
+
+\[
+\boxed{
+ExternalReturn\neq Interpretation(ExternalReturn).
+}
+\]
+
+A wrong interpretation cannot mutate the preserved return.
+
+\subsection{141F. Invariant XIV --- Reconstruction is not history}\label{invariant-xiv-reconstruction-is-not-history}
+
+Generated reconstruction detail has working status only unless separately
+warranted as historical fact.
+
+\subsection{141G. Invariant XV --- Episodic event is not semantic knowledge}\label{invariant-xv-episodic-not-semantic}
+
+\[
+\boxed{
+e\in M_E\not\Rightarrow e\in\Theta.
+}
+\]
+
+Semantic promotion requires consolidation, challenge, and warrant appropriate
+to the claimed generality.
+
+\subsection{141H. Invariant XVI --- Similarity cannot erase consequence}\label{invariant-xvi-similarity-cannot-erase-consequence}
+
+Similarity, embedding proximity, lexical overlap, or shared surface structure
+cannot merge episodes or states whose protected consequences differ.
+
+\subsection{141I. Invariant XVII --- Reconsolidation is versioned}\label{invariant-xvii-reconsolidation-versioned}
+
+A challenged retained relation may acquire a warranted successor, but the
+historical predecessor and its original warrant ancestry are not overwritten.
+
+\subsection{141J. Invariant XVIII --- Operational forgetting preserves provenance}\label{invariant-xviii-operational-forgetting-preserves-provenance}
+
+Compression, retirement, cache deletion, and context occlusion cannot destroy
+authoritative ancestry merely because it is not operationally active.
+
+\subsection{141K. Invariant XIX --- New probes do not self-promote}\label{invariant-xix-new-probes-do-not-self-promote}
+
+A generated perceptual coordinate becomes procedural knowledge only after
+demonstrated nonredundant discrimination or control value under protected use.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XXXIX --- Verification
+Tests}\label{part-xxxix-verification-tests}
+
+\subsection{142. Protocol tests}\label{protocol-tests}
+
+A conforming implementation should pass the following.
+
+\subsubsection{Arbitrary-payload safety}\label{arbitrary-payload-safety}
+
+Feed arbitrary strings as answers to every question contract.
+
+Expected result:
+
+\begin{itemize}
+\tightlist
+\item
+  candidate claims are created;
+\item
+  no crash from semantic ill-typing;
+\item
+  no automatic promotion to hard theory.
+\end{itemize}
+
+\subsubsection{Contradiction
+containment}\label{contradiction-containment}
+
+Create claims for \(P\) and \(\neg P\).
+
+Expected result:
+
+\begin{itemize}
+\tightlist
+\item
+  conflict obligation;
+\item
+  no arbitrary derived claim.
+\end{itemize}
+
+\subsubsection{Necessity attack
+completeness}\label{necessity-attack-completeness}
+
+Whenever a claim is tagged as necessity, verify that an obligation
+equivalent to ``consequence without necessity'' exists or is already
+discharged.
+
+\subsubsection{Sufficiency attack
+completeness}\label{sufficiency-attack-completeness}
+
+Whenever a claim is tagged as sufficient, verify that its opposite cell
+is queried or discharged.
+
+\subsubsection{Guard reopening}\label{guard-reopening}
+
+Activate a lemma, invalidate its guard, and verify:
+
+\begin{itemize}
+\tightlist
+\item
+  lemma remains stored;
+\item
+  it ceases to constrain the active model;
+\item
+  dependent distinctions may reopen.
+\end{itemize}
+
+\subsubsection{Conservative refinement}\label{conservative-refinement}
+
+Add a predicate and verify the old abstraction is recoverable through
+forgetting.
+
+\subsubsection{Compression safety}\label{compression-safety}
+
+Attempt to merge consequence-distinct states and verify refusal.
+
+\subsubsection{Description/control
+separation}\label{descriptioncontrol-separation}
+
+Supply a perfect predictor with no implementable transition and verify
+that no control certificate is produced.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsubsection{Probe-trace comparability}\label{probe-trace-comparability-test}
+
+Create probe events with identical surface wording but incompatible bindings.
+The protocol must refuse to treat them as one comparable trace unless a bridge
+is established.
+
+\subsubsection{Fresh-observation isolation}\label{fresh-observation-isolation-test}
+
+Where the environment can be independently re-observed, compare observations
+made with and without prior semantic answers in context. A repeated wording
+pattern alone must not be accepted as environmental persistence.
+
+\subsubsection{Perception/warrant separation}\label{perception-warrant-separation-test}
+
+Construct an ordered trace with an obvious but spurious pattern. The system may
+generate \texttt{Claim[Invariant]} but must not promote it without licensed
+warrant.
+
+\subsubsection{Unknown-relevance preservation}\label{unknown-relevance-preservation-test}
+
+Remove an item from the active field without establishing consequence-nullness.
+The system must classify it as relevance-undetermined rather than permanently
+irrelevant and must remain able to reactivate it.
+
+
+
+\subsubsection{Prediction sealed before return}\label{prediction-sealed-before-return-test}
+
+Verify that an actual return cannot modify the stored predicted consequence,
+return class, acceptable variation, scope, or basis claims.
+
+\subsubsection{Raw return is not interpretation}\label{raw-return-is-not-interpretation-test}
+
+Provide a correct raw environment return and an intentionally wrong semantic
+interpretation. The preserved return must remain unchanged and available for
+later reinterpretation.
+
+\subsubsection{Variation--return--reconstruction order}\label{variation-return-reconstruction-order-test}
+
+The system must not learn from an external return that was never tied to an
+actualized attempt under the relevant state revision.
+
+\subsubsection{Cue is not memory}\label{cue-is-not-memory-test}
+
+A cue-conditioned reconstruction need not reproduce historical surface form;
+it must preserve the protected continuation required by the query.
+
+\subsubsection{Reconstruction is not history}\label{reconstruction-is-not-history-test}
+
+Generated detail introduced while reconstructing context must not acquire
+historical standing automatically.
+
+\subsubsection{Consequence-distinct similar episodes separate}\label{similar-episodes-separate-test}
+
+Two highly similar episodes with different protected consequences must remain
+distinguishable and generate a separator obligation if the current memory
+representation would merge them.
+
+\subsubsection{Ambiguous completion opens inquiry}\label{ambiguous-completion-opens-inquiry-test}
+
+A cue producing multiple protected-consequence-distinct reconstruction classes
+must create a discrimination obligation rather than selecting one silently.
+
+\subsubsection{Episode does not self-consolidate}\label{episode-does-not-self-consolidate-test}
+
+A new episodic event cannot enter generalized semantic memory solely because it
+was observed once.
+
+\subsubsection{Consolidation interleaves counterexamples}\label{consolidation-interleaves-counterexamples-test}
+
+A generalization proposed from recent episodes must retrieve relevant older
+exceptions or counterexamples when available before promotion.
+
+\subsubsection{Retrieval mismatch reopens}\label{retrieval-mismatch-reopens-test}
+
+A protected mismatch against retained knowledge must challenge or reopen that
+knowledge and create a versioned candidate patch rather than mutating it in
+place.
+
+\subsubsection{Active compression preserves provenance}\label{active-compression-preserves-provenance-test}
+
+Operational forgetting must not delete authoritative warrant ancestry.
+
+\subsubsection{Compressed memory regenerates protected behavior}\label{compressed-memory-regenerates-protected-behavior-test}
+
+A retention package must pass a reconstruction fixture for its declared
+protected continuation before promotion.
+
+\subsubsection{Forgetting witness reopens local compression}\label{forgetting-witness-reopens-local-compression-test}
+
+When a newly protected consequence distinguishes hidden structure, reopen the
+smallest responsible compressed region rather than the whole archive.
+
+\subsubsection{Probe basis can grow}\label{probe-basis-can-grow-test}
+
+A representation gap must be able to create a candidate probe or rebind
+obligation.
+
+\subsubsection{New probe cannot self-promote}\label{new-probe-cannot-self-promote-test}
+
+A generated probe must not enter durable procedural memory until subsequent use
+demonstrates protected discrimination and passes redundancy checks.
+
+\subsubsection{Redundant probe can retire}\label{redundant-probe-can-retire-test}
+
+A probe whose removal does not change protected continuation behavior may be
+retired while preserving the history and conditions needed to restore it.
+
+\subsubsection{Learning changes future inquiry}\label{learning-changes-future-inquiry-test}
+
+A claimed learning transition must measurably alter later generation,
+retrieval, discrimination, question scheduling, control, or reopening behavior;
+otherwise it is retained content, not learned inquiry structure.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XL --- Experimental Program for LLM
+Use}\label{part-xl-experimental-program-for-llm-use}
+
+\subsection{143. Delivery regimes}\label{delivery-regimes}
+
+Evaluate at least:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  full theory in one prompt;
+\item
+  all questions in one checklist;
+\item
+  dependency-aware groups;
+\item
+  one adaptive question at a time;
+\item
+  rhythmic adaptive questioning.
+\end{enumerate}
+
+Measure:
+
+\begin{itemize}
+\tightlist
+\item
+  contradiction rate;
+\item
+  false necessity rate;
+\item
+  correction rate;
+\item
+  final consequence accuracy;
+\item
+  number of retained claims;
+\item
+  average claim lifetime;
+\item
+  amount of context compression;
+\item
+  question-order sensitivity;
+\item
+  counterexample discovery;
+\item
+  semantic drift;
+\item
+  warrant quality.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{144. Expected hypothesis}\label{expected-hypothesis}
+
+The strongest predicted regime is:
+
+\[
+\boxed{
+\text{one locally typed question at a time,
+chosen from the actual previous return,
+with external state retention and compression}.
+}
+\]
+
+This minimizes instruction averaging and forces downstream questions to
+depend on actually produced claims rather than imagined intermediate
+conclusions.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XLI --- Research
+Questions}\label{part-xli-research-questions}
+
+\subsection{145. Open technical
+questions}\label{open-technical-questions}
+
+\subsubsection{Question scheduling}\label{question-scheduling}
+
+What objective best predicts the long-run value of a question?
+
+Possibilities include:
+
+\begin{itemize}
+\tightlist
+\item
+  version-space reduction;
+\item
+  expected generalized-cut size;
+\item
+  expected boundary localization;
+\item
+  proof-obligation depth;
+\item
+  risk-adjusted information gain.
+\end{itemize}
+
+\subsubsection{Semantic reification}\label{semantic-reification}
+
+How little parsing is sufficient before formal machinery becomes useful?
+
+\subsubsection{Claim-role robustness}\label{claim-role-robustness}
+
+How sensitive is inquiry quality to surface wording when formal question
+role remains fixed?
+
+\subsubsection{Context compression}\label{context-compression}
+
+How aggressively can candidate history be compressed while preserving
+future reopening conditions?
+
+\subsubsection{Contradiction
+localization}\label{contradiction-localization}
+
+Can conflict graphs over typed opaque claims reliably identify which
+semantic claims should be re-presented to the LLM for repair?
+
+\subsubsection{Order commutativity}\label{order-commutativity}
+
+Can question permutation distinguish genuine relational interaction from
+transformer anchoring effects?
+
+\subsubsection{Cross-domain transfer}\label{cross-domain-transfer}
+
+Does the same question calculus induce useful inquiry in domains with
+radically different native formalisms?
+
+\subsubsection{Formal completeness}\label{formal-completeness}
+
+Under what restrictions on \(\mathcal L,\mathcal E,\mathcal U\) does RCI
+become complete for a given class of inquiry problems?
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsubsection{Recurrent probe identity}\label{recurrent-probe-identity}
+
+How much wording, binding, scope, and consequence-horizon variation may occur
+before two applications cease to be comparable instances of one probe?
+
+\subsubsection{Perceptual anchoring}\label{perceptual-anchoring}
+
+When should prior probe answers be withheld during fresh observation, and when
+does history-conditioned observation improve rather than contaminate
+perception?
+
+\subsubsection{Perceptual basis learning}\label{perceptual-basis-learning}
+
+Can probe families themselves be refined and compressed by the same
+consequence-relative laws used for ordinary representations?
+
+\subsubsection{Relational retrieval}\label{relational-retrieval}
+
+How should retrieval combine lexical/embedding similarity with the relational
+shape induced by a question so semantically distant but structurally relevant
+material becomes reachable without uncontrolled context expansion?
+
+\subsubsection{Relevance partition}\label{relevance-partition}
+
+How can the system distinguish warranted irrelevance from relevance that has
+merely not yet been explored, especially under bounded context and retrieval?
+
+
+
+\subsubsection{Prediction usefulness}\label{prediction-usefulness}
+
+Which obligations benefit enough from an explicit sealed prediction to justify
+the extra control structure, and when should mismatch be categorical rather
+than numerical?
+
+\subsubsection{Reconstruction sufficiency}\label{reconstruction-sufficiency}
+
+What is the smallest retained package from which protected future inquiry and
+action behavior can be regenerated under bounded resources?
+
+\subsubsection{Consolidation policy}\label{consolidation-policy}
+
+When should episodic traces be consolidated, which older cases should be
+interleaved, and how can promotion avoid recent-history bias and destructive
+interference with older warranted structure?
+
+\subsubsection{Memory separation/completion}\label{memory-separation-completion}
+
+What retrieval and similarity mechanisms best propose candidate completions
+while guaranteeing that protected-consequence-distinct episodes remain
+separable?
+
+\subsubsection{Structural plasticity}\label{structural-plasticity}
+
+When does repeated failure of the current probe basis warrant a new probe,
+representation extension, or full rebind, and how should the value of a new
+perceptual coordinate be measured?
+
+\subsubsection{Retention economics}\label{retention-economics}
+
+How should interference cost, reconstruction cost, provenance obligations,
+reopening likelihood, and protected consequence be balanced when compressing
+active memory?
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XLII --- Governing Laws}\label{part-xlii-governing-laws}
+
+\subsection{146. Generation law}\label{generation-law}
+
+\[
+\boxed{
+\textbf{Generate for maximal consequential discrimination,
+not for plausibility.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{147. Boundary law}\label{boundary-law}
+
+\[
+\boxed{
+\textbf{Within a consequence class, vary aggressively.
+Across consequence classes, change minimally.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{148. Falsification law}\label{falsification-law}
+
+\[
+\boxed{
+\textbf{Every “must” generates “can the result occur without it?”}
+}
+\]
+
+\[
+\boxed{
+\textbf{Every “enough” generates “can it occur while the result fails?”}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{149. Prerequisite law}\label{prerequisite-law}
+
+\[
+\boxed{
+\textbf{Every proposed prerequisite is attacked by attempting the target without it.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{150. Control law}\label{control-law}
+
+\[
+\boxed{
+\textbf{Never infer controllability from descriptive correlation or factorization.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{151. Question law}\label{question-law}
+
+\[
+\boxed{
+\textbf{Questions create typed claims, not facts.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{152. Fallibility law}\label{fallibility-law}
+
+\[
+\boxed{
+\textbf{The question graph must remain lawful even when semantic answers are wrong.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{153. Conflict law}\label{conflict-law}
+
+\[
+\boxed{
+\textbf{Contradiction creates an obligation; it does not create explosion.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{154. Warrant law}\label{warrant-law}
+
+\[
+\boxed{
+\textbf{Only independently licensed warrant may promote a provisional claim into retained hard knowledge.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{155. Compression law}\label{compression-law}
+
+\[
+\boxed{
+\textbf{Represent no distinction more finely than protected consequence requires,
+and no more coarsely than protected consequence permits.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{156. Reopening law}\label{reopening-law}
+
+\[
+\boxed{
+\textbf{A changed guard deactivates a conclusion; it need not erase the warrant that established it under its original conditions.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{157. Progress law}\label{progress-law}
+
+\[
+\boxed{
+\textbf{Accepted reasoning must create a nonredundant consequential change.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{157A. Recurrent-probe law}\label{recurrent-probe-law}
+
+\[
+\boxed{
+\textbf{Consequentially important changing relations should, when possible,
+be observed through stable comparable probes.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{157B. Perception law}\label{perception-law}
+
+\[
+\boxed{
+\textbf{A perceived pattern is a provisional claim over an ordered trace,
+not its own warrant.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{157C. Relevance law}\label{relevance-law}
+
+\[
+\boxed{
+\textbf{Not currently active is not warranted irrelevant; hide aggressively
+only what protected consequence has made safely reopenable.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{157D. Relational-adjacency law}\label{relational-adjacency-law}
+
+\[
+\boxed{
+\textbf{Retrieve and compose by the relation exposed by the question, not by
+surface semantic proximity alone.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+
+\subsection{157E. Prediction law}\label{prediction-law}
+
+\[
+\boxed{
+\textbf{When a return is intended to test an expectation, seal the expectation
+before the return is known.}
+}
+\]
+
+\subsection{157F. Action--return law}\label{action-return-law}
+
+\[
+\boxed{
+\textbf{Learn from the relation between an actualized variation and an
+independently constrained return, not from the planned action alone.}
+}
+\]
+
+\subsection{157G. Reconstruction law}\label{reconstruction-law}
+
+\[
+\boxed{
+\textbf{Reconstruct what protected continuation requires; do not promote
+generated reconstruction detail into history.}
+}
+\]
+
+\subsection{157H. Memory-separation law}\label{memory-separation-law}
+
+\[
+\boxed{
+\textbf{Episodic retention may be immediate; generalized semantic retention
+requires separate challenge and warrant.}
+}
+\]
+
+\subsection{157I. Separation/completion law}\label{separation-completion-law}
+
+\[
+\boxed{
+\textbf{Separate what protected consequence distinguishes; complete what a
+consequential cue requires.}
+}
+\]
+
+\subsection{157J. Retention law}\label{retention-law}
+
+\[
+\boxed{
+\textbf{Remove active structure that no longer earns its interference cost only
+when protected reconstruction, warrant ancestry, and reopening survive.}
+}
+\]
+
+\subsection{157K. Plasticity law}\label{plasticity-law}
+
+\[
+\boxed{
+\textbf{A new probe or representation is learned only when it demonstrates a
+new protected capacity to distinguish, retrieve, reason, or control.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{158. Recursion law}\label{recursion-law}
+
+\[
+\boxed{
+\textbf{Every consequential residual becomes the next distinction.}
+}
+\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Part XLIII --- Complete Compressed
+Definition}\label{part-xliii-complete-compressed-definition}
+
+Ratcheting Consequence Inquiry is a typed recursive inquiry process over an
+adaptive relational state whose questions orient a consequence-relative
+semantic field and whose recurrent probes can make change visible across
+ordered state transitions.
+
+It begins from a protected consequence distinction rather than requiring a
+pre-specified concrete problem or solution. It reconstructs the smallest
+working world needed for the present continuation, binds what currently
+stands, exposes the consequential residual, and chooses or derives a relational
+probe or action capable of discriminating the live alternatives.
+
+Within a consequence class it varies aggressively to destroy accidental
+commonality. Across consequence classes it changes minimally to expose the
+boundary. Proposed necessities, sufficiencies, and prerequisites are attacked
+through their missing counterexample cells. Description remains distinct from
+control.
+
+When useful, an expected return is sealed before actualization. The system then
+acts, probes, executes, retrieves, experiments, observes, proves, or invokes a
+native method. The raw return is preserved independently of the prediction and
+of every later interpretation. Mismatch becomes an inquiry object.
+
+The return does not directly rewrite state. It enters a reconstruction step that
+generates candidate interpretations, repairs, splits, merges, guard changes,
+rebinds, and residual obligations. Only independently licensed warrant may
+commit a semantic delta.
+
+Consequential events enter episodic memory quickly. General semantic knowledge
+arises only through consolidation, counterexample exposure, and warrant.
+Similar memories with different protected consequences are separated. Partial
+cues may complete retained structure only when the remaining completions are
+protected-consequence-equivalent; otherwise retrieval itself becomes inquiry.
+
+Retained knowledge is versioned rather than destructively overwritten.
+Protected mismatch reopens a relation and creates a candidate successor while
+preserving historical ancestry. Active state is continuously compressed,
+retired, deactivated, and reconstructed so long as protected future inquiry,
+warrant, provenance, and reopening remain regenerable.
+
+The perceptual basis is itself learnable. Repeated failure of the current probe
+or representation basis creates a representation gap from which candidate new
+probes, methods, distinctions, or rebindings may be generated. None of these
+self-promote: they become durable only after demonstrating nonredundant
+protected discrimination or control value.
+
+The universal kernel does not require predictive coding, free-energy
+minimization, a neural memory architecture, sleep, developmental stages, or any
+specific cognitive theory. Such theories may supply specialized bindings when
+their native machinery is useful. The kernel requires only executable
+distinctions whose loss would create protected failure.
+
+In its minimal operational form:
+
+\[
+\boxed{
+\begin{gathered}
+\text{\textbf{RECONSTRUCT}}
+\to
+\text{\textbf{ORIENT}}
+\to
+\text{\textbf{PROBE/ACT}}
+\to
+\text{\textbf{PRESERVE RETURN}}\\
+\to
+\text{\textbf{COMPARE}}
+\to
+\text{\textbf{DEFORM}}
+\to
+\text{\textbf{ATTACK}}
+\to
+\text{\textbf{WARRANT}}\\
+\to
+\text{\textbf{LEARN}}
+\to
+\text{\textbf{SELF-CLEAN}}
+\to
+\text{\textbf{RECONSTRUCT}}
+\to
+\text{\textbf{RECUR}}
+\end{gathered}
+}
+\]
+
+The deeper developmental form is:
+
+\[
+\boxed{
+\begin{gathered}
+\text{\textbf{CHANGE ITSELF}}
+\to
+\text{\textbf{THROUGH NOT-ITSELF}}
+\to
+\text{\textbf{THROUGH ITSELF}}\\
+\to
+\text{\textbf{A CHANGED CAPACITY TO CHANGE AGAIN}}
+\end{gathered}
+}
+\]
+
+The last transition distinguishes learning from mere recurrence.
+
+In its minimal language form:
+
+\[
+\boxed{
+\begin{aligned}
+&\textbf{What difference matters now?}\\
+&\textbf{What stable probe already lets that difference be seen?}\\
+&\textbf{What do the present state and prior comparable returns show?}\\
+&\textbf{What can change without changing the consequence?}\\
+&\textbf{What smallest change reverses it?}\\
+&\textbf{What prediction would distinguish the live explanations?}\\
+&\textbf{What did the independent return actually do?}\\
+&\textbf{What changed relative to prediction and prior probes?}\\
+&\textbf{What smaller relation survives the attacks?}\\
+&\textbf{What does the return warrant changing?}\\
+&\textbf{What belongs in episodic, semantic, procedural, or latent memory?}\\
+&\textbf{What can now be compressed, and what would reopen it?}\\
+&\textbf{Did the system learn a new fact, or a new way to perceive?}\\
+&\textbf{What consequential residual remains?}
+\end{aligned}
+}
+\]
+
+The answer to the final question becomes the orienting distinction of the next
+recursion.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{References}\label{references}
+
+{[}R1{]} Dexter Kozen. \emph{Kleene Algebra with Tests}. ACM
+Transactions on Programming Languages and Systems, 19(3):427--443, 1997.
+DOI: 10.1145/256167.256195.
+
+{[}R2{]} Dana Angluin. \emph{Learning Regular Sets from Queries and
+Counterexamples}. Information and Computation, 75:87--106, 1987.
+
+{[}R3{]} Robert Paige and Robert E. Tarjan. \emph{Three Partition
+Refinement Algorithms}. SIAM Journal on Computing, 16(6):973--989, 1987.
+DOI: 10.1137/0216062.
+
+{[}R4{]} Patrick Cousot and Radhia Cousot. \emph{Abstract
+Interpretation: A Unified Lattice Model for Static Analysis of Programs
+by Construction or Approximation of Fixpoints}. POPL, pp.~238--252,
+1977.
+
+{[}R5{]} Robert Nieuwenhuis, Albert Oliveras, and Cesare Tinelli.
+\emph{Solving SAT and SAT Modulo Theories: From an Abstract DPLL
+Procedure to DPLL(T).} Journal of the ACM, 53(6):937--977, 2006. DOI:
+10.1145/1217856.1217859.
+
+{[}R6{]} Gunther Reissig, Alexander Weber, and Matthias Rungger.
+\emph{Feedback Refinement Relations for the Synthesis of Symbolic
+Controllers}. 2015/2017.
+
+{[}R7{]} Ulrich Junker. \emph{QUICKXPLAIN: Preferred Explanations and
+Relaxations for Over-Constrained Problems}. AAAI, pp.~167--172, 2004.
+
+{[}R8{]} Johan de Kleer. \emph{An Assumption-Based TMS}. Artificial
+Intelligence, 28(2):127--162, 1986. DOI: 10.1016/0004-3702(86)90080-9.
+
+{[}R9{]} Edmund M. Clarke, Orna Grumberg, Somesh Jha, Yuan Lu, and
+Helmut Veith. \emph{Counterexample-Guided Abstraction Refinement}. CAV,
+2000.
+
+{[}R10{]} LFSC / SMT proof-checking work: logical frameworks with side
+conditions support small trusted proof-checking kernels for SMT
+certificates.
+
+{[}R11{]} Aaron R. Bradley. \emph{SAT-Based Model Checking without
+Unrolling}. VMCAI, pp.~70--87, 2011.
+
+{[}R12{]} Z3 Spacer / generalized Property Directed Reachability for
+constrained Horn clauses.
+
+{[}R13{]} Kenneth L. McMillan. \emph{Interpolation and SAT-Based Model
+Checking}. CAV, pp.~1--13, 2003. DOI: 10.1007/978-3-540-45069-6\_1.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Project Definition}\label{project-definition}
+
+\[
+\boxed{
+\textbf{RATCHETING CONSEQUENCE INQUIRY 0.3}
+}
+\]
+
+is a proof-producing, property-directed, perception-capable,
+question-driven refinement process over adaptive relational state.
+
+Its architectural principle is:
+
+\begin{center}
+\fbox{\parbox{0.90\linewidth}{\centering\textbf{
+RECONSTRUCTED OBLIGATION \(\to\) RELATIONAL ORIENTATION \(\to\)
+QUESTION/PROBE/ACTION\\
+\(\to\) QUESTION-CONDITIONED FIELD \(\to\) PROVISIONAL CLAIM/PREDICTION\\
+\(\to\) ACTUALIZED VARIATION \(\to\) PRESERVED EXTERNAL RETURN\\
+\(\to\) RECONSTRUCTION \(\to\) GUARDED WARRANT \(\to\) LEARNING/RETENTION\\
+\(\to\) NEXT RECONSTRUCTED OBLIGATION
+}}}
+\end{center}
+
+Its perceptual criterion is:
+
+\begin{center}
+\fbox{\parbox{0.88\linewidth}{\centering\textbf{Stable relational probes plus
+ordered comparable returns make change and persistence addressable without
+making the perceived pattern true.}}}
+\end{center}
+
+Its action--return criterion is:
+
+\begin{center}
+\fbox{\parbox{0.88\linewidth}{\centering\textbf{What the system predicts, what
+it actualizes, what the environment returns, and what it later concludes must
+remain separately inspectable.}}}
+\end{center}
+
+Its memory criterion is:
+
+\begin{center}
+\fbox{\parbox{0.88\linewidth}{\centering\textbf{Retain enough guarded structure
+to reconstruct protected future inquiry and action; when reconstruction is
+consequentially ambiguous, retrieve by inquiring rather than guessing.}}}
+\end{center}
+
+Its contextual criterion is:
+
+\begin{center}
+\fbox{\parbox{0.88\linewidth}{\centering\textbf{Make consequentially related
+structure local; occlude only what the protected future cannot currently
+inspect; retain how it would become relevant again.}}}
+\end{center}
+
+Its implementation criterion is:
+
+\begin{center}
+\fbox{\parbox{0.88\linewidth}{\centering\textbf{The process must remain formally
+well-defined even when semantic generation, prediction, perception, or
+reconstruction is wrong.}}}
+\end{center}
+
+Its epistemic criterion is:
+
+\begin{center}
+\fbox{\parbox{0.88\linewidth}{\centering\textbf{Only independently warranted
+consequential changes enter retained semantic knowledge.}}}
+\end{center}
+
+Its regenerative criterion is:
+
+\begin{center}
+\fbox{\parbox{0.88\linewidth}{\centering\textbf{When the current probes,
+representations, memories, or methods cannot expose a protected distinction,
+that insufficiency must itself become a well-formed inquiry capable of
+extending or rebinding the system.}}}
+\end{center}
+
+The smallest operational compression is:
+
+\[
+\boxed{
+\begin{gathered}
+\text{\textbf{LOOK}}
+\to
+\text{\textbf{PREDICT}}
+\to
+\text{\textbf{ACT/PROBE}}
+\to
+\text{\textbf{RETURN}}\\
+\to
+\text{\textbf{COMPARE}}
+\to
+\text{\textbf{LEARN}}
+\to
+\text{\textbf{REMEMBER}}
+\to
+\text{\textbf{LOOK AGAIN}}
+\end{gathered}
+}
+\]
+
+The developmental compression is:
+
+\[
+\boxed{
+\begin{gathered}
+\text{\textbf{CHANGE ITSELF}}
+\to
+\text{\textbf{THROUGH NOT-ITSELF}}
+\to
+\text{\textbf{THROUGH ITSELF}}\\
+\to
+\text{\textbf{A CHANGED CAPACITY TO CHANGE AGAIN}}
+\end{gathered}
+}
+\]
+
+\end{document}
+

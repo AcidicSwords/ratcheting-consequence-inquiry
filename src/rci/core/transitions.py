@@ -1,0 +1,2047 @@
+"""Pure command decision and event evolution functions."""
+
+from __future__ import annotations
+
+from rci.backlog.models import G1_APPLICABLE_EFFECT_KINDS, BacklogItem
+from rci.backlog.reconcile import BacklogPolicy, apply_effects
+from rci.claims.logic import (
+    conflict_obligation,
+    mandatory_attack_obligation,
+    structural_conflict,
+)
+from rci.claims.models import (
+    Claim,
+    ClaimStatus,
+    Conflict,
+    Obligation,
+    ObligationStatus,
+    Scope,
+)
+from rci.core.commands import (
+    AcceptEffectResult,
+    AdmitClaim,
+    AdmitProbe,
+    AppendCorrection,
+    ChangeGuardStanding,
+    ChangeNogoodStanding,
+    ChangeSupportRouteStanding,
+    CommitSemanticDelta,
+    DomainCommand,
+    EvaluateWarrant,
+    OpenObligation,
+    PlanEffectAttempt,
+    PromoteClaim,
+    RecordAttemptOutcome,
+    RecordBacklogEffect,
+    RecordCandidate,
+    RecordCheckerVerdict,
+    RecordCognitivePlan,
+    RecordDecodeOutcome,
+    RecordEvidence,
+    RecordMismatch,
+    RecordNoAttemptDisposition,
+    RecordNogood,
+    RecordObligationDisposition,
+    RecordProbeObservation,
+    RecordReconstruction,
+    RecordResidual,
+    RecordStepPlan,
+    RequestEffect,
+    SealPrediction,
+    StartEffectAttempt,
+    StartInquiry,
+)
+from rci.core.effects import AttemptState, Decoded, EffectRequestState, ReturnedOutcome
+from rci.core.errors import (
+    DomainError,
+    EffectLifecycleError,
+    IdentityConflictError,
+    InvalidCommandError,
+    InvalidTransitionError,
+)
+from rci.core.events import (
+    BacklogEffectRecorded,
+    CandidateRecorded,
+    CheckerVerdictRecorded,
+    ClaimAdmitted,
+    CognitivePlanRecorded,
+    CorrectionAppended,
+    DomainEvent,
+    EffectAttemptOutcomeRecorded,
+    EffectAttemptPlanned,
+    EffectAttemptStarted,
+    EffectDecodeOutcomeRecorded,
+    EffectNoAttemptDispositionRecorded,
+    EffectRequested,
+    EffectResultAccepted,
+    EvidenceRecorded,
+    GuardStandingChanged,
+    InquiryStarted,
+    LemmaPromoted,
+    MismatchRecorded,
+    NogoodRecorded,
+    NogoodStandingChanged,
+    ObligationDispositionRecorded,
+    ObligationOpened,
+    PredictionSealed,
+    ProbeAdmitted,
+    ProbeObservationRecorded,
+    ReconstructionRecorded,
+    ResidualRecorded,
+    SemanticDeltaCommitted,
+    StepPlanRecorded,
+    SupportRouteStandingChanged,
+    WarrantDecisionRecorded,
+)
+from rci.core.planning import PlanStatus
+from rci.core.state import InquiryState
+from rci.probes.lifecycle import append_probe_event
+from rci.probes.models import ProbeTrace, SemanticChangeOperation
+from rci.warrant.checks import checker_verdict_index, evidence_index, resolve_check_reference
+from rci.warrant.models import (
+    PromotionLink,
+    PropositionKind,
+    SupportStanding,
+    WarrantClass,
+    WarrantDecisionRecord,
+)
+from rci.warrant.policy import (
+    PromotionOutcome,
+    decide_evidence_warrant,
+    decide_promotion,
+)
+
+
+def _require_active(state: InquiryState, inquiry_id: str) -> None:
+    if state.status != "active":
+        raise InvalidCommandError("the inquiry has not been started")
+    if state.inquiry_id != inquiry_id:
+        raise InvalidCommandError("the command inquiry id does not match the aggregate")
+
+
+def _require_request(state: InquiryState, request_id: str) -> EffectRequestState:
+    request = state.request_by_id(request_id)
+    if request is None:
+        raise InvalidCommandError(f"unknown effect request: {request_id}")
+    return request
+
+
+def _derive_claim_consequences(
+    state: InquiryState,
+    claim: Claim,
+) -> tuple[tuple[Conflict, ...], tuple[Obligation, ...]]:
+    """Derive the exact atomic conflict/attack bundle for a newly admitted claim."""
+
+    known_conflict_ids = {conflict.id for conflict in state.conflicts}
+    conflicts: list[Conflict] = []
+    for existing in state.claims:
+        conflict = structural_conflict(existing, claim)
+        if conflict is not None and conflict.id not in known_conflict_ids:
+            known_conflict_ids.add(conflict.id)
+            conflicts.append(conflict)
+    conflicts.sort(key=lambda item: item.id)
+
+    known_fingerprints = {obligation.fingerprint for obligation in state.obligations}
+    obligations: list[Obligation] = []
+    attack = mandatory_attack_obligation(claim)
+    if attack is not None and _claim_attack_is_exactly_discharged(state, claim):
+        attack = None
+    candidates = ([attack] if attack is not None else []) + [
+        conflict_obligation(conflict) for conflict in conflicts
+    ]
+    for obligation in candidates:
+        if obligation.fingerprint not in known_fingerprints:
+            known_fingerprints.add(obligation.fingerprint)
+            obligations.append(obligation)
+    obligations.sort(key=lambda item: item.id)
+    return tuple(conflicts), tuple(obligations)
+
+
+def _known_entity_ids(state: InquiryState) -> frozenset[str]:
+    return frozenset(
+        item.id
+        for collection in (
+            state.claims,
+            state.conflicts,
+            state.obligations,
+            state.candidates,
+            state.residuals,
+            state.lemma_versions,
+            state.reconstructions,
+        )
+        for item in collection
+    )
+
+
+def _scope_matches_context(state: InquiryState, scope: Scope) -> bool:
+    context = state.context
+    if context is None:
+        return False
+    return (
+        scope.id == context.scope_id
+        and scope.fingerprint == context.scope_fingerprint
+        and scope.binding_revision == context.binding_revision
+        and scope.assumption_ids == context.assumption_ids
+        and scope.applicability_guard_id == context.guard_condition_id
+        and scope.finite_universe_hash == context.finite_universe_hash
+        and scope.closed_world == context.closed_world
+    )
+
+
+def _current_active_lemma_ids(state: InquiryState) -> frozenset[str]:
+    return frozenset(view.lemma_version_id for view in state.active_theory)
+
+
+def _claim_attack_is_exactly_discharged(state: InquiryState, claim: Claim) -> bool:
+    """Only an active hard lemma for the identical proposition and scope closes attack."""
+
+    if claim.proposition_id is None:
+        return False
+    active_ids = _current_active_lemma_ids(state)
+    return any(
+        version.id in active_ids
+        and version.relation_id == claim.proposition_id
+        and version.scope.fingerprint == claim.scope.fingerprint
+        for version in state.lemma_versions
+    )
+
+
+def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ...]:
+    """Return events for a command without performing I/O or generating data."""
+
+    if isinstance(command, StartInquiry):
+        if state.status == "not_started":
+            return (
+                InquiryStarted(
+                    event_id=command.event_id,
+                    inquiry_id=command.inquiry_id,
+                    occurred_at=command.occurred_at,
+                    manifest_artifact=command.manifest_artifact,
+                    policy_version=command.policy_version,
+                    context=command.context,
+                ),
+            )
+        if (
+            state.inquiry_id == command.inquiry_id
+            and state.manifest_artifact == command.manifest_artifact
+            and state.policy_version == command.policy_version
+            and state.context == command.context
+        ):
+            return ()
+        raise IdentityConflictError("the inquiry identity is already bound to different data")
+
+    _require_active(state, command.inquiry_id)
+
+    if isinstance(command, RecordBacklogEffect):
+        if command.effect.kind not in G1_APPLICABLE_EFFECT_KINDS:
+            raise InvalidCommandError(
+                f"backlog effect {command.effect.kind.value} is proposal-only in G1"
+            )
+        existing_effect = state.backlog_effect_by_id(command.effect.id)
+        if existing_effect is not None:
+            if existing_effect == command.effect:
+                return ()
+            raise IdentityConflictError("backlog effect id was reused for different content")
+        try:
+            projected_items: tuple[BacklogItem, ...] = ()
+            constitutional_policy = BacklogPolicy()
+            for historical_effect in state.backlog_effects:
+                projected_items = apply_effects(
+                    projected_items,
+                    (historical_effect,),
+                    policy=constitutional_policy,
+                )
+            apply_effects(
+                projected_items,
+                (command.effect,),
+                policy=constitutional_policy,
+            )
+        except (PermissionError, ValueError) as error:
+            raise InvalidCommandError(f"invalid backlog effect sequence: {error}") from error
+        return (
+            BacklogEffectRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                effect=command.effect,
+            ),
+        )
+
+    if isinstance(command, RecordStepPlan):
+        existing_plan = state.step_plan_by_id(command.plan.id)
+        if existing_plan is not None:
+            if existing_plan == command.plan:
+                return ()
+            raise IdentityConflictError("step plan id was reused")
+        if (
+            state.context is None
+            or command.plan.policy_version != state.context.scheduler_policy_version
+        ):
+            raise InvalidCommandError("step plan policy does not match the inquiry context")
+        if command.plan.status is PlanStatus.READY:
+            obligation = state.obligation_by_id(command.plan.selected_obligation_id or "")
+            if obligation is None or command.plan.selected_attempt_key is None:
+                raise InvalidCommandError("ready step plan must select an owned obligation")
+            if state.current_obligation_status(obligation.id) is not ObligationStatus.OPEN:
+                raise InvalidCommandError("ready step plan must select an open obligation")
+            if (
+                command.plan.selected_attempt_key.obligation_fingerprint != obligation.fingerprint
+                or command.plan.selected_attempt_key.binding_revision != obligation.binding_revision
+            ):
+                raise InvalidCommandError(
+                    "step plan attempt key does not match the exact obligation"
+                )
+        return (
+            StepPlanRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                plan=command.plan,
+            ),
+        )
+
+    if isinstance(command, RequestEffect):
+        existing = state.request_by_id(command.request.id)
+        if existing is not None:
+            if existing.request == command.request:
+                return ()
+            raise IdentityConflictError("effect request id was reused for different content")
+        step_plan = state.step_plan_by_id(command.request.step_plan_id)
+        if step_plan is None:
+            raise EffectLifecycleError("an effect request requires a persisted step plan")
+        if step_plan.status is not PlanStatus.READY:
+            raise EffectLifecycleError("an effect request requires a ready step plan")
+        selected_obligation = state.obligation_by_id(step_plan.selected_obligation_id or "")
+        if (
+            selected_obligation is None
+            or step_plan.selected_attempt_key is None
+            or step_plan.selected_attempt_key.obligation_fingerprint
+            != selected_obligation.fingerprint
+            or step_plan.selected_attempt_key.binding_revision
+            != selected_obligation.binding_revision
+        ):
+            raise EffectLifecycleError(
+                "effect request step plan does not own an exact obligation and attempt key"
+            )
+        return (
+            EffectRequested(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                request=command.request,
+            ),
+        )
+
+    if isinstance(command, PlanEffectAttempt):
+        request = _require_request(state, command.plan.request_id)
+        existing_attempt = next(
+            (
+                attempt
+                for item in state.effect_requests
+                for attempt in item.attempts
+                if attempt.plan.id == command.plan.id
+            ),
+            None,
+        )
+        if existing_attempt is not None:
+            if existing_attempt.plan == command.plan:
+                return ()
+            raise IdentityConflictError("attempt id was reused for a different plan")
+        if request.accepted_decoded_outcome_id is not None:
+            raise EffectLifecycleError("a resolved request cannot plan another attempt")
+        return (
+            EffectAttemptPlanned(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                plan=command.plan,
+            ),
+        )
+
+    if isinstance(command, StartEffectAttempt):
+        containing_request = next(
+            (
+                request
+                for request in state.effect_requests
+                if any(attempt.plan.id == command.attempt_id for attempt in request.attempts)
+            ),
+            None,
+        )
+        if containing_request is None:
+            raise EffectLifecycleError("an attempt start requires a persisted attempt plan")
+        start_attempt = next(
+            item for item in containing_request.attempts if item.plan.id == command.attempt_id
+        )
+        if start_attempt.started:
+            return ()
+        if containing_request.accepted_decoded_outcome_id is not None:
+            raise EffectLifecycleError("a resolved request cannot start another attempt")
+        if start_attempt.outcome is not None:
+            raise EffectLifecycleError("an attempt cannot start after a terminal outcome")
+        return (
+            EffectAttemptStarted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                attempt_id=command.attempt_id,
+            ),
+        )
+
+    if isinstance(command, RecordNoAttemptDisposition):
+        request = _require_request(state, command.disposition.request_id)
+        if command.disposition.step_plan_id != request.request.step_plan_id:
+            raise EffectLifecycleError(
+                "a no-attempt disposition must reference its request's persisted step plan"
+            )
+        existing_disposition = next(
+            (
+                disposition
+                for item in state.effect_requests
+                for disposition in item.no_attempt_dispositions
+                if disposition.id == command.disposition.id
+            ),
+            None,
+        )
+        if existing_disposition is not None:
+            if existing_disposition == command.disposition:
+                return ()
+            raise IdentityConflictError("no-attempt disposition id was reused")
+        if request.accepted_decoded_outcome_id is not None:
+            raise EffectLifecycleError(
+                "a resolved request cannot record a new no-attempt disposition"
+            )
+        return (
+            EffectNoAttemptDispositionRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                disposition=command.disposition,
+            ),
+        )
+
+    if isinstance(command, RecordAttemptOutcome):
+        request = _require_request(state, command.request_id)
+        outcome_attempt = next(
+            (item for item in request.attempts if item.plan.id == command.outcome.attempt_id),
+            None,
+        )
+        if outcome_attempt is None:
+            raise EffectLifecycleError("an outcome requires a persisted attempt plan")
+        if not outcome_attempt.started:
+            raise EffectLifecycleError("an attempt must start before a terminal outcome")
+        if outcome_attempt.plan.route.id != command.outcome.route_id:
+            raise EffectLifecycleError("outcome route does not match the attempt plan")
+        if outcome_attempt.outcome is not None:
+            if outcome_attempt.outcome == command.outcome:
+                return ()
+            raise EffectLifecycleError("an attempt can have only one terminal outcome")
+        if isinstance(command.outcome, ReturnedOutcome):
+            duplicate_return = next(
+                (
+                    other.outcome.external_return
+                    for item in state.effect_requests
+                    for other in item.attempts
+                    if isinstance(other.outcome, ReturnedOutcome)
+                    and other.outcome.external_return.id == command.outcome.external_return.id
+                ),
+                None,
+            )
+            if duplicate_return is not None:
+                raise IdentityConflictError("external return id was already captured")
+        return (
+            EffectAttemptOutcomeRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                request_id=command.request_id,
+                outcome=command.outcome,
+            ),
+        )
+
+    if isinstance(command, RecordDecodeOutcome):
+        request = _require_request(state, command.request_id)
+        existing_decode = next(
+            (
+                outcome
+                for item in state.effect_requests
+                for outcome in item.decode_outcomes
+                if outcome.id == command.outcome.id
+            ),
+            None,
+        )
+        if existing_decode is not None:
+            if existing_decode == command.outcome:
+                return ()
+            raise IdentityConflictError("decode outcome id was reused")
+        captured_return_ids = {
+            attempt.outcome.external_return.id
+            for attempt in request.attempts
+            if isinstance(attempt.outcome, ReturnedOutcome)
+        }
+        if command.outcome.external_return_id not in captured_return_ids:
+            raise EffectLifecycleError("a decode outcome requires this request's captured return")
+        return (
+            EffectDecodeOutcomeRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                request_id=command.request_id,
+                outcome=command.outcome,
+            ),
+        )
+
+    if isinstance(command, AcceptEffectResult):
+        request = _require_request(state, command.request_id)
+        if request.accepted_decoded_outcome_id is not None:
+            if request.accepted_decoded_outcome_id == command.decoded_outcome_id:
+                return ()
+            raise EffectLifecycleError("an effect request can accept at most one result")
+        decoded = next(
+            (
+                outcome
+                for outcome in request.decode_outcomes
+                if outcome.id == command.decoded_outcome_id
+            ),
+            None,
+        )
+        if not isinstance(decoded, Decoded):
+            raise EffectLifecycleError("only a recorded successful Decoded outcome can be accepted")
+        return (
+            EffectResultAccepted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                request_id=command.request_id,
+                decoded_outcome_id=command.decoded_outcome_id,
+            ),
+        )
+
+    if isinstance(command, AdmitClaim):
+        existing_claim = state.claim_by_id(command.claim.id)
+        if existing_claim is not None:
+            if existing_claim == command.claim:
+                return ()
+            raise IdentityConflictError("claim id was reused for different content")
+        if command.claim.status is not ClaimStatus.PROVISIONAL:
+            raise InvalidCommandError("new question-derived claims must begin provisional")
+        if not _scope_matches_context(state, command.claim.scope):
+            raise InvalidCommandError("claim scope does not match the inquiry context")
+        conflicts, obligations = _derive_claim_consequences(state, command.claim)
+        return (
+            ClaimAdmitted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                claim=command.claim,
+                derived_conflicts=conflicts,
+                derived_obligations=obligations,
+            ),
+        )
+
+    if isinstance(command, OpenObligation):
+        existing_obligation = state.obligation_by_id(command.obligation.id)
+        if existing_obligation is not None:
+            if existing_obligation == command.obligation:
+                return ()
+            raise IdentityConflictError("obligation id was reused for different content")
+        if any(item.fingerprint == command.obligation.fingerprint for item in state.obligations):
+            return ()
+        if command.obligation.status is not ObligationStatus.OPEN:
+            raise InvalidCommandError("new obligations must begin open")
+        if not _scope_matches_context(state, command.obligation.scope):
+            raise InvalidCommandError("obligation scope does not match the inquiry context")
+        if not set(command.obligation.parent_obligation_ids) <= {
+            item.id for item in state.obligations
+        }:
+            raise InvalidCommandError("obligation parent references must already exist")
+        return (
+            ObligationOpened(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                obligation=command.obligation,
+            ),
+        )
+
+    if isinstance(command, RecordObligationDisposition):
+        obligation = state.obligation_by_id(command.disposition.obligation_id)
+        if obligation is None:
+            raise InvalidCommandError("obligation disposition references an unknown obligation")
+        existing_obligation_disposition = next(
+            (item for item in state.obligation_dispositions if item.id == command.disposition.id),
+            None,
+        )
+        if existing_obligation_disposition is not None:
+            if existing_obligation_disposition == command.disposition:
+                return ()
+            raise IdentityConflictError("obligation disposition id was reused")
+        disposition_history = tuple(
+            item for item in state.obligation_dispositions if item.obligation_id == obligation.id
+        )
+        expected_predecessor = disposition_history[-1].id if disposition_history else None
+        if command.disposition.predecessor_id != expected_predecessor:
+            raise InvalidCommandError("obligation disposition must extend the current history tail")
+        current_status = (
+            disposition_history[-1].status if disposition_history else obligation.status
+        )
+        if command.disposition.status is current_status:
+            raise InvalidCommandError("obligation disposition must change standing")
+        if command.disposition.status is ObligationStatus.IMPOSSIBLE:
+            raise InvalidCommandError(
+                "generic dispositions cannot establish impossibility; use a typed checked discharge"
+            )
+        if command.disposition.status is ObligationStatus.SATISFIED:
+            hard_decision_ids = {
+                item.id
+                for item in state.warrant_decisions
+                if item.warrant_class is WarrantClass.HARD
+                and item.proposition_id == obligation.carrier_id
+                and item.scope_fingerprint == obligation.scope.fingerprint
+            }
+            accepted_decode_ids = {
+                request.accepted_decoded_outcome_id
+                for request in state.effect_requests
+                if request.accepted_decoded_outcome_id is not None
+                and (plan := state.step_plan_by_id(request.request.step_plan_id)) is not None
+                and plan.status is PlanStatus.READY
+                and plan.selected_obligation_id == obligation.id
+                and plan.selected_attempt_key is not None
+                and plan.selected_attempt_key.obligation_fingerprint == obligation.fingerprint
+                and plan.selected_attempt_key.binding_revision == obligation.binding_revision
+            }
+            lawful_evidence_refs = hard_decision_ids | accepted_decode_ids
+            if (
+                not command.disposition.evidence_refs
+                or not set(command.disposition.evidence_refs) <= lawful_evidence_refs
+            ):
+                raise InvalidCommandError(
+                    "satisfied obligations require owned evidence tied to the exact obligation "
+                    "and scope"
+                )
+        lawful = {
+            ObligationStatus.OPEN: {
+                ObligationStatus.BLOCKED,
+                ObligationStatus.SATISFIED,
+                ObligationStatus.IMPOSSIBLE,
+                ObligationStatus.UNKNOWN,
+            },
+            ObligationStatus.BLOCKED: {
+                ObligationStatus.OPEN,
+                ObligationStatus.SATISFIED,
+                ObligationStatus.UNKNOWN,
+            },
+            ObligationStatus.UNKNOWN: {ObligationStatus.OPEN},
+            ObligationStatus.SATISFIED: {ObligationStatus.OPEN},
+            ObligationStatus.IMPOSSIBLE: {ObligationStatus.OPEN},
+        }
+        if command.disposition.status not in lawful[current_status]:
+            raise InvalidCommandError("illegal obligation status transition")
+        return (
+            ObligationDispositionRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                disposition=command.disposition,
+            ),
+        )
+
+    if isinstance(command, RecordCandidate):
+        existing_candidate = next(
+            (item for item in state.candidates if item.id == command.candidate.id),
+            None,
+        )
+        if existing_candidate is not None:
+            if existing_candidate == command.candidate:
+                return ()
+            raise IdentityConflictError("candidate id was reused")
+        if not _scope_matches_context(state, command.candidate.scope):
+            raise InvalidCommandError("candidate scope does not match the inquiry context")
+        return (
+            CandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                candidate=command.candidate,
+            ),
+        )
+
+    if isinstance(command, RecordResidual):
+        existing_residual = next(
+            (item for item in state.residuals if item.id == command.residual.id),
+            None,
+        )
+        if existing_residual is not None:
+            if existing_residual == command.residual:
+                return ()
+            raise IdentityConflictError("residual id was reused")
+        if not _scope_matches_context(state, command.residual.scope):
+            raise InvalidCommandError("residual scope does not match the inquiry context")
+        if not set(command.residual.source_obligation_ids) <= {
+            item.id for item in state.obligations
+        }:
+            raise InvalidCommandError("residual references an unknown obligation")
+        return (
+            ResidualRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                residual=command.residual,
+            ),
+        )
+
+    if isinstance(command, AppendCorrection):
+        existing_correction = next(
+            (item for item in state.corrections if item.id == command.correction.id),
+            None,
+        )
+        if existing_correction is not None:
+            if existing_correction == command.correction:
+                return ()
+            raise IdentityConflictError("correction id was reused")
+        if not _scope_matches_context(state, command.correction.scope):
+            raise InvalidCommandError("correction scope does not match the inquiry context")
+        known_ids = _known_entity_ids(state)
+        if command.correction.target_id not in known_ids:
+            raise InvalidCommandError("correction target is not recorded")
+        if not set(command.correction.related_ids) <= known_ids:
+            raise InvalidCommandError("correction relation references an unknown record")
+        return (
+            CorrectionAppended(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                correction=command.correction,
+            ),
+        )
+
+    if isinstance(command, ChangeGuardStanding):
+        existing_guard_change = next(
+            (item for item in state.guard_changes if item.id == command.change.id),
+            None,
+        )
+        if existing_guard_change is not None:
+            if existing_guard_change == command.change:
+                return ()
+            raise IdentityConflictError("guard-change id was reused")
+        if (
+            state.context is None
+            or command.change.scope_fingerprint != state.context.scope_fingerprint
+        ):
+            raise InvalidCommandError("guard change scope does not match the inquiry context")
+        latest = state.latest_guard_change(command.change.condition_id)
+        expected_predecessor = latest.id if latest is not None else None
+        if command.change.predecessor_id != expected_predecessor:
+            raise InvalidCommandError("guard change must extend the current history tail")
+        if latest is not None and latest.standing is command.change.standing:
+            raise InvalidCommandError("guard change must change standing")
+        return (
+            GuardStandingChanged(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                change=command.change,
+            ),
+        )
+
+    if isinstance(command, RecordNogood):
+        nogood = command.nogood
+        existing_nogood = state.nogood_by_id(nogood.id)
+        if existing_nogood is not None:
+            if existing_nogood == nogood:
+                return ()
+            raise IdentityConflictError("nogood id was reused")
+        if state.context is None or (
+            nogood.scope_fingerprint != state.context.scope_fingerprint
+            or nogood.binding_revision != state.context.binding_revision
+            or nogood.finite_universe_hash != state.context.finite_universe_hash
+            or nogood.policy_version != state.context.warrant_policy_version
+        ):
+            raise InvalidCommandError("nogood does not match the current support class")
+        decision = state.warrant_decision_by_id(nogood.warrant_decision_id)
+        if decision is None or (
+            decision.warrant_class is not WarrantClass.HARD
+            or decision.proposition_id != nogood.id
+            or decision.proposition_kind is not PropositionKind.EXISTENTIAL
+            or decision.scope_fingerprint != nogood.scope_fingerprint
+            or decision.policy_version != nogood.policy_version
+            or decision.evidence_id != nogood.check.evidence_id
+            or decision.checker_verdict_id != nogood.check.checker_verdict_id
+        ):
+            raise InvalidCommandError("nogood requires an exact recorded hard warrant decision")
+        checked, reason = resolve_check_reference(
+            nogood.check,
+            evidence_by_id=evidence_index(state.evidence_records),
+            checker_verdict_by_id=checker_verdict_index(state.checker_verdicts),
+            proposition_id=nogood.id,
+            proposition_kind=PropositionKind.EXISTENTIAL,
+            scope_fingerprint=nogood.scope_fingerprint,
+            authorized_checker_ids=state.context.discharge_mechanism_ids,
+        )
+        if not checked:
+            raise InvalidCommandError(f"nogood check is not independently valid: {reason}")
+        return (
+            NogoodRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                nogood=nogood,
+            ),
+        )
+
+    if isinstance(command, ChangeSupportRouteStanding):
+        route_standing_change = command.change
+        existing_route_change = next(
+            (
+                item
+                for item in state.support_route_standing_changes
+                if item.id == route_standing_change.id
+            ),
+            None,
+        )
+        if existing_route_change is not None:
+            if existing_route_change == route_standing_change:
+                return ()
+            raise IdentityConflictError("support-route standing-change id was reused")
+        if state.support_route_by_id(route_standing_change.support_route_id) is None:
+            raise InvalidCommandError("support-route standing change references an unknown route")
+        latest_route_change = state.latest_support_route_standing_change(
+            route_standing_change.support_route_id
+        )
+        if route_standing_change.predecessor_id != (
+            latest_route_change.id if latest_route_change is not None else None
+        ):
+            raise InvalidCommandError("support-route standing change must extend its exact tail")
+        current_route_standing = (
+            latest_route_change.standing
+            if latest_route_change is not None
+            else SupportStanding.STANDING
+        )
+        if route_standing_change.standing is current_route_standing:
+            raise InvalidCommandError("support-route standing change must change standing")
+        return (
+            SupportRouteStandingChanged(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                change=route_standing_change,
+            ),
+        )
+
+    if isinstance(command, ChangeNogoodStanding):
+        nogood_standing_change = command.change
+        existing_nogood_change = next(
+            (
+                item
+                for item in state.nogood_standing_changes
+                if item.id == nogood_standing_change.id
+            ),
+            None,
+        )
+        if existing_nogood_change is not None:
+            if existing_nogood_change == nogood_standing_change:
+                return ()
+            raise IdentityConflictError("nogood standing-change id was reused")
+        if state.nogood_by_id(nogood_standing_change.nogood_id) is None:
+            raise InvalidCommandError("nogood standing change references an unknown nogood")
+        latest_nogood_change = state.latest_nogood_standing_change(nogood_standing_change.nogood_id)
+        if nogood_standing_change.predecessor_id != (
+            latest_nogood_change.id if latest_nogood_change is not None else None
+        ):
+            raise InvalidCommandError("nogood standing change must extend its exact tail")
+        current_nogood_standing = (
+            latest_nogood_change.standing
+            if latest_nogood_change is not None
+            else SupportStanding.STANDING
+        )
+        if nogood_standing_change.standing is current_nogood_standing:
+            raise InvalidCommandError("nogood standing change must change standing")
+        return (
+            NogoodStandingChanged(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                change=nogood_standing_change,
+            ),
+        )
+
+    if isinstance(command, RecordEvidence):
+        if (
+            state.context is None
+            or command.evidence.scope_fingerprint != state.context.scope_fingerprint
+        ):
+            raise InvalidCommandError("evidence scope does not match the inquiry context")
+        existing_evidence = state.evidence_by_id(command.evidence.id)
+        if existing_evidence is not None:
+            if existing_evidence == command.evidence:
+                return ()
+            raise IdentityConflictError("evidence id was reused")
+        return (
+            EvidenceRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                evidence=command.evidence,
+            ),
+        )
+
+    if isinstance(command, RecordCheckerVerdict):
+        verdict = command.checker_verdict
+        evidence = state.evidence_by_id(verdict.evidence_id)
+        if evidence is None:
+            raise InvalidCommandError("checker verdict requires recorded evidence")
+        if (
+            verdict.evidence_artifact != evidence.artifact
+            or verdict.proposition_id != evidence.proposition_id
+            or verdict.proposition_kind is not evidence.proposition_kind
+            or verdict.scope_fingerprint != evidence.scope_fingerprint
+        ):
+            raise InvalidCommandError("checker verdict does not match the exact evidence record")
+        existing_verdict = state.checker_verdict_by_id(verdict.id)
+        if existing_verdict is not None:
+            if existing_verdict == verdict:
+                return ()
+            raise IdentityConflictError("checker verdict id was reused")
+        return (
+            CheckerVerdictRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                checker_verdict=verdict,
+            ),
+        )
+
+    if isinstance(command, EvaluateWarrant):
+        if not _scope_matches_context(state, command.scope):
+            raise InvalidCommandError("warrant scope does not match the inquiry context")
+        evidence = state.evidence_by_id(command.evidence_id)
+        checker_verdict = state.checker_verdict_by_id(command.checker_verdict_id)
+        if evidence is None or checker_verdict is None:
+            raise InvalidCommandError("warrant evaluation requires recorded evidence and check")
+        if checker_verdict.evidence_id != evidence.id:
+            raise InvalidCommandError("warrant evidence and checker verdict do not align")
+        if state.context is None:
+            raise InvalidCommandError("an active inquiry requires warrant policy context")
+        warrant_class, reason = decide_evidence_warrant(
+            evidence,
+            checker_verdict,
+            proposition_id=command.proposition_id,
+            proposition_kind=command.proposition_kind,
+            scope=command.scope,
+            authorized_checker_ids=state.context.discharge_mechanism_ids,
+        )
+        decision = WarrantDecisionRecord(
+            id=command.decision_id,
+            evidence_id=evidence.id,
+            checker_verdict_id=checker_verdict.id,
+            proposition_id=command.proposition_id,
+            proposition_kind=command.proposition_kind,
+            scope_fingerprint=command.scope.fingerprint,
+            warrant_class=warrant_class,
+            reason=reason,
+            policy_version=state.context.warrant_policy_version,
+        )
+        existing_warrant_decision = state.warrant_decision_by_id(command.decision_id)
+        if existing_warrant_decision is not None:
+            if existing_warrant_decision == decision:
+                return ()
+            raise IdentityConflictError("warrant decision id was reused")
+        return (
+            WarrantDecisionRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                scope=command.scope,
+                decision=decision,
+            ),
+        )
+
+    if isinstance(command, PromoteClaim):
+        source_claims = tuple(state.claim_by_id(item) for item in command.source_claim_ids)
+        if not command.source_claim_ids or any(item is None for item in source_claims):
+            raise InvalidCommandError("promotion must preserve recorded source claims")
+        if any(
+            item is not None and item.scope.fingerprint != command.scope.fingerprint
+            for item in source_claims
+        ):
+            raise InvalidCommandError("promotion scope differs from its source claim")
+        if any(
+            item is not None
+            and item.proposition_id is not None
+            and item.proposition_id != command.relation_id
+            for item in source_claims
+        ):
+            raise InvalidCommandError("promotion proposition differs from its source claim")
+        if not _scope_matches_context(state, command.scope):
+            raise InvalidCommandError("promotion scope does not match the inquiry context")
+        assert state.context is not None
+        if not set(command.predecessor_refs) <= {item.id for item in state.lemma_versions}:
+            raise InvalidCommandError("promotion ancestry references an unknown lemma version")
+        recorded_warrant_decision = state.warrant_decision_by_id(command.warrant_decision_id)
+        if recorded_warrant_decision is None:
+            raise InvalidCommandError("promotion requires a recorded warrant decision")
+        if (
+            recorded_warrant_decision.warrant_class is not WarrantClass.HARD
+            or recorded_warrant_decision.proposition_id != command.relation_id
+            or recorded_warrant_decision.proposition_kind is not command.proposition_kind
+            or recorded_warrant_decision.scope_fingerprint != command.scope.fingerprint
+        ):
+            raise InvalidCommandError("promotion requires an exact hard warrant decision")
+        evidence = state.evidence_by_id(recorded_warrant_decision.evidence_id)
+        checker_verdict = state.checker_verdict_by_id(recorded_warrant_decision.checker_verdict_id)
+        if evidence is None or checker_verdict is None:
+            raise InvalidCommandError("promotion warrant evidence or check is unavailable")
+        if any(
+            recorded_warrant_decision.id not in route.warrant_refs
+            for route in command.support_routes
+        ):
+            raise InvalidCommandError("every support route must bind the warrant decision")
+        promotion = decide_promotion(
+            lemma_id=command.lemma_id,
+            relation_id=command.relation_id,
+            proposition_kind=command.proposition_kind,
+            scope=command.scope,
+            applicability=command.applicability,
+            support_routes=command.support_routes,
+            evidence=evidence,
+            checker_verdict=checker_verdict,
+            evidence_records=state.evidence_records,
+            checker_verdicts=state.checker_verdicts,
+            authorized_checker_ids=state.context.discharge_mechanism_ids,
+            policy_version=state.context.warrant_policy_version,
+            provenance_refs=command.provenance_refs,
+            source_claim_ids=command.source_claim_ids,
+            predecessor_refs=command.predecessor_refs,
+            existing_lemmas=state.warranted_lemmas,
+            current_assumption_ids=state.context.assumption_ids,
+            current_context_ids=tuple(sorted(state.standing_context_ids)),
+        )
+        if promotion.outcome is not PromotionOutcome.ACCEPTED or promotion.lemma is None:
+            raise InvalidCommandError(promotion.reason)
+        link = PromotionLink(
+            id=command.promotion_id,
+            lemma_version_id=promotion.lemma.id,
+            source_claim_ids=command.source_claim_ids,
+            warrant_decision_id=recorded_warrant_decision.id,
+        )
+        existing_version = next(
+            (item for item in state.lemma_versions if item.id == promotion.lemma.id),
+            None,
+        )
+        existing_link = next(
+            (item for item in state.promotion_links if item.id == link.id),
+            None,
+        )
+        if existing_version is not None or existing_link is not None:
+            if (
+                existing_version == promotion.lemma.version
+                and existing_link == link
+                and next(
+                    (
+                        item
+                        for item in state.lemma_supports
+                        if item.lemma_version_id == promotion.lemma.id
+                    ),
+                    None,
+                )
+                == promotion.lemma.support
+            ):
+                return ()
+            raise IdentityConflictError("lemma or promotion identity was reused")
+        return (
+            LemmaPromoted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                version=promotion.lemma.version,
+                support=promotion.lemma.support,
+                link=link,
+            ),
+        )
+
+    if isinstance(command, AdmitProbe):
+        fingerprint = command.probe.fingerprint
+        existing_probe = next(
+            (item for item in state.admitted_probes if item.fingerprint == fingerprint),
+            None,
+        )
+        if existing_probe is not None:
+            if existing_probe == command.probe:
+                return ()
+            raise IdentityConflictError("probe fingerprint was reused")
+        if state.context is None or (
+            command.probe.binding_revision != state.context.binding_revision
+            or command.probe.binding_schema_id not in state.context.carrier_schema_ids
+            or command.probe.scope_fingerprint != state.context.scope_fingerprint
+        ):
+            raise InvalidCommandError("probe binding does not match the inquiry context")
+        return (
+            ProbeAdmitted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                probe=command.probe,
+            ),
+        )
+
+    if isinstance(command, RecordCognitivePlan):
+        existing_cognitive_plan = state.cognitive_plan_by_id(command.plan.id)
+        if existing_cognitive_plan is not None:
+            if existing_cognitive_plan == command.plan:
+                return ()
+            raise IdentityConflictError("cognitive plan id was reused")
+        obligation = state.obligation_by_id(command.plan.obligation_id)
+        effect_request = state.request_by_id(command.plan.effect_request_id)
+        if obligation is None or effect_request is None:
+            raise InvalidCommandError("cognitive plan requires an obligation and effect request")
+        scheduler_plan = state.step_plan_by_id(effect_request.request.step_plan_id)
+        if (
+            scheduler_plan is None
+            or scheduler_plan.selected_obligation_id != command.plan.obligation_id
+        ):
+            raise InvalidCommandError(
+                "effect request scheduler plan does not select this cognitive obligation"
+            )
+        if obligation.scope.fingerprint != command.plan.scope_fingerprint:
+            raise InvalidCommandError("cognitive plan scope differs from its obligation")
+        if command.plan.source_state_revision > state.sequence:
+            raise InvalidCommandError("cognitive plan cannot reference a future state")
+        if command.plan.planned_sequence != state.sequence + 1:
+            raise InvalidCommandError("cognitive plan sequence must match its event position")
+        if command.plan.effect_attempt_plan_id is not None:
+            known_attempt = next(
+                (
+                    attempt.plan
+                    for item in state.effect_requests
+                    for attempt in item.attempts
+                    if attempt.plan.id == command.plan.effect_attempt_plan_id
+                ),
+                None,
+            )
+            if known_attempt is not None and known_attempt.request_id != effect_request.request.id:
+                raise InvalidCommandError("cognitive plan references another request's attempt")
+        return (
+            CognitivePlanRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                plan=command.plan,
+            ),
+        )
+
+    if isinstance(command, SealPrediction):
+        existing_prediction = next(
+            (item for item in state.predictions if item.id == command.prediction.id),
+            None,
+        )
+        if existing_prediction is not None:
+            if existing_prediction == command.prediction:
+                return ()
+            raise IdentityConflictError("prediction id was reused")
+        cognitive_plan = state.cognitive_plan_by_id(command.prediction.cognitive_plan_id)
+        if cognitive_plan is None:
+            raise InvalidCommandError("prediction requires a recorded cognitive plan")
+        if (
+            command.prediction.probe_or_action_id != cognitive_plan.probe_or_action_id
+            or command.prediction.scope_fingerprint != cognitive_plan.scope_fingerprint
+        ):
+            raise InvalidCommandError("prediction does not match its cognitive plan")
+        if not set(command.prediction.basis_claim_ids) <= {item.id for item in state.claims}:
+            raise InvalidCommandError("prediction basis references an unknown claim")
+        if command.prediction.sealed_sequence != state.sequence + 1:
+            raise InvalidCommandError("prediction seal sequence must match its event position")
+        if cognitive_plan.effect_attempt_plan_id is not None:
+            linked_attempt = next(
+                (
+                    attempt
+                    for request in state.effect_requests
+                    for attempt in request.attempts
+                    if attempt.plan.id == cognitive_plan.effect_attempt_plan_id
+                ),
+                None,
+            )
+            if linked_attempt is not None and linked_attempt.outcome is not None:
+                raise InvalidCommandError("prediction must be sealed before an attempt returns")
+        return (
+            PredictionSealed(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                prediction=command.prediction,
+            ),
+        )
+
+    if isinstance(command, RecordProbeObservation):
+        existing_observation = next(
+            (item for item in state.probe_observations if item.id == command.observation.id),
+            None,
+        )
+        if existing_observation is not None:
+            if existing_observation == command.observation:
+                return ()
+            raise IdentityConflictError("probe observation id was reused")
+        fingerprint = command.observation.probe_identity.fingerprint
+        if not any(item.fingerprint == fingerprint for item in state.admitted_probes):
+            raise InvalidCommandError("probe observation requires an admitted probe identity")
+        if state.context is None or (
+            command.observation.binding_revision != state.context.binding_revision
+            or command.observation.probe_identity.binding_revision != state.context.binding_revision
+            or command.observation.probe_identity.scope_fingerprint
+            != state.context.scope_fingerprint
+        ):
+            raise InvalidCommandError("probe observation binding does not match the inquiry")
+        if command.observation.state_revision > state.sequence:
+            raise InvalidCommandError("probe observation cannot reference a future state")
+        if not set(command.observation.external_return_ids) <= state.captured_external_return_ids:
+            raise InvalidCommandError("probe observation references an unknown raw return")
+        claim_refs = set(command.observation.interpretation_claim_ids)
+        if command.observation.generated_answer_claim_id is not None:
+            claim_refs.add(command.observation.generated_answer_claim_id)
+        if not claim_refs <= {item.id for item in state.claims}:
+            raise InvalidCommandError("probe observation references an unknown claim")
+        bridge = command.observation.comparability_bridge
+        if bridge is not None:
+            active_lemma_ids = _current_active_lemma_ids(state)
+            bridge_lemma = next(
+                (
+                    item
+                    for item in state.lemma_versions
+                    if item.id == bridge.warrant_lemma_id and item.id in active_lemma_ids
+                ),
+                None,
+            )
+            if bridge_lemma is None:
+                raise InvalidCommandError("probe comparison bridge requires an active hard lemma")
+            if (
+                bridge.comparison_proposition_id != bridge_lemma.relation_id
+                or bridge.scope_fingerprint != bridge_lemma.scope.fingerprint
+                or bridge.scope_fingerprint != state.context.scope_fingerprint
+            ):
+                raise InvalidCommandError(
+                    "probe comparison bridge warrant does not match its proposition and scope"
+                )
+        observation_history = tuple(
+            item
+            for item in state.probe_observations
+            if item.probe_identity.fingerprint == fingerprint
+        )
+        trace = ProbeTrace(
+            probe_fingerprint=fingerprint,
+            events=observation_history,
+            protected_horizon_id=command.observation.probe_identity.protected_horizon_id,
+            comparison_policy_id=command.observation.probe_identity.comparison_semantics_id,
+            active_guard_id=command.observation.probe_identity.applicability_guard_id,
+        )
+        try:
+            append_probe_event(trace, command.observation)
+        except ValueError as exc:
+            raise InvalidCommandError(str(exc)) from exc
+        return (
+            ProbeObservationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                observation=command.observation,
+            ),
+        )
+
+    if isinstance(command, RecordReconstruction):
+        existing_reconstruction = next(
+            (item for item in state.reconstructions if item.id == command.reconstruction.id),
+            None,
+        )
+        if existing_reconstruction is not None:
+            if existing_reconstruction == command.reconstruction:
+                return ()
+            raise IdentityConflictError("reconstruction id was reused")
+        if command.reconstruction.external_return_id not in state.captured_external_return_ids:
+            raise InvalidCommandError("reconstruction requires an owned raw return")
+        decode_by_id = {
+            outcome.id: outcome
+            for request in state.effect_requests
+            for outcome in request.decode_outcomes
+        }
+        if not set(command.reconstruction.decode_outcome_ids) <= set(decode_by_id):
+            raise InvalidCommandError("reconstruction references an unknown decode outcome")
+        if any(
+            decode_by_id[decode_id].external_return_id != command.reconstruction.external_return_id
+            for decode_id in command.reconstruction.decode_outcome_ids
+        ):
+            raise InvalidCommandError("reconstruction decode does not belong to its raw return")
+        if not set(command.reconstruction.candidate_claim_ids) <= {
+            item.id for item in state.claims
+        }:
+            raise InvalidCommandError("reconstruction references an unknown candidate claim")
+        if command.reconstruction.prior_state_revision > state.sequence:
+            raise InvalidCommandError("reconstruction cannot reference a future state")
+        if command.reconstruction.reconstructed_sequence != state.sequence + 1:
+            raise InvalidCommandError("reconstruction sequence must match its event position")
+        return (
+            ReconstructionRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                reconstruction=command.reconstruction,
+            ),
+        )
+
+    if isinstance(command, RecordMismatch):
+        existing_mismatch = next(
+            (item for item in state.mismatches if item.id == command.mismatch.id),
+            None,
+        )
+        if existing_mismatch is not None:
+            if existing_mismatch == command.mismatch:
+                return ()
+            raise IdentityConflictError("mismatch id was reused")
+        prediction = next(
+            (item for item in state.predictions if item.id == command.mismatch.prediction_id),
+            None,
+        )
+        if prediction is None:
+            raise InvalidCommandError("mismatch requires a sealed prediction")
+        if command.mismatch.scope_fingerprint != prediction.scope_fingerprint:
+            raise InvalidCommandError("mismatch scope differs from its prediction")
+        difference_claim = state.claim_by_id(command.mismatch.difference_claim_id)
+        if difference_claim is None or (
+            difference_claim.scope.fingerprint != command.mismatch.scope_fingerprint
+        ):
+            raise InvalidCommandError("mismatch difference claim is absent or out of scope")
+        decoded = next(
+            (
+                outcome
+                for request in state.effect_requests
+                for outcome in request.decode_outcomes
+                if outcome.id == command.mismatch.decode_outcome_id
+            ),
+            None,
+        )
+        if not isinstance(decoded, Decoded):
+            raise InvalidCommandError("mismatch requires a successfully decoded observation")
+        if decoded.external_return_id != command.mismatch.external_return_id:
+            raise InvalidCommandError("mismatch decode and raw return do not match")
+        cognitive_plan = state.cognitive_plan_by_id(prediction.cognitive_plan_id)
+        if cognitive_plan is None or cognitive_plan.effect_attempt_plan_id is None:
+            raise InvalidCommandError("mismatch prediction lacks an effect attempt")
+        returned_from_plan = any(
+            attempt.plan.id == cognitive_plan.effect_attempt_plan_id
+            and isinstance(attempt.outcome, ReturnedOutcome)
+            and attempt.outcome.external_return.id == command.mismatch.external_return_id
+            for request in state.effect_requests
+            for attempt in request.attempts
+        )
+        if not returned_from_plan:
+            raise InvalidCommandError("mismatch return did not arise from the predicted attempt")
+        return (
+            MismatchRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                mismatch=command.mismatch,
+            ),
+        )
+
+    if isinstance(command, CommitSemanticDelta):
+        existing_delta = next(
+            (item for item in state.semantic_deltas if item.id == command.delta.id),
+            None,
+        )
+        if existing_delta is not None:
+            if existing_delta == command.delta:
+                return ()
+            raise IdentityConflictError("semantic delta id was reused")
+        reconstruction_record = next(
+            (item for item in state.reconstructions if item.id == command.delta.reconstruction_id),
+            None,
+        )
+        if reconstruction_record is None:
+            raise InvalidCommandError("semantic delta requires an owned reconstruction")
+        if command.delta.committed_sequence != state.sequence + 1:
+            raise InvalidCommandError("semantic delta sequence must match its event position")
+        if command.delta.committed_sequence <= reconstruction_record.reconstructed_sequence:
+            raise InvalidCommandError("semantic delta must follow its reconstruction")
+        if state.context is None:
+            raise InvalidCommandError("semantic delta requires inquiry context")
+        active_ids = _current_active_lemma_ids(state)
+        versions = {version.id: version for version in state.lemma_versions}
+        for change in command.delta.warranted_changes:
+            version = versions.get(change.warrant_lemma_id)
+            if version is None or change.warrant_lemma_id not in active_ids:
+                raise InvalidCommandError("semantic delta requires an active hard warrant lemma")
+            if (
+                version.relation_id != change.proposition_id
+                or version.scope.fingerprint != change.scope_fingerprint
+                or change.scope_fingerprint != state.context.scope_fingerprint
+            ):
+                raise InvalidCommandError("semantic change exceeds its exact warrant proposition")
+            expected_operation = (
+                SemanticChangeOperation.REOPEN
+                if change.change_id in command.delta.reopened_structure_ids
+                else SemanticChangeOperation.RETIRE
+                if change.change_id in command.delta.retired_structure_ids
+                else SemanticChangeOperation.ADD
+            )
+            if change.operation is not expected_operation:
+                raise InvalidCommandError("semantic change operation does not match the delta")
+        return (
+            SemanticDeltaCommitted(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                delta=command.delta,
+            ),
+        )
+
+    raise InvalidCommandError(f"unsupported command type: {type(command).__name__}")
+
+
+def _replace_request(
+    state: InquiryState,
+    replacement: EffectRequestState,
+) -> tuple[EffectRequestState, ...]:
+    return tuple(
+        replacement if item.request.id == replacement.request.id else item
+        for item in state.effect_requests
+    )
+
+
+def _require_matching_decision(
+    state: InquiryState,
+    event: DomainEvent,
+    command: DomainCommand,
+) -> None:
+    try:
+        expected = decide(state, command)
+    except DomainError as exc:
+        raise InvalidTransitionError(str(exc)) from exc
+    if expected != (event,):
+        raise InvalidTransitionError("domain event does not match the lawful command consequence")
+
+
+def _advance_domain_state(
+    state: InquiryState,
+    **updates: object,
+) -> InquiryState:
+    payload = state.model_dump()
+    payload.update(updates)
+    payload["sequence"] = state.sequence + 1
+    return InquiryState.model_validate(payload, strict=True)
+
+
+def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
+    """Apply one event as a deterministic, effect-free reducer."""
+
+    if isinstance(event, InquiryStarted):
+        if state.status != "not_started":
+            raise InvalidTransitionError("InquiryStarted can only evolve an empty aggregate")
+        return InquiryState(
+            status="active",
+            inquiry_id=event.inquiry_id,
+            sequence=1,
+            manifest_artifact=event.manifest_artifact,
+            policy_version=event.policy_version,
+            context=event.context,
+        )
+
+    if state.status != "active" or state.inquiry_id != event.inquiry_id:
+        raise InvalidTransitionError("event inquiry id does not match an active aggregate")
+
+    next_sequence = state.sequence + 1
+
+    if isinstance(event, BacklogEffectRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordBacklogEffect(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                effect=event.effect,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            backlog_effects=(*state.backlog_effects, event.effect),
+        )
+
+    if isinstance(event, StepPlanRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordStepPlan(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                plan=event.plan,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            step_plans=(*state.step_plans, event.plan),
+        )
+
+    if isinstance(event, EffectRequested):
+        if state.request_by_id(event.request.id) is not None:
+            raise InvalidTransitionError("duplicate effect request event")
+        if state.step_plan_by_id(event.request.step_plan_id) is None:
+            raise InvalidTransitionError("effect request references an unknown step plan")
+        return InquiryState(
+            **state.model_dump(exclude={"sequence", "effect_requests"}),
+            sequence=next_sequence,
+            effect_requests=(*state.effect_requests, EffectRequestState(request=event.request)),
+        )
+
+    if isinstance(event, EffectAttemptPlanned):
+        request = state.request_by_id(event.plan.request_id)
+        if request is None:
+            raise InvalidTransitionError("attempt plan references an unknown request")
+        if any(
+            attempt.plan.id == event.plan.id
+            for item in state.effect_requests
+            for attempt in item.attempts
+        ):
+            raise InvalidTransitionError("duplicate attempt plan event")
+        if request.accepted_decoded_outcome_id is not None:
+            raise InvalidTransitionError("resolved requests cannot gain attempts")
+        replacement = EffectRequestState(
+            request=request.request,
+            attempts=(*request.attempts, AttemptState(plan=event.plan)),
+            no_attempt_dispositions=request.no_attempt_dispositions,
+            decode_outcomes=request.decode_outcomes,
+            accepted_decoded_outcome_id=request.accepted_decoded_outcome_id,
+        )
+        return InquiryState(
+            **state.model_dump(exclude={"sequence", "effect_requests"}),
+            sequence=next_sequence,
+            effect_requests=_replace_request(state, replacement),
+        )
+
+    if isinstance(event, EffectAttemptStarted):
+        containing_request = next(
+            (
+                request
+                for request in state.effect_requests
+                if any(attempt.plan.id == event.attempt_id for attempt in request.attempts)
+            ),
+            None,
+        )
+        if containing_request is None:
+            raise InvalidTransitionError("attempt start references an unknown attempt")
+        started_attempt_state = next(
+            item for item in containing_request.attempts if item.plan.id == event.attempt_id
+        )
+        if started_attempt_state.started:
+            raise InvalidTransitionError("attempt already has start metadata")
+        if containing_request.accepted_decoded_outcome_id is not None:
+            raise InvalidTransitionError("a resolved request cannot start another attempt")
+        attempts = tuple(
+            AttemptState(
+                plan=item.plan,
+                started=True,
+                started_event_id=event.event_id,
+                started_at=event.occurred_at,
+            )
+            if item.plan.id == event.attempt_id
+            else item
+            for item in containing_request.attempts
+        )
+        replacement = EffectRequestState(
+            request=containing_request.request,
+            attempts=attempts,
+            no_attempt_dispositions=containing_request.no_attempt_dispositions,
+            decode_outcomes=containing_request.decode_outcomes,
+            accepted_decoded_outcome_id=containing_request.accepted_decoded_outcome_id,
+        )
+        return InquiryState(
+            **state.model_dump(exclude={"sequence", "effect_requests"}),
+            sequence=next_sequence,
+            effect_requests=_replace_request(state, replacement),
+        )
+
+    if isinstance(event, EffectNoAttemptDispositionRecorded):
+        request = state.request_by_id(event.disposition.request_id)
+        if request is None:
+            raise InvalidTransitionError("no-attempt disposition references an unknown request")
+        if event.disposition.step_plan_id != request.request.step_plan_id:
+            raise InvalidTransitionError(
+                "no-attempt disposition references a different persisted step plan"
+            )
+        if any(
+            disposition.id == event.disposition.id
+            for item in state.effect_requests
+            for disposition in item.no_attempt_dispositions
+        ):
+            raise InvalidTransitionError("duplicate no-attempt disposition event")
+        if request.accepted_decoded_outcome_id is not None:
+            raise InvalidTransitionError("resolved requests cannot gain no-attempt dispositions")
+        replacement = EffectRequestState(
+            request=request.request,
+            attempts=request.attempts,
+            no_attempt_dispositions=(*request.no_attempt_dispositions, event.disposition),
+            decode_outcomes=request.decode_outcomes,
+            accepted_decoded_outcome_id=request.accepted_decoded_outcome_id,
+        )
+        return InquiryState(
+            **state.model_dump(exclude={"sequence", "effect_requests"}),
+            sequence=next_sequence,
+            effect_requests=_replace_request(state, replacement),
+        )
+
+    if isinstance(event, EffectAttemptOutcomeRecorded):
+        request = state.request_by_id(event.request_id)
+        if request is None:
+            raise InvalidTransitionError("attempt outcome references an unknown request")
+        event_attempt = next(
+            (item for item in request.attempts if item.plan.id == event.outcome.attempt_id),
+            None,
+        )
+        if event_attempt is None:
+            raise InvalidTransitionError("attempt outcome references an unknown attempt")
+        if not event_attempt.started:
+            raise InvalidTransitionError("attempt outcome precedes attempt start")
+        if event_attempt.outcome is not None:
+            raise InvalidTransitionError("an attempt already has an outcome")
+        if event_attempt.plan.route.id != event.outcome.route_id:
+            raise InvalidTransitionError("attempt outcome route mismatch")
+        attempts = tuple(
+            AttemptState(
+                plan=item.plan,
+                started=item.started,
+                started_event_id=item.started_event_id,
+                started_at=item.started_at,
+                outcome=event.outcome,
+            )
+            if item.plan.id == event_attempt.plan.id
+            else item
+            for item in request.attempts
+        )
+        replacement = EffectRequestState(
+            request=request.request,
+            attempts=attempts,
+            no_attempt_dispositions=request.no_attempt_dispositions,
+            decode_outcomes=request.decode_outcomes,
+            accepted_decoded_outcome_id=request.accepted_decoded_outcome_id,
+        )
+        return InquiryState(
+            **state.model_dump(exclude={"sequence", "effect_requests"}),
+            sequence=next_sequence,
+            effect_requests=_replace_request(state, replacement),
+        )
+
+    if isinstance(event, EffectDecodeOutcomeRecorded):
+        request = state.request_by_id(event.request_id)
+        if request is None:
+            raise InvalidTransitionError("decode outcome references an unknown request")
+        if any(
+            outcome.id == event.outcome.id
+            for item in state.effect_requests
+            for outcome in item.decode_outcomes
+        ):
+            raise InvalidTransitionError("duplicate decode outcome event")
+        captured_return_ids = {
+            attempt.outcome.external_return.id
+            for attempt in request.attempts
+            if isinstance(attempt.outcome, ReturnedOutcome)
+        }
+        if event.outcome.external_return_id not in captured_return_ids:
+            raise InvalidTransitionError("decode outcome has no captured external return")
+        replacement = EffectRequestState(
+            request=request.request,
+            attempts=request.attempts,
+            no_attempt_dispositions=request.no_attempt_dispositions,
+            decode_outcomes=(*request.decode_outcomes, event.outcome),
+            accepted_decoded_outcome_id=request.accepted_decoded_outcome_id,
+        )
+        return InquiryState(
+            **state.model_dump(exclude={"sequence", "effect_requests"}),
+            sequence=next_sequence,
+            effect_requests=_replace_request(state, replacement),
+        )
+
+    if isinstance(event, EffectResultAccepted):
+        request = state.request_by_id(event.request_id)
+        if request is None:
+            raise InvalidTransitionError("accepted result references an unknown request")
+        if request.accepted_decoded_outcome_id is not None:
+            raise InvalidTransitionError("an effect request already accepted a result")
+        decoded = next(
+            (
+                outcome
+                for outcome in request.decode_outcomes
+                if outcome.id == event.decoded_outcome_id
+            ),
+            None,
+        )
+        if not isinstance(decoded, Decoded):
+            raise InvalidTransitionError("accepted result must reference a successful decode")
+        replacement = EffectRequestState(
+            request=request.request,
+            attempts=request.attempts,
+            no_attempt_dispositions=request.no_attempt_dispositions,
+            decode_outcomes=request.decode_outcomes,
+            accepted_decoded_outcome_id=event.decoded_outcome_id,
+        )
+        return InquiryState(
+            **state.model_dump(exclude={"sequence", "effect_requests"}),
+            sequence=next_sequence,
+            effect_requests=_replace_request(state, replacement),
+        )
+
+    if isinstance(event, ClaimAdmitted):
+        _require_matching_decision(
+            state,
+            event,
+            AdmitClaim(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                claim=event.claim,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            claims=(*state.claims, event.claim),
+            conflicts=(*state.conflicts, *event.derived_conflicts),
+            obligations=(*state.obligations, *event.derived_obligations),
+        )
+
+    if isinstance(event, ObligationOpened):
+        _require_matching_decision(
+            state,
+            event,
+            OpenObligation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                obligation=event.obligation,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            obligations=(*state.obligations, event.obligation),
+        )
+
+    if isinstance(event, ObligationDispositionRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordObligationDisposition(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                disposition=event.disposition,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            obligation_dispositions=(
+                *state.obligation_dispositions,
+                event.disposition,
+            ),
+        )
+
+    if isinstance(event, CandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                candidate=event.candidate,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            candidates=(*state.candidates, event.candidate),
+        )
+
+    if isinstance(event, ResidualRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordResidual(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                residual=event.residual,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            residuals=(*state.residuals, event.residual),
+        )
+
+    if isinstance(event, CorrectionAppended):
+        _require_matching_decision(
+            state,
+            event,
+            AppendCorrection(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                correction=event.correction,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            corrections=(*state.corrections, event.correction),
+        )
+
+    if isinstance(event, GuardStandingChanged):
+        _require_matching_decision(
+            state,
+            event,
+            ChangeGuardStanding(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                change=event.change,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            guard_changes=(*state.guard_changes, event.change),
+        )
+
+    if isinstance(event, NogoodRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordNogood(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                nogood=event.nogood,
+            ),
+        )
+        return _advance_domain_state(state, nogoods=(*state.nogoods, event.nogood))
+
+    if isinstance(event, SupportRouteStandingChanged):
+        _require_matching_decision(
+            state,
+            event,
+            ChangeSupportRouteStanding(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                change=event.change,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            support_route_standing_changes=(
+                *state.support_route_standing_changes,
+                event.change,
+            ),
+        )
+
+    if isinstance(event, NogoodStandingChanged):
+        _require_matching_decision(
+            state,
+            event,
+            ChangeNogoodStanding(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                change=event.change,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            nogood_standing_changes=(*state.nogood_standing_changes, event.change),
+        )
+
+    if isinstance(event, EvidenceRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordEvidence(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                evidence=event.evidence,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            evidence_records=(*state.evidence_records, event.evidence),
+        )
+
+    if isinstance(event, CheckerVerdictRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCheckerVerdict(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                checker_verdict=event.checker_verdict,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            checker_verdicts=(*state.checker_verdicts, event.checker_verdict),
+        )
+
+    if isinstance(event, WarrantDecisionRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            EvaluateWarrant(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision_id=event.decision.id,
+                evidence_id=event.decision.evidence_id,
+                checker_verdict_id=event.decision.checker_verdict_id,
+                proposition_id=event.decision.proposition_id,
+                proposition_kind=event.decision.proposition_kind,
+                scope=event.scope,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            warrant_decisions=(*state.warrant_decisions, event.decision),
+        )
+
+    if isinstance(event, LemmaPromoted):
+        _require_matching_decision(
+            state,
+            event,
+            PromoteClaim(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                promotion_id=event.link.id,
+                lemma_id=event.version.id,
+                relation_id=event.version.relation_id,
+                proposition_kind=event.version.proposition_kind,
+                scope=event.version.scope,
+                applicability=event.version.applicability,
+                support_routes=event.support.all_support_routes,
+                warrant_decision_id=event.link.warrant_decision_id,
+                provenance_refs=event.support.provenance_refs,
+                source_claim_ids=event.version.source_claim_ids,
+                predecessor_refs=event.version.predecessor_refs,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            lemma_versions=(*state.lemma_versions, event.version),
+            lemma_supports=(*state.lemma_supports, event.support),
+            promotion_links=(*state.promotion_links, event.link),
+        )
+
+    if isinstance(event, ProbeAdmitted):
+        _require_matching_decision(
+            state,
+            event,
+            AdmitProbe(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                probe=event.probe,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            admitted_probes=(*state.admitted_probes, event.probe),
+        )
+
+    if isinstance(event, CognitivePlanRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordCognitivePlan(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                plan=event.plan,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            cognitive_plans=(*state.cognitive_plans, event.plan),
+        )
+
+    if isinstance(event, PredictionSealed):
+        _require_matching_decision(
+            state,
+            event,
+            SealPrediction(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                prediction=event.prediction,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            predictions=(*state.predictions, event.prediction),
+        )
+
+    if isinstance(event, ProbeObservationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordProbeObservation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                observation=event.observation,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            probe_observations=(*state.probe_observations, event.observation),
+        )
+
+    if isinstance(event, ReconstructionRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordReconstruction(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                reconstruction=event.reconstruction,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            reconstructions=(*state.reconstructions, event.reconstruction),
+        )
+
+    if isinstance(event, MismatchRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordMismatch(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                mismatch=event.mismatch,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            mismatches=(*state.mismatches, event.mismatch),
+        )
+
+    if isinstance(event, SemanticDeltaCommitted):
+        _require_matching_decision(
+            state,
+            event,
+            CommitSemanticDelta(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                delta=event.delta,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            semantic_deltas=(*state.semantic_deltas, event.delta),
+        )
+
+    raise InvalidTransitionError(f"unsupported event type: {type(event).__name__}")

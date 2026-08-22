@@ -1,0 +1,700 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,longtable}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\title{Ratcheting Consequence Inquiry\\
+Normative Project Specification}
+\author{RCI Project}
+\date{Version 0.3.1 --- 2026-08-22}
+
+\begin{document}
+\maketitle
+
+\section*{Status, interpretation, and conformance}
+
+This document is the normative semantic specification for Ratcheting Consequence
+Inquiry (RCI) version 0.3.1. It is a reconciled rewrite of the archived research
+drafts listed in \path{docs/source-manifest.md}. Those drafts are provenance and
+research context, not live instructions. Direct user instructions retain runtime
+precedence; \path{PLAN.md} fixes approved engineering choices and delivery order;
+the active Goal fixes the current completion boundary.
+
+The key words \textbf{MUST}, \textbf{MUST NOT}, \textbf{SHOULD}, and
+\textbf{MAY} are normative. A numbered requirement is conformant only when
+\path{docs/requirements-matrix.md} points to checked evidence or explicitly
+assigns it to a later milestone or open research question. Interfaces named for
+later phases specify semantic extension seams; their mere presence does not
+claim executable support.
+
+\section{Source reconciliation}
+
+\begin{longtable}{p{0.18\linewidth}p{0.30\linewidth}p{0.44\linewidth}}
+\toprule
+Source & Role in 0.3.1 & Reconciliation \\
+\midrule
+\endhead
+RCI 0.1 & Original project and staged implementation draft &
+Superseded as a live specification. Its claim/fact boundary, formal attack
+discipline, phase separation, and deterministic reference-system intent are
+retained. \\
+RCI 0.2 & Question-conditioned architecture &
+Its consequence-relative equivalence, stretch/squeeze discipline, typed
+questions, non-explosion, lazy formalization, and guarded warrant are retained. \\
+RCI 0.3 cognitive integration & Cognitive and memory research draft &
+Recurrent probes, prediction seals, action--return contingency, reconstruction,
+episodic/semantic separation, and retention are retained after removing duplicate
+authorities and separating actual returns from interpretation. \\
+0.3 Repair Delta & Corrective architecture note &
+Support environments, route-specific open dependency, explicit attempt outcomes,
+return routes, raw returns, derived working views, versioned ancestry, and
+compression residue are adopted. Cyclic proof structures are admitted only as
+inert data unless a later independently checked proof discipline is authorized;
+the active policy remains cycle-free. \\
+Consequence-subspace note & Compression and linear-binding note &
+The exact/approximate and object/consequence-regeneration distinctions are
+adopted. The linear theorem is corrected in Requirements RCI-051--RCI-055.
+Compression execution remains Phase 3 work. \\
+Retention/reacquisition note & Recovery and relearning note &
+Present use, reconstruction, direct consequence evaluation, and reacquisition
+are retained as independent relations. Reacquisition advantage is meaningful
+only against a pinned baseline and cost ordering. Executable recovery policy is
+G2/G3 work, not G1 acceptance. \\
+Opaque controlled-memory environment & Future end-to-end benchmark note &
+Its permanent epistemic distinctions and staged capability requirements are
+retained. The environment is a G7 benchmark, not a core primitive or current
+test. Predictive-state representation is a future native binding, and the
+linear theorem applies only after a suitable representation has been
+established. \\
+AGENTS and Goal drafts & Governance proposals &
+Archived for provenance. They do not override this document, the root
+\path{AGENTS.md}, \path{PLAN.md}, or an active Goal. \\
+\bottomrule
+\end{longtable}
+
+The exact source bytes, original locations, archive paths, sizes, and SHA-256
+digests are recorded in \path{docs/source-manifest.md}. No archived prompt or
+document acquires authority merely by being stored in the repository.
+
+\section{Normative requirements}
+
+\subsection{A. Constitution and semantic kernel}
+
+\paragraph{RCI-001 --- Authority and traceability.}
+The root specification MUST be the semantic authority. Every numbered
+requirement MUST have one matrix disposition: implemented evidence, a named
+later Goal, or explicit open research. Ambiguity MUST be recorded in the matrix
+or an ADR and MUST NOT be silently resolved by code.
+
+\paragraph{RCI-002 --- Typed binding and scope.}
+Every inquiry MUST pin a binding revision, typed carriers and relations,
+protected consequence profile and horizon, admissible operations, available
+discharge mechanisms, assumptions, and local scope. Metrics, probability,
+causality, time, utility, continuity, determinism, and observability MUST NOT be
+assumed unless the binding declares them.
+
+\paragraph{RCI-003 --- Questions create claims.}
+A question contract MUST bind referents, expose a typed relational role, delimit
+lawful answer shape, and identify lawful follow-ups. Its answer MUST begin as a
+provisional claim, never as a fact, formal candidate, external return, checker
+verdict, or warrant.
+
+\paragraph{RCI-004 --- Inert payload containment.}
+Opaque L0 payloads, including empty, Unicode, contradictory, malformed-looking,
+and prompt-injection strings, MUST remain representable as inert data. Payloads
+and templates MUST NOT import code, execute tools, construct SQL or shell
+commands, or select executable policy.
+
+\paragraph{RCI-005 --- Lawful unknown and failure separation.}
+\texttt{Unknown} is a lawful epistemic result. No attempt, unsupported
+capability, timeout, transport failure, presentation uncertainty, capture
+failure, malformed decode, logical unknown, checker indeterminacy, exhausted
+search, and returned null MUST remain distinct. None proves impossibility,
+necessity, sufficiency, equivalence, or control.
+
+\paragraph{RCI-006 --- Description is not control.}
+Descriptive factorization, correlation, prediction, witness of
+may-reachability, or repeated observation MUST NOT create a control certificate.
+Control requires an explicit action model, target, admissibility conditions, and
+independently checked strategy or control evidence in the same scope.
+
+\paragraph{RCI-007 --- Mandatory attack and non-explosion.}
+Every proposed necessity, sufficiency, or prerequisite MUST create its
+counterexample or alternate-route attack unless that exact proposition is
+already discharged in the identical scope. Candidate contradiction MUST create
+a deduplicated conflict obligation and MUST NOT permit explosion, arbitrary
+inference, or arbitrary deletion.
+
+\paragraph{RCI-008 --- Immutable succession.}
+Claims, events, contracts, policies, bindings, lemma versions, predictions,
+routes, returns, and retention packages MUST be immutable. Correction MUST
+append typed relations or events such as \texttt{supersedes},
+\texttt{splits\_from}, \texttt{merges\_from}, \texttt{rebinds},
+\texttt{refutes}, \texttt{suspends}, \texttt{promotes}, or
+\texttt{reopens}. Historical predecessors MUST remain addressable.
+
+\paragraph{RCI-009 --- Capability and phase gates.}
+The complete research catalog MAY be retained as versioned data, but only an
+explicit milestone profile MAY be scheduled. A catalog entry, schema, command
+group, optional dependency, or interface MUST NOT imply that its later-phase
+semantics are implemented.
+
+\paragraph{RCI-010 --- Consequence-conditioned relevance.}
+Relative to a probe and protected profile, available structure MUST be
+distinguished as active, relevance-undetermined, or warranted irrelevant.
+\emph{Not active} MUST NOT mean \emph{irrelevant}. Aggressive occlusion requires
+checked consequence-null standing and a reopening condition.
+
+\subsection{B. Event spine, persistence, and ownership}
+
+\paragraph{RCI-011 --- Pure transitions.}
+The state machine MUST expose
+\[
+  decide(state,command)\rightarrow events,\qquad
+  evolve(state,event)\rightarrow state.
+\]
+Both functions MUST be deterministic and free of I/O. Reducers MUST NOT
+generate clocks, identifiers, randomness, provider metadata, or external work.
+
+\paragraph{RCI-012 --- Durable authority and one owner.}
+The append-only event ledger plus content-addressed artifacts is durable
+authority. Within folded state, every semantic object MUST have one canonical
+owner: episodic memory \(M_E\), semantic memory \(M_S\), procedural memory
+\(M_P\), latent/retention memory \(M_L\), support/warrant structure \(W\),
+attempt structure \(A\), or prediction structure \(\Pi\). Other occurrences
+MUST be references or regenerable views, never independently writable truth.
+
+\paragraph{RCI-013 --- Replay-complete records.}
+Events and pinned manifests MUST retain every input needed for deterministic
+replay, including binding revision, scope, assumption/guard AST, finite-universe
+hash, explicit \texttt{closed\_world}, question/contract manifest and digest,
+scheduler and warrant-policy versions, provenance, route snapshot, and artifact
+references.
+
+\paragraph{RCI-014 --- Rebuildable projections and snapshots.}
+Active theory, candidate graphs, probe views, semantic fields, reopening views,
+ancestry indexes, scheduler views, debt summaries, indexes, and reports MUST be
+deterministic projections. Materialized projections MUST pin source sequence
+and projection schema version. Projection rows and checkpoints MUST commit
+together. Deleting projections and snapshots MUST NOT change replayed state or
+deterministic export.
+
+\paragraph{RCI-015 --- SQLite concurrency.}
+The reference store MUST use stdlib SQLite in WAL mode, one writer path per
+inquiry, \texttt{BEGIN IMMEDIATE}, expected stream sequence, and unique
+event/entity identifiers. A racing append loser MUST receive a typed optimistic
+concurrency conflict and MAY retry only after rebuilding from committed state.
+
+\paragraph{RCI-016 --- Schema evolution.}
+Every event MUST carry an explicit type and version. The greenfield database
+begins at schema version 1, reserves a pure upcaster registry, and fails closed
+on unknown versions. Upcasters MUST preserve meaning and MUST NOT fabricate raw
+returns, closed support, or stronger warrants. Projections MAY be rebuilt;
+authoritative events MUST NOT be rewritten.
+
+\paragraph{RCI-017 --- Persisted effects and replay.}
+External work MUST begin only from a committed effect-request event. Execution
+MAY be at least once; acceptance MUST be idempotent. Replay MUST fold events
+without executing an effect, consulting a network, generating new metadata, or
+mutating an external system.
+
+\paragraph{RCI-018 --- Request and attempt cardinality.}
+A logical effect request and a delivery attempt MUST have different identities.
+A request MAY have several attempts. Each attempt MUST have exactly one
+terminal attempt outcome. A request MUST accept at most one resolution; late or
+duplicate returns MAY be retained as rejected evidence but MUST NOT replace an
+accepted resolution.
+
+\paragraph{RCI-019 --- Plan and attempt outcomes.}
+\texttt{NoAttempt} belongs to a plan disposition and MUST reference the plan,
+not a nonexistent attempt. Actual attempt outcomes MUST distinguish at least
+\texttt{NotPresented}, \texttt{PresentationUnknown}, \texttt{CaptureFailed},
+\texttt{Cancelled}, and \texttt{Returned}, with typed timeout, transport, and
+unsupported reasons where applicable.
+
+\paragraph{RCI-020 --- Route identity.}
+An allowlisted versioned \texttt{RouteDefinition} MUST be distinct from the
+immutable per-attempt \texttt{RouteSnapshot}. The snapshot MUST record backend
+and adapter versions, addressed source, redacted endpoint/channel identity,
+execution-environment fingerprint, request/action digest, and ordered transform
+manifest. Credentials MUST NOT be persisted. Addressed identity, source-reported
+identity, and decoded semantic source claims MUST remain distinct.
+
+\paragraph{RCI-021 --- Raw external return.}
+An actual return MUST be captured before interpretation as immutable exact
+bytes in content-addressed storage, with digest, size, media type, encoding, and
+capture-boundary metadata. JSON null, empty bytes, empty string, zero, and false
+MUST remain distinct. Artifacts MUST be published and hash-verified before an
+event references them; orphan artifacts are recoverable, dangling references
+are forbidden.
+
+\paragraph{RCI-022 --- Decode, check, and warrant separation.}
+An \texttt{ExternalReturn}, \texttt{DecodeOutcome}, \texttt{DecodedResult},
+\texttt{CheckerVerdict}, \texttt{WarrantDecision}, and promotion MUST be
+separate immutable records. Decode outcomes MUST include decoded, malformed,
+unsupported, and failed. Checker outcomes MUST include valid, invalid,
+indeterminate, timeout, unsupported, and failed. Adapter-reported success MUST
+NOT be treated as independent checking.
+
+\paragraph{RCI-023 --- Prediction and mismatch.}
+A prediction used to assess mismatch MUST be sealed before its attempt can
+produce a return and MUST pin target, scope, assumptions, allowed variation,
+and basis. Only an actually returned and successfully decoded observation MAY
+form semantic mismatch with a sealed prediction. Operational and decode
+failures MUST NOT become fabricated mismatches.
+
+\paragraph{RCI-024 --- Memory and working views.}
+\(M_E\) owns episodic records and artifact references, not copies of ledger
+events; \(M_S\) owns immutable semantic lemma versions; \(M_P\) owns admitted
+procedures, probes, contracts, and method manifests; \(M_L\) owns retention,
+residue, and compression-application references. Active theory, probe state,
+reopening state, working context, semantic field, and schedule MUST be derived.
+
+\subsection{C. Claims, formalization, support, and warrant}
+
+\paragraph{RCI-025 --- Orthogonal semantic axes.}
+Claim lifecycle, assessment, representation level, execution outcome, decoded
+logical result, checker verdict, warrant class, applicability, and active
+promotion MUST be separate typed concepts. L3 MUST be a linked promoted view,
+not an in-place mutation of an L0--L2 claim.
+
+\paragraph{RCI-026 --- Structural L0 conflict.}
+Opaque prose alone MUST NOT establish contradiction or entailment. L0
+structural conflict is permitted only from explicit proposition identity,
+opposite polarity, compatible role, identical bound referents, and identical
+scope. Semantic contradiction requires validated reification or checked domain
+evidence.
+
+\paragraph{RCI-027 --- Restricted reification.}
+Phase 2 formalization MUST use a serialized Boolean/finite-enum AST containing
+only literals, symbol references, equality, negation, conjunction,
+disjunction, implication, and equivalence. It MUST permit neither arbitrary
+code nor quantifiers. Reification outcomes MUST be a strict union of reified,
+needs clarification, unsupported, and failed. Reification alone carries no
+warrant.
+
+\paragraph{RCI-028 --- Support environment.}
+A support environment MUST pin normalized assumptions, scope, binding revision,
+finite universe where applicable, and an independent realizability verdict.
+Absence of a known contradiction MUST NOT count as established realizability.
+
+\paragraph{RCI-029 --- Route-specific dependency boundary.}
+A \texttt{SupportRoute} MUST bind one conclusion and support environment to its
+required dependencies, open dependencies, justifications, certificates,
+checker, warrant decision, and provenance. Open dependency is defined per
+route; it MUST NOT be flattened into one lemma-level list.
+
+\paragraph{RCI-030 --- Minimal support and nogoods.}
+Current minimal supports form subset antichains only among routes with the same
+conclusion, scope, binding, applicability, universe, and policy versions.
+Dominated routes MUST remain in history. A warranted nogood MUST deactivate
+every environment containing it without deactivating unaffected alternate
+routes.
+
+\paragraph{RCI-031 --- Promotion policy.}
+Hard promotion MUST be exact, scoped, applicable, independently checked,
+dependency-closed, policy-authorized, and cycle-free. Model output, reification,
+retrieval, unchecked backend assertions, and heuristic support MUST NOT hard
+promote. A license or policy decision MUST reference warrant and MUST NOT be its
+own warrant.
+
+\paragraph{RCI-032 --- Support, proof, and ancestry topology.}
+Ordinary active positive support MUST be grounded and acyclic; an ungrounded
+self-supporting recurrence remains open. Mathematical cyclic proof material MAY
+be stored as inert data, but only a later explicitly named independent cyclic
+proof checker may turn it into a checked certificate leaf. Semantic succession
+ancestry MUST use typed predecessor references and remain acyclic, including
+split and merge histories.
+
+\paragraph{RCI-033 --- Applicability and reopening.}
+A lemma is active only when its applicability holds and at least one standing
+minimal support route is closed. Guard, applicability, support, nogood, scope,
+binding, policy, or retained-residue change MUST be able to deactivate and
+reopen it. Deactivation MUST preserve prior history and provenance.
+
+\paragraph{RCI-034 --- Lemma/version ownership.}
+\(M_S\) MUST own the immutable semantic proposition, relation, scope,
+applicability, and ancestry of a \texttt{LemmaVersion}; \(W\) MUST own its
+support routes and warrant decisions. A \texttt{WarrantedLemmaView} MAY join
+them but MUST NOT become a second authority.
+
+\paragraph{RCI-035 --- Canonical result surface.}
+The common decoded result surface MUST support \texttt{Witness},
+\texttt{Counterexample}, \texttt{Separator},
+\texttt{EquivalenceCertificate}, \texttt{Conflict},
+\texttt{Prerequisite}, \texttt{ReachabilityWitness},
+\texttt{UnreachabilityCertificate}, \texttt{Success}, \texttt{Failure}, and
+\texttt{Unknown}. Each role MUST have a strict schema and canonical state
+mapping. Unsupported later roles MUST fail closed.
+
+\paragraph{RCI-036 --- Initial warrant classes.}
+An independently evaluated witness MAY hard-warrant only the exact scoped
+existential proposition it demonstrates. Exhaustive UNSAT MAY be hard only for
+a declared closed finite universe. Z3-only UNSAT is
+\texttt{solver\_trusted} and soft. Statistical or observational evidence MAY
+support only the precisely qualified proposition its policy permits.
+
+\subsection{D. Questions, scheduling, interfaces, and cognitive spine}
+
+\paragraph{RCI-037 --- Versioned question catalog.}
+The full question library inherited from the drafts MUST be retained as
+immutable versioned catalog data. Contract lifecycle is
+\texttt{draft -> experimental -> stable -> deprecated}; deprecated versions
+remain replayable but MUST NOT be newly scheduled. Each inquiry MUST pin its
+catalog manifest and digest.
+
+\paragraph{RCI-038 --- Core profile.}
+Only \texttt{core-v1} is schedulable in the Phase 1 kernel. It contains
+obligation characterization, same-class variation, minimal boundary crossing,
+factor proposal, necessity counterexample, sufficiency counterexample,
+conflict localization, and residual characterization. Phase 2 MAY additionally
+activate explicitly versioned warrant, localization, generalization,
+actualization, and prerequisite profiles. Abstraction, recursive-formal,
+compression, and control profiles remain inactive.
+
+\paragraph{RCI-039 --- Deterministic scheduler.}
+Obligation deduplication MUST key kind, deterministically normalized bound
+arguments, scope fingerprint, and binding revision; the attempt key additionally
+includes contract ID and version. Ready order MUST be invariant/warrant-conflict
+safety, explicit priority, dependency depth, creation sequence, then stable ID.
+Defaults are 100 reducer steps, three attempts per identical attempt key, and a
+60-second external-effect timeout. Exhaustion yields unknown under the present
+binding.
+
+\paragraph{RCI-040 --- Public lifecycle.}
+The SDK and CLI MUST provide semantically equivalent \texttt{start},
+\texttt{step}, \texttt{run}, \texttt{resume}, \texttt{inspect},
+\texttt{submit\_answer}, \texttt{replay}, and \texttt{export} inquiry flows,
+plus contract, evaluation, database, and backlog command groups. Replay and
+export MUST be deterministic and effect-free.
+
+\paragraph{RCI-041 --- Generators and optional OpenAI adapter.}
+Manual and scripted generators MUST support all blocking tests without a
+network. The optional provider-neutral OpenAI Responses API adapter MUST use an
+explicitly configured model, locally compiled stateless context, no model
+tools, bounded output, \texttt{store=False}, preserved raw L0 answers, and
+recorded execution status and usage. It MUST NOT be required for replay or
+reference demonstrations.
+
+\paragraph{RCI-042 --- Recurrent probes.}
+Recurrent-probe identity MUST pin relational role, binding schema,
+applicability, comparison semantics, and protected horizon. Same wording is not
+sufficient; a changed binding requires an explicit checked comparison bridge.
+Ordered comparable probe events form a queryable trace, but perceived
+persistence, change, recurrence, covariation, or path dependence remains a
+provisional claim.
+
+\paragraph{RCI-043 --- Semantic field and fresh observation.}
+The question-conditioned semantic field MUST be a derived generator view, never
+an authority. A model relevance judgment MUST NOT suppress inquiry. Where an
+environment can be independently observed, a fresh return SHOULD be captured
+before prior semantic answers are exposed; comparison MAY follow after capture.
+
+\paragraph{RCI-044 --- Cognitive learning boundary.}
+The Phase 1--2 cognitive slice MUST separate episodic retention, decoded
+interpretation, candidate reconstruction, semantic delta, and warranted
+semantic promotion. Reconstruction detail is neither history nor knowledge.
+Full relational retrieval, consolidation, reconsolidation, retention economics,
+and learned-probe promotion are Phase 2-following work.
+
+\paragraph{RCI-045 --- Circuit reference binding.}
+The deterministic eight-state circuit
+\[
+ lamp\_on = switch\_closed \land (main\_power \lor backup\_power)
+\]
+MUST show a backup-power counterexample to main-power necessity, an open-switch
+counterexample to available-power sufficiency, and exhaustive closed-world
+establishment of switch-closed necessity.
+
+\paragraph{RCI-046 --- Route-graph reference binding.}
+The finite transition binding MUST contain
+\texttt{start -> gate -> target} and
+\texttt{start -> bypass -> \{target, dead\_end\}}. It MUST show a route
+bypassing the proposed gate prerequisite and distinguish may-reachability from
+must-control; nondeterministic bypass never promotes to must-control.
+
+\subsection{E. Consequence quotient, retention, and compression}
+
+\paragraph{RCI-047 --- Permanent no-collapse distinctions.}
+The core semantics MUST distinguish exact consequence quotient from lossy
+approximation, source/object reconstruction error from protected consequence
+loss, and present use from reconstruction, direct consequence evaluation, and
+reacquisition. Reconstruction uses retained state and admissible computation
+without substantial new external learning; reacquisition uses new evidence,
+instruction, interaction, or practice. None of those routes implies another.
+Exactness is always relative to a pinned protected horizon and scope, never
+global by default.
+
+\paragraph{RCI-048 --- Compression decision layers.}
+\texttt{CompressionContract}, \texttt{CompressionValidation},
+\texttt{CompressionLicense}, and \texttt{CompressionApplication} MUST be
+separate immutable concepts. Exact and approximate licenses MUST be a
+discriminated union, not a Boolean plus optional-field bag. A measured loss of
+zero MUST NOT be relabeled exact without universal or closed-domain separating
+evidence.
+
+\paragraph{RCI-049 --- Retention capability routes.}
+A retention package MUST reference its representation artifacts and compression
+application when one exists. It MAY independently expose a
+\texttt{DirectUseRoute}, \texttt{ObjectRegenerationRoute},
+\texttt{ConsequenceEvaluationRoute}, or \texttt{ReacquisitionRoute}. Each route
+MUST pin its \texttt{RecoveryLicense}, fidelity or loss semantics, protected
+query/competence profile, implementation version, support route, dependencies,
+provenance, failure behavior, and fallback. A reacquisition route MUST reference
+a \texttt{ReacquisitionScaffold} rather than claim to contain the recovered
+competence. Combined modes are derived from explicit routes, not stored as an
+ambiguous enum or optional-field bag.
+
+\paragraph{RCI-050 --- Residue, debt, and reopening.}
+Compression MUST return retained representation plus dependency residue,
+regeneration/evaluation routes, provenance, authoritative ancestry, debt,
+fallback, and reopening predicates. It MUST NOT erase an open dependency or
+assume that a disappeared representation dependency was discharged.
+Approximate bounds compose only through a pinned checked composition policy;
+otherwise composition fails closed.
+
+\paragraph{RCI-051 --- Exact linear family theorem.}
+Let \(Q\subseteq\mathbb R^d\), \(V=\operatorname{span}Q\), and
+\[
+ x\sim_Qy \iff q^\top x=q^\top y\quad\text{for every }q\in Q.
+\]
+Then
+\[
+ x\sim_Qy \iff x-y\in V^\perp,\qquad
+ \mathbb R^d/V^\perp\cong V
+\]
+through \([x]\mapsto P_Vx\). This is an exact worked binding, not a universal
+Euclidean axiom.
+
+\paragraph{RCI-052 --- Distributional and vector-output corollaries.}
+For random \(q\) with \(\mathbb E\|q\|^2<\infty\), let
+\(M=\mathbb E[qq^\top]\). Then
+\[
+ q^\top x=q^\top y\ \text{almost surely}
+ \iff x-y\in\ker M,
+\quad
+ \mathbb R^d/\ker M\cong\operatorname{im}M.
+\]
+This is almost-sure, not universal, equivalence unless the support conditions
+justify the latter. For measurable vector-output \(A_q\), require
+\(\mathbb E\|A_q\|_F^2<\infty\) and use
+\(G=\mathbb E[A_q^\top A_q]\) with
+\(\mathbb E\|A_q(x-y)\|_2^2=(x-y)^\top G(x-y)\).
+
+\paragraph{RCI-053 --- Finite probes and minimality.}
+For stacked finite probes \(A\) and diagonal \(W\succ0\),
+\[
+ M=A^\top W A,\qquad \ker M=\ker A,\qquad
+ \operatorname{rank}M=\operatorname{rank}A.
+\]
+A new scalar probe adds one exact dimension exactly when its row lies outside
+the current row span. \(\operatorname{rank}M\) is the minimum dimension among
+linear encoders preserving all protected linear consequences; no unrestricted
+bit-complexity or nonlinear minimality claim follows.
+
+\paragraph{RCI-054 --- Correct reopening condition.}
+A previously invisible direction becomes visible exactly when some
+\[
+ v\in\ker M_t\quad\text{but}\quad v\notin\ker M_{t+1},
+\]
+equivalently
+\[
+ \boxed{\ker M_t\not\subseteq\ker M_{t+1}}.
+\]
+When only positive-weight probes are added,
+\(\ker M_{t+1}\subsetneq\ker M_t\). If the discarded distinction has no
+residue or reacquisition route, reopening MUST return Unknown rather than
+fabricating regeneration.
+
+\paragraph{RCI-055 --- Approximate geometry is not exact proof.}
+For reconstruction error \(e=x-\hat x\),
+\(e^\top M e=\sum_i\lambda_i(U^\top e)_i^2\) describes consequence
+sensitivity under the declared quadratic loss. It does not solve optimal bit
+allocation, which also depends on source/query distributions, code class,
+decoder, randomness, and resource model. Numerical near-zero eigenvalues,
+empirical zero loss, unbiasedness in expectation, and average bounds MUST NOT
+establish exact nullity or worst-case safety.
+
+\paragraph{RCI-056 --- Native compression adapters.}
+Task-based and indirect rate-distortion theory MAY supply native approximate
+bindings. EDEN, DRIVE, TurboQuant, and QJL are method-catalog candidates, not
+RCI primitives. Native execution is later and MUST use an allowlisted,
+digest-pinned, nonroot, network-disabled, read-only, capability-dropped,
+resource-bounded container or equivalently isolated adapter. It MUST receive no
+credentials, Docker socket, ledger/CAS authority, or live source mount.
+Missing runtime or GPU is unsupported/no-attempt, not epistemic Unknown.
+
+\subsection{F. Milestones, governance, and verification}
+
+\paragraph{RCI-057 --- G1 boundary.}
+G1 comprises Foundation, specification Phases 1--2, and the bounded cognitive
+spine: packaging/CI/CLI; immutable events and pure reducers; SQLite/CAS,
+snapshots, projections, and replay; question/claim/conflict/obligation kernel;
+manual/scripted generators; restricted AST and exhaustive checking; optional
+OpenAI/Z3; support routes and warrant; recurrent probes, prediction, raw
+returns, reconstruction, semantic delta; both reference bindings; and
+shadow-only backlog dogfooding.
+
+\paragraph{RCI-058 --- G2 boundary.}
+G2 adds relational retrieval, reconstruction policy, consolidation and
+reconsolidation, retention without compression, semantic-field evaluation,
+candidate learned probes, reacquisition-scaffold activation, and reacquisition
+as an ordinary inquiry. It establishes pinned baseline and multidimensional
+recovery-cost observations without claiming a universal scalar score. Learned
+automata, probes, and representations remain hypotheses until separately
+challenged and warranted.
+
+\paragraph{RCI-059 --- G3 boundary.}
+G3A implements generic exact quotient, retention capability routes, exact
+rational finite/linear bindings, residue, horizon reopening, and route-specific
+\texttt{RecoveryLicense} enforcement. G3B implements approximate loss licenses,
+licensed recovery-frontier budgets, risk/confidence/debt composition, numerical
+candidates, and a deterministic toy quantizer/oracle. G3C adds isolated native
+adapters after license and implementation provenance are verified.
+
+\paragraph{RCI-060 --- Later research boundaries.}
+G4 covers recursive formal machinery such as CHC and PDR; G5 covers controller
+synthesis and checked feedback strategies; G6 covers multi-backend evidence;
+G7 covers compatibility migrations, hardening, security, performance,
+evaluation, the opaque controlled-memory end-to-end benchmark, stable SDK, and
+release automation. None is G1 acceptance.
+
+\paragraph{RCI-061 --- Human-owned backlog policy.}
+\path{.rci/config.toml} is tracked human-owned authority; runtime database,
+artifacts, projections, and exports are local ignored state. Backlog reconcile
+is shadow/dry-run by default. G1 manual apply MAY append only allowlisted
+create, exact-dedupe, rank, and block effects. Close is proposal-only until a
+later explicit human policy and Goal decision; tests cannot grant authority.
+A regression appends a linked recurrence rather than rewriting closed history.
+
+\paragraph{RCI-062 --- Evidence-runner authority.}
+Evidence runners MUST use explicit argument vectors, bounded time and output, a
+captured temporary workspace, and no network by default. They MUST expose no
+source-writing, Git mutation, merge, push, policy editing, packaging,
+deployment, release, or authority-expansion capability.
+
+\paragraph{RCI-063 --- Blocking evidence.}
+G1 MUST test arbitrary payload containment; reducer illegal transitions;
+effect-free byte-identical replay/export; artifact tamper and crash points;
+SQLite optimistic races; request/attempt cardinality, timeout, duplicates, and
+first acceptance; null/empty/false payload distinctions; decode/check/warrant
+separation; environment realizability; support and ancestry cycles; guard
+deactivation; probe comparability and fresh-observation isolation;
+prediction-before-return; reconstruction/history/knowledge separation;
+unknown-relevance preservation; the two reference conclusions; SDK/CLI parity;
+and backlog non-mutation and authority limits.
+
+\paragraph{RCI-064 --- Honest conformance.}
+Verification commands and exact returns MUST be recorded in
+\path{docs/verification.md}. A failed, skipped, unavailable, or unrun check MUST
+remain visible. No milestone may close because code looks plausible, because a
+stub returns a passing shape, or because a later capability has a catalog
+entry. Missing credentials and unavailable optional services do not block an
+offline milestone; affected live claims remain unverified.
+
+\subsection{G. Recovery and future benchmark addendum}
+
+\paragraph{RCI-065 --- Recovery modes are relational.}
+For retained state \(m\), context \(c\), protected horizon \(\mathcal H\), and
+target competence \(k\), the system MUST represent present use,
+reconstruction, direct consequence evaluation, and reacquisition as independent
+route relations rather than nominal memory-object kinds. A recovered competence
+\(k'\) need only be consequence-equivalent to \(k\) over the pinned protected
+horizon; historical representation identity is not required. Failure of recall
+or reconstruction MUST NOT be interpreted as absence of retained learning.
+
+\paragraph{RCI-066 --- Reacquisition advantage is baseline-relative.}
+For each evaluated competence, context, and horizon, the baseline state or
+cohort, protocol, evaluator, cost dimensions, budget, and comparison policy MUST
+be pinned. The attainable recovery-cost frontier
+\(\mathfrak C_{\mathcal H}(m,c,k)\) MAY include latency, interaction, compute,
+external evidence, risk, and other binding-declared costs. Reacquisition
+advantage requires a checked strict Pareto improvement, or a binding-authorized
+ordering, relative to the pinned baseline frontier
+\(\mathfrak C^0_{\mathcal H}(c,k)\). No universal scalarization is assumed; a
+scalar savings score is lawful only when the binding explicitly supplies one.
+
+\paragraph{RCI-067 --- Recovery licence, scaffold, and forgetting.}
+A \texttt{RecoveryLicense} MUST pin consequence fidelity, latency, computation,
+external evidence, interaction, risk, resources, support, scope, policy version,
+and failure semantics required by its route. A
+\texttt{ReacquisitionScaffold} MAY retain cues, probes, representations,
+methods, boundaries, failures, prerequisites, and provenance, but it counts as
+retained learning only when checked evidence shows a licensed recovery
+advantage. Forgetting is a reduction in future recovery capacity, not merely
+deletion. Reopening MAY activate present use, reconstruction, provenance
+retrieval, or a new reacquisition inquiry; it MUST NOT fabricate a route that
+was not retained and warranted.
+
+\paragraph{RCI-068 --- Opaque controlled-memory benchmark boundary.}
+The opaque controlled-memory environment is a future executable G7 benchmark,
+not a core data type, adapter requirement, or G1 blocking test. Its staged
+capabilities include authoritative raw returns, intervention/return alignment,
+temporal and derived probes, sealed prediction, conditional/support-route
+discovery, predictive representation, control, consequence-relative
+compression, reopening, relearning advantage, and transfer. Earlier Goals MAY
+deliver individually scoped prerequisites without claiming the end-to-end
+benchmark. Predictive State Representation is a future native binding rather
+than an RCI reinvention. The exact linear consequence theorem applies only after
+a warranted vector representation and linear protected query family have been
+established; it MUST NOT be imposed on raw memory or an arbitrary nonlinear
+environment.
+
+\section{Consequence operators retained from prior drafts}
+
+For a typed relation \(R:X\rightsquigarrow Y\) and target predicate
+\(P\subseteq Y\), RCI uses
+\[
+ \Diamond_R(P)=\{x:R[x]\cap P\neq\varnothing\},\qquad
+ \Box_R(P)=\{x:R[x]\subseteq P\},
+\]
+and, when execution must exist,
+\[
+ \operatorname{Must}_R(P)=\operatorname{Dom}(R)\cap\Box_R(P).
+\]
+For \(R:X\rightsquigarrow Y\) and \(S:Y\rightsquigarrow Z\), composition
+retains the order
+\[
+ \Diamond_{S\circ R}=\Diamond_R\circ\Diamond_S,\qquad
+ \Box_{S\circ R}=\Box_R\circ\Box_S.
+\]
+These equations are normative and MUST be protected by tests.
+
+\section{Compressed governing laws}
+
+\begin{enumerate}[label=\arabic*.]
+\item Questions create typed claims, not facts.
+\item Repeated comparable probes create provisional perception, not warrant.
+\item External return is not interpretation, and interpretation is not warrant.
+\item Every \emph{must}, \emph{enough}, or \emph{prerequisite} opens its
+      falsifying attack.
+\item Contradiction creates inquiry, not explosion.
+\item Description and may-reachability do not create control.
+\item Hard knowledge requires closed, exposed, independently checked support.
+\item Active representation may revise; authoritative event history does not.
+\item Compress only under an exact quotient or explicit approximate license,
+      while preserving residue and reopening.
+\item Treat use, reconstruction, consequence evaluation, and reacquisition as
+      separate licensed recovery paths; forgetting is reduced recovery capacity.
+\item Every consequential residual becomes the next bounded obligation.
+\end{enumerate}
+
+\section*{Normative companion records}
+
+The following repository records are normative at their respective authority
+levels and MUST stay coherent with this specification:
+\begin{itemize}
+\item \path{PLAN.md}: approved engineering architecture and delivery sequence;
+\item \path{docs/architecture.md}: implementer-facing ownership and data flow;
+\item \path{docs/requirements-matrix.md}: requirement disposition and evidence;
+\item \path{docs/adr/}: explicit reconciliations and consequential decisions;
+\item \path{docs/goals/G1.md}: the proposed bounded G1 target;
+\item \path{docs/verification.md}: executed checks and honest returns;
+\item \path{docs/source-manifest.md}: immutable source provenance.
+\end{itemize}
+
+\end{document}
