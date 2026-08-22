@@ -77,6 +77,8 @@ from rci.project.models import (
     CapabilityLimitation,
     CapabilitySuccessorCandidate,
     DevelopmentEvidence,
+    GoalAdmissionDecision,
+    ImplementationGoalCandidate,
     ImplementationGoalContract,
     IndependentReview,
     MethodAdmissionDecision,
@@ -449,6 +451,18 @@ class CapabilityFrontierRecorded(EventBase):
     frontier: CapabilityFrontier
 
 
+class ImplementationGoalCandidateRecorded(EventBase):
+    kind: Literal["implementation_goal_candidate_recorded"] = (
+        "implementation_goal_candidate_recorded"
+    )
+    candidate: ImplementationGoalCandidate
+
+
+class GoalAdmissionDecided(EventBase):
+    kind: Literal["goal_admission_decided"] = "goal_admission_decided"
+    decision: GoalAdmissionDecision
+
+
 class ImplementationGoalSealed(EventBase):
     kind: Literal["implementation_goal_sealed"] = "implementation_goal_sealed"
     goal: ImplementationGoalContract
@@ -554,6 +568,8 @@ DomainEvent = Annotated[
     | MethodAdmissionDecided
     | CapabilitySuccessorCandidateRecorded
     | CapabilityFrontierRecorded
+    | ImplementationGoalCandidateRecorded
+    | GoalAdmissionDecided
     | ImplementationGoalSealed
     | CandidateEnvironmentRecorded
     | DevelopmentEvidenceRecorded

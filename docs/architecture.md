@@ -74,7 +74,7 @@ collapse a missing test into a theory failure, a representation gap into a code 
 or a generated question into a scheduled contract. Unknown costs and different typed
 gains remain on an explicit frontier; no universal project-quality scalar is introduced.
 
-The selected G3G boundary closes one further join without granting execution authority:
+The G3G boundary closes one further join without granting execution authority:
 
 ```text
 admitted project question + provisional exact return

@@ -43,13 +43,14 @@ from rci.persistence.errors import (
 )
 
 DATABASE_SCHEMA_VERSION = 2
-FOLDED_STATE_SCHEMA_VERSION = "rci.inquiry-state.v5"
+FOLDED_STATE_SCHEMA_VERSION = "rci.inquiry-state.v6"
 _REBUILDABLE_FOLDED_STATE_SCHEMAS = frozenset(
     {
         "rci.inquiry-state.v1",
         "rci.inquiry-state.v2",
         "rci.inquiry-state.v3",
         "rci.inquiry-state.v4",
+        "rci.inquiry-state.v5",
     }
 )
 EVENT_PREFIX_DIGEST_VERSION = "rci.event-prefix.v1"

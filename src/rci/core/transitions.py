@@ -17,6 +17,7 @@ from rci.claims.models import (
     Obligation,
     ObligationStatus,
     Scope,
+    content_fingerprint,
 )
 from rci.compression.models import (
     ExactClaimKind,
@@ -35,6 +36,7 @@ from rci.core.commands import (
     ChangeNogoodStanding,
     ChangeSupportRouteStanding,
     CommitSemanticDelta,
+    DecideGoalAdmission,
     DecideMethodAdmission,
     DecideProjectSuccessor,
     DecideQuestionRepertoire,
@@ -64,6 +66,7 @@ from rci.core.commands import (
     RecordDecodeOutcome,
     RecordDevelopmentEvidence,
     RecordEvidence,
+    RecordImplementationGoalCandidate,
     RecordIndependentReview,
     RecordLearnedProbeCandidate,
     RecordMemoryPatchCandidate,
@@ -137,7 +140,9 @@ from rci.core.events import (
     EffectResultAccepted,
     EvidenceRecorded,
     ExactCompressionLicenseGranted,
+    GoalAdmissionDecided,
     GuardStandingChanged,
+    ImplementationGoalCandidateRecorded,
     ImplementationGoalSealed,
     IndependentReviewRecorded,
     InquiryStarted,
@@ -212,6 +217,11 @@ from rci.memory.retrieval import (
 )
 from rci.probes.lifecycle import append_probe_event
 from rci.probes.models import ProbeTrace, RelevanceStatus, SemanticChangeOperation
+from rci.project.goal_synthesis import (
+    GoalSynthesisUnknown,
+    compile_implementation_goal_candidate,
+    goal_admission_evidence_ids,
+)
 from rci.project.models import (
     AdmissionOutcome,
     EvidenceOutcome,
@@ -3295,6 +3305,82 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             ),
         )
 
+    if isinstance(command, RecordImplementationGoalCandidate):
+        derived_goal_candidate = command.candidate
+        existing_goal_candidate = next(
+            (
+                item
+                for item in state.implementation_goal_candidates
+                if item.id == derived_goal_candidate.id
+            ),
+            None,
+        )
+        if existing_goal_candidate is not None:
+            if existing_goal_candidate == derived_goal_candidate:
+                return ()
+            raise IdentityConflictError("implementation-Goal candidate identity was reused")
+        recomputed = compile_implementation_goal_candidate(
+            state,
+            source_obligation_id=derived_goal_candidate.source_obligation_id,
+            downstream_obligation_id=derived_goal_candidate.downstream_obligation_id,
+            frontier_id=derived_goal_candidate.frontier_id,
+        )
+        if isinstance(recomputed, GoalSynthesisUnknown) or recomputed != derived_goal_candidate:
+            raise InvalidCommandError(
+                "implementation-Goal candidate must equal pure deterministic compilation"
+            )
+        return (
+            ImplementationGoalCandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                candidate=derived_goal_candidate,
+            ),
+        )
+
+    if isinstance(command, DecideGoalAdmission):
+        goal_decision = command.decision
+        existing_decision = next(
+            (
+                item
+                for item in state.goal_admission_decisions
+                if item.candidate_id == goal_decision.candidate_id
+            ),
+            None,
+        )
+        if existing_decision is not None:
+            if existing_decision == goal_decision:
+                return ()
+            raise IdentityConflictError("a Goal candidate permits one total admission decision")
+        goal_admission_candidate = next(
+            (
+                item
+                for item in state.implementation_goal_candidates
+                if item.id == goal_decision.candidate_id
+            ),
+            None,
+        )
+        if (
+            goal_admission_candidate is None
+            or goal_decision.candidate_fingerprint
+            != content_fingerprint("rci.implementation-goal-candidate.v1", goal_admission_candidate)
+            or goal_decision.evidence_record_ids
+            != goal_admission_evidence_ids(goal_admission_candidate)
+            or (
+                goal_decision.outcome is AdmissionOutcome.ADMIT
+                and goal_decision.admitted_goal_id != goal_admission_candidate.goal.id
+            )
+        ):
+            raise InvalidCommandError("Goal admission must reference the exact derived candidate")
+        return (
+            GoalAdmissionDecided(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                decision=goal_decision,
+            ),
+        )
+
     if isinstance(command, SealImplementationGoal):
         implementation_goal = command.goal
         implementation_goal_existing = next(
@@ -3321,6 +3407,22 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             raise InvalidCommandError(
                 "goal must seal the frontier-selected discriminator candidate"
             )
+        generated_candidates = tuple(
+            item
+            for item in state.implementation_goal_candidates
+            if item.goal.id == implementation_goal.id
+        )
+        if generated_candidates and (
+            len(generated_candidates) != 1
+            or generated_candidates[0].goal != implementation_goal
+            or not any(
+                decision.candidate_id == generated_candidates[0].id
+                and decision.outcome is AdmissionOutcome.ADMIT
+                and decision.admitted_goal_id == implementation_goal.id
+                for decision in state.goal_admission_decisions
+            )
+        ):
+            raise InvalidCommandError("generated Goal requires its exact admission decision")
         return (
             ImplementationGoalSealed(
                 event_id=command.event_id,
@@ -4909,6 +5011,41 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
         )
         return _advance_domain_state(
             state, capability_frontiers=(*state.capability_frontiers, event.frontier)
+        )
+
+    if isinstance(event, ImplementationGoalCandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordImplementationGoalCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                candidate=event.candidate,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            implementation_goal_candidates=(
+                *state.implementation_goal_candidates,
+                event.candidate,
+            ),
+        )
+
+    if isinstance(event, GoalAdmissionDecided):
+        _require_matching_decision(
+            state,
+            event,
+            DecideGoalAdmission(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision=event.decision,
+            ),
+        )
+        return _advance_domain_state(
+            state,
+            goal_admission_decisions=(*state.goal_admission_decisions, event.decision),
         )
 
     if isinstance(event, ImplementationGoalSealed):

@@ -1,10 +1,14 @@
 # Goal G3G: Confined implementation-Goal synthesis
 
-- Status: selected and ready for a separate active Goal; implementation not begun
-- Exact anchor: protected `main` at
+- Status: implemented and locally verified under the distinct no-budget G3G Goal;
+  exact-head hosted verification pending
+- Selection anchor: protected `main` at
   `60ff25635f94fb004e6419a09293c5e0fc023074`
-- Activation boundary: no implementation may begin except under the distinct no-budget
-  G3G Goal activated after the selection closeout
+- Development anchor: protected `main` after selection evidence closeout at
+  `defeb5c2dad32b86cc1861d4f3c35522a3f0497f`
+- Activation boundary: activated after the selection closeout; implementation begins
+  only from the exact development anchor while preserving the selection anchor as
+  immutable decision provenance
 - Authority: RCI v0.5, PLAN, ADR-0012 through ADR-0014, and
   `frontier-post-g3q-v1`
 - Token budget: none
