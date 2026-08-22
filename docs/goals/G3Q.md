@@ -1,6 +1,6 @@
-# Sealed next Goal G3Q: Regenerative question-contract synthesis
+# Active Goal G3Q: Regenerative question-contract synthesis
 
-- Status: sealed next; inactive until G3R is verified and merged
+- Status: active after verified G3R merge `6b0f2f793130d91bddaf1a2cffa9be87fd8b4e6d`
 - Authority: RCI v0.5, PLAN, ADR-0012, G3R frontier `frontier-g3r-roadmap-v1`
 - Token budget: none
 

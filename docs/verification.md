@@ -692,7 +692,8 @@ release, deployment, or authority-expansion port.
 The checked six-candidate roadmap frontier remains a partial order. It selects
 regenerative question-contract synthesis only as the smallest reversible discriminator;
 G3A-L, native-method binding, autonomous Goal synthesis, isolated candidate actuation,
-and G4 remain nondominated. `docs/goals/G3Q.md` is sealed next but inactive.
+and G4 remain nondominated. At this local-candidate stage, `docs/goals/G3Q.md` was
+sealed next but remained inactive pending the hosted boundary recorded below.
 
 Exact local returns after the self-warrant audit and hardening pass:
 
@@ -723,7 +724,51 @@ Goals, exact anchor/candidate pins, self-review rejection, failing-evidence reje
 unreviewed-evidence substitution rejection, separate successor/promotion records,
 effect-free replay, and a deterministic canonical-JSON CLI inspection surface.
 
-The sole skip remains the disclosed native-Windows symlink-privilege fixture. Fresh
-exact-head independent review, pull-request CI including the unique
-`recursive (ubuntu-latest)` job, protected merge, and post-merge main CI remain pending;
-this local record does not claim them.
+The sole skip remains the disclosed native-Windows symlink-privilege fixture.
+
+## G3R hosted verification and protected promotion — 2026-08-22
+
+The exact candidate head was
+`15971d7293ad2008aded614ec0843083f02c8780`. Pull request
+[#6](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/6) preserved the
+sealed Goal and merged by protected linear rebase as
+`6b0f2f793130d91bddaf1a2cffa9be87fd8b4e6d`.
+
+Fresh review used two detached, read-only exact-head contexts with repository editing and
+Git mutation denied. GitHub Copilot CLI review session
+`0ea60e53-7c1a-4035-a48f-39f74b5e6a11` returned `Valid` for candidate
+`66008fc183d79b15261c994a45327f0cecdde982`; after the hosted-check naming fix, session
+`bc13b7df-70bb-4d2c-ad65-4ac274410662` independently returned `Valid` for exact head
+`15971d7293ad2008aded614ec0843083f02c8780`, with zero file changes. The preserved review
+summary is [PR comment 5381694084](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/6#issuecomment-5381694084).
+A separately requested hosted Codex review returned a usage-limit notice; it is recorded
+as indeterminate and contributes no warrant.
+
+Both the exact-head push
+[run 32587865627](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32587865627)
+and pull-request
+[run 32587866957](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32587866957)
+passed all six unique jobs:
+
+- `base (ubuntu-latest)`: PR job `97066894736`, success;
+- `base (windows-latest)`: PR job `97066894750`, success;
+- `extras (ubuntu-latest)`: PR job `97066894681`, success;
+- `extras (windows-latest)`: PR job `97066894737`, success;
+- `docker`: PR job `97066894717`, success;
+- `recursive (ubuntu-latest)`: PR job `97066894753`, success.
+
+Protected-main post-merge
+[run 32588028074](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32588028074)
+at exact SHA `6b0f2f793130d91bddaf1a2cffa9be87fd8b4e6d` also passed:
+
+- `base (ubuntu-latest)`: job `97067271271`, success;
+- `base (windows-latest)`: job `97067271291`, success;
+- `extras (ubuntu-latest)`: job `97067271319`, success;
+- `extras (windows-latest)`: job `97067271214`, success;
+- `docker`: job `97067271241`, success;
+- `recursive (ubuntu-latest)`: job `97067271103`, success.
+
+`main` protection requires pull requests with zero mandatory approvals, current strict
+status from all six checks, linear history, owner enforcement, and blocks force pushes
+and deletion. This completes the G3R boundary. G3Q is now the active bounded Goal; its
+implementation was not begun during G3R.
