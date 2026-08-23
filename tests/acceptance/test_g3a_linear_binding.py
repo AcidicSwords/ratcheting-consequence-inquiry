@@ -162,6 +162,17 @@ def test_vector_output_uses_exact_weighted_gram_operator() -> None:
 
 
 def test_exact_input_contract_rejects_approximation_and_invalid_support() -> None:
+    tiny_exact = _family(
+        (
+            WeightedLinearObservation(
+                id="tiny-exact",
+                operator=ExactRationalMatrix(
+                    rows=((ExactRational(numerator=1, denominator=10**12),),)
+                ),
+            ),
+        )
+    )
+    assert analyze_linear_query_family(tiny_exact).rank == 1
     with pytest.raises(ValidationError, match="reduced"):
         ExactRational(numerator=2, denominator=4)
     with pytest.raises(ValidationError):
