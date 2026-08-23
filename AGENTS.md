@@ -263,6 +263,13 @@ three invalid semantic reviews were repaired, but a fresh final distinct-context
 was unavailable. It is unmerged and unpromoted. The compositional-question sources are
 archived candidates under ADR-0016; they do not replace v0.5 or activate G3Q-F. No
 successor Goal is active until a new frontier decision and explicit activation occur.
+G3A-L was attempted next from exact protected anchor
+`71d32346c71a26cf82a36df7e50376759bc1873b` and stopped indeterminate at candidate
+`a732a79b88327831345bf2f97fa333679c526d93`: all local and hosted gates passed, but fresh
+review found that the generic validation event could not replay the binding-specific
+proof, while the sealed Goal prohibited the new event required to repair it. PR #19 is
+closed, unmerged, and retained. RCI-051--RCI-053 and the linear part of RCI-054 remain
+deferred; reopening requires a newly sealed event-authorizing Goal.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and

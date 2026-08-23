@@ -4,6 +4,28 @@ This is an append-oriented evidence log. Record commands, environment, exit
 status, and material returns. A planned, skipped, unavailable, or failed check is
 not passing evidence.
 
+## G3A-L stopped-indeterminate disposition — 2026-08-23
+
+Selection anchor: `71d32346c71a26cf82a36df7e50376759bc1873b`.
+Final candidate: `a732a79b88327831345bf2f97fa333679c526d93` on retained branch
+`codex/g3a-l-exact-linear-binding`. PR #19 was closed without merge.
+
+The final local gate passed: focused G3A-L `15 passed`; complete suite `214 passed,
+1 skipped`; acceptance `50 passed`; Ruff and mypy passed; build produced the sdist and
+wheel. Every hosted base/extras Linux and Windows, Docker, exact-linear, recursive,
+regenerative, and Goal-synthesis check passed at the exact head.
+
+Fresh distinct-context review returned `INVALID`. `CompressionValidationRecorded` did
+not preserve the exact family, analysis, and independent check needed for the reducer to
+recompute the binding projection. Content-derived record IDs established
+self-consistency but could not establish provenance from the exact computation. The
+required binding-specific event was excluded by the sealed no-event-change Goal.
+
+The candidate was stopped rather than widened. No implementation, dependency, event,
+focused CI gate, or claimed linear capability entered protected `main`. RCI-051--RCI-053
+and the linear specialization of RCI-054 remain deferred. Reopening requires a newly
+sealed Goal that authorizes the required immutable replay material.
+
 ## G0 governance normalization — 2026-08-22
 
 Environment: Windows PowerShell, repository
