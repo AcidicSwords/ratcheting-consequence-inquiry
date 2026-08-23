@@ -936,11 +936,20 @@ def build_linear_property_check_records(
     proposition_id = f"compression-property:{compression_contract.id}:{property_kind.value}"
     evidence_artifact = _artifact_ref_for_bytes(evidence_payload)
     verdict_artifact = _artifact_ref_for_bytes(verdict_payload)
+    evidence_fields = {
+        "kind": EvidenceKind.INDEPENDENT_WITNESS,
+        "proposition_id": proposition_id,
+        "proposition_kind": PropositionKind.RELATION,
+        "scope_fingerprint": compression_contract.scope_fingerprint,
+        "artifact": evidence_artifact,
+        "closed_finite_universe": False,
+        "finite_universe_hash": None,
+    }
     evidence_id = (
         "linear-property-evidence:"
         + content_fingerprint(
-            "rci.exact-linear-property-evidence.v1",
-            {"property": property_kind, "artifact": evidence_artifact},
+            "rci.exact-linear-property-evidence-record.v1",
+            {"property": property_kind, **evidence_fields},
         )[:24]
     )
     evidence = Evidence(
@@ -954,17 +963,25 @@ def build_linear_property_check_records(
     checker_verdict = (
         CheckerVerdict.VALID if outcome is ValidationOutcome.VALID else CheckerVerdict.INVALID
     )
+    verdict_fields = {
+        "evidence_id": evidence.id,
+        "evidence_artifact": evidence.artifact,
+        "proposition_id": proposition_id,
+        "proposition_kind": PropositionKind.RELATION,
+        "scope_fingerprint": compression_contract.scope_fingerprint,
+        "checker_id": check.checker_id,
+        "checker_version": check.checker_version,
+        "verdict": checker_verdict,
+        "verdict_artifact": verdict_artifact,
+        "certificate_artifact": (
+            evidence.artifact if checker_verdict is CheckerVerdict.VALID else None
+        ),
+    }
     verdict_id = (
         "linear-property-verdict:"
         + content_fingerprint(
             "rci.exact-linear-property-verdict-record.v1",
-            {
-                "evidence": evidence.model_dump(mode="json", warnings=False),
-                "verdict_artifact": verdict_artifact,
-                "checker_id": check.checker_id,
-                "checker_version": check.checker_version,
-                "verdict": checker_verdict,
-            },
+            verdict_fields,
         )[:24]
     )
     verdict = CheckerVerdictRecord(

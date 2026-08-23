@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -36,16 +37,20 @@ from rci.compression import (
     detect_linear_kernel_reopening,
     encode_quotient,
     independently_check_linear_analysis,
+    linear_property_check_payloads,
     linear_target_carrier_schema_id,
     protected_consequences_equal,
 )
+from rci.core import RecordCheckerVerdict, RecordEvidence
+from rci.core.errors import InvalidCommandError
 from rci.core.model import ArtifactRef
 from rci.core.serialization import canonical_json_bytes
 from rci.sdk import RCI
-from rci.warrant.models import CheckReference
+from rci.warrant.models import CheckReference, EvidenceKind
 
 SCOPE = "a" * 64
 DIGEST = "b" * 64
+NOW = datetime(2026, 8, 23, tzinfo=UTC)
 
 
 def _r(numerator: int, denominator: int = 1) -> ExactRational:
@@ -541,6 +546,147 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             property_check_records=property_check_records,
             supplemental_properties=supplemental_properties,
         )
+
+
+def test_aggregate_rejects_same_id_substitution_of_linear_check_records(
+    tmp_path: Path,
+) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    inquiry_id = "linear-record-binding"
+    state = sdk.start(inquiry_id)
+    assert state.context is not None
+    family = build_linear_query_family(
+        binding_revision=state.context.binding_revision,
+        source_carrier_id="history-vector-carrier-v1",
+        scope_fingerprint=state.context.scope_fingerprint,
+        protected_horizon_id=state.context.protected_horizon_id,
+        output_kind=LinearOutputKind.SCALAR,
+        equivalence_scope=LinearEquivalenceScope.UNIVERSAL_FINITE_FAMILY,
+        observations=(_observation("aggregate-x", ((1, 0),)),),
+    )
+    analysis = analyze_linear_query_family(family)
+    check = independently_check_linear_analysis(family, analysis)
+    contract = CompressionContract(
+        id="aggregate-linear-contract",
+        carrier_manifest_id="aggregate-carrier-manifest",
+        source_carrier_id=family.source_carrier_id,
+        target_carrier=CarrierContract(
+            id="aggregate-linear-target",
+            role=CarrierRole.OTHER_DECLARED,
+            schema_id=linear_target_carrier_schema_id(analysis),
+            binding_revision=family.binding_revision,
+        ),
+        binding_revision=family.binding_revision,
+        scope_fingerprint=family.scope_fingerprint,
+        protected_horizon_id=family.protected_horizon_id,
+        continuation_operation_ids=(),
+        consequence_query_ids=tuple(item.id for item in family.observations),
+        equality_semantics_id=family.equality_semantics_id,
+        recovery_semantics_ids=(),
+        claim_kinds=(ExactClaimKind.CONSEQUENCE_SUFFICIENT,),
+        representation_policy_id=family.representation_policy_id,
+        provenance_refs=tuple(sorted((family.id, analysis.id))),
+    )
+    evidence, verdict = build_linear_property_check_records(
+        family,
+        analysis,
+        check,
+        contract,
+        ValidationProperty.CONSEQUENCE_FACTORIZATION,
+    )
+    evidence_payload, verdict_payload = linear_property_check_payloads(
+        family,
+        analysis,
+        check,
+        contract,
+        ValidationProperty.CONSEQUENCE_FACTORIZATION,
+    )
+    assert (
+        sdk.artifacts.put_bytes(
+            evidence_payload,
+            media_type="application/json",
+            encoding="utf-8",
+        )
+        == evidence.artifact
+    )
+    assert (
+        sdk.artifacts.put_bytes(
+            verdict_payload,
+            media_type="application/json",
+            encoding="utf-8",
+        )
+        == verdict.verdict_artifact
+    )
+    foreign_artifact = sdk.artifacts.put_bytes(
+        b"foreign linear property evidence",
+        media_type="application/json",
+        encoding="utf-8",
+    )
+    with pytest.raises(InvalidCommandError, match="identity does not match its artifact"):
+        sdk.dispatch(
+            RecordEvidence(
+                event_id="record-foreign-linear-evidence",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                evidence=evidence.model_copy(update={"artifact": foreign_artifact}),
+            )
+        )
+    with pytest.raises(InvalidCommandError, match="identity does not match its artifact"):
+        sdk.dispatch(
+            RecordEvidence(
+                event_id="record-retyped-linear-evidence",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                evidence=evidence.model_copy(update={"kind": EvidenceKind.OBSERVATION}),
+            )
+        )
+
+    sdk.dispatch(
+        RecordEvidence(
+            event_id="record-linear-evidence",
+            inquiry_id=inquiry_id,
+            occurred_at=NOW,
+            evidence=evidence,
+        )
+    )
+    foreign_verdict_artifact = sdk.artifacts.put_bytes(
+        b"foreign linear property verdict",
+        media_type="application/json",
+        encoding="utf-8",
+    )
+    with pytest.raises(InvalidCommandError, match="identity does not match its checked record"):
+        sdk.dispatch(
+            RecordCheckerVerdict(
+                event_id="record-foreign-linear-verdict",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                checker_verdict=verdict.model_copy(
+                    update={"verdict_artifact": foreign_verdict_artifact}
+                ),
+            )
+        )
+    with pytest.raises(InvalidCommandError, match="identity does not match its checked record"):
+        sdk.dispatch(
+            RecordCheckerVerdict(
+                event_id="record-recertified-linear-verdict",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                checker_verdict=verdict.model_copy(
+                    update={"certificate_artifact": foreign_verdict_artifact}
+                ),
+            )
+        )
+
+    accepted = sdk.dispatch(
+        RecordCheckerVerdict(
+            event_id="record-linear-verdict",
+            inquiry_id=inquiry_id,
+            occurred_at=NOW,
+            checker_verdict=verdict,
+        )
+    )
+    assert accepted.evidence_by_id(evidence.id) == evidence
+    assert accepted.checker_verdict_by_id(verdict.id) == verdict
 
 
 def test_positive_probe_addition_opens_exact_unknown_for_owned_g3a_resolution() -> None:

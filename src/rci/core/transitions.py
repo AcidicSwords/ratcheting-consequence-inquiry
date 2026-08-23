@@ -234,6 +234,8 @@ from rci.project.models import (
 from rci.project.selection import derive_capability_frontier
 from rci.warrant.checks import checker_verdict_index, evidence_index, resolve_check_reference
 from rci.warrant.models import (
+    CheckerVerdictRecord,
+    Evidence,
     PromotionLink,
     PropositionKind,
     SupportStanding,
@@ -245,6 +247,88 @@ from rci.warrant.policy import (
     decide_evidence_warrant,
     decide_promotion,
 )
+
+_LINEAR_PROPERTY_EVIDENCE_PREFIX = "linear-property-evidence:"
+_LINEAR_PROPERTY_VERDICT_PREFIX = "linear-property-verdict:"
+
+
+def _linear_validation_property(proposition_id: str) -> ValidationProperty:
+    prefix = "compression-property:"
+    if not proposition_id.startswith(prefix):
+        raise InvalidCommandError("exact-linear property evidence must name a compression property")
+    try:
+        return ValidationProperty(proposition_id.rsplit(":", maxsplit=1)[1])
+    except (IndexError, ValueError) as error:
+        raise InvalidCommandError(
+            "exact-linear property evidence names an unknown validation property"
+        ) from error
+
+
+def _require_content_derived_linear_evidence(evidence: Evidence) -> None:
+    """Fail closed for the binding-specific IDs emitted by the exact-linear bridge.
+
+    General G1 evidence identities remain binding-owned.  Only the reserved G3A-L
+    prefixes opt into this stronger content-derived aggregate boundary.
+    """
+
+    if not evidence.id.startswith(_LINEAR_PROPERTY_EVIDENCE_PREFIX):
+        return
+    property_kind = _linear_validation_property(evidence.proposition_id)
+    expected_id = (
+        _LINEAR_PROPERTY_EVIDENCE_PREFIX
+        + content_fingerprint(
+            "rci.exact-linear-property-evidence-record.v1",
+            {
+                "property": property_kind,
+                "kind": evidence.kind,
+                "proposition_id": evidence.proposition_id,
+                "proposition_kind": evidence.proposition_kind,
+                "scope_fingerprint": evidence.scope_fingerprint,
+                "artifact": evidence.artifact,
+                "closed_finite_universe": evidence.closed_finite_universe,
+                "finite_universe_hash": evidence.finite_universe_hash,
+            },
+        )[:24]
+    )
+    if evidence.id != expected_id:
+        raise InvalidCommandError(
+            "exact-linear property evidence identity does not match its artifact"
+        )
+
+
+def _require_content_derived_linear_verdict(
+    evidence: Evidence,
+    verdict: CheckerVerdictRecord,
+) -> None:
+    if not verdict.id.startswith(_LINEAR_PROPERTY_VERDICT_PREFIX):
+        return
+    if not evidence.id.startswith(_LINEAR_PROPERTY_EVIDENCE_PREFIX):
+        raise InvalidCommandError(
+            "exact-linear property verdict requires exact-linear property evidence"
+        )
+    _linear_validation_property(verdict.proposition_id)
+    expected_id = (
+        _LINEAR_PROPERTY_VERDICT_PREFIX
+        + content_fingerprint(
+            "rci.exact-linear-property-verdict-record.v1",
+            {
+                "evidence_id": verdict.evidence_id,
+                "evidence_artifact": verdict.evidence_artifact,
+                "proposition_id": verdict.proposition_id,
+                "proposition_kind": verdict.proposition_kind,
+                "scope_fingerprint": verdict.scope_fingerprint,
+                "checker_id": verdict.checker_id,
+                "checker_version": verdict.checker_version,
+                "verdict": verdict.verdict,
+                "verdict_artifact": verdict.verdict_artifact,
+                "certificate_artifact": verdict.certificate_artifact,
+            },
+        )[:24]
+    )
+    if verdict.id != expected_id:
+        raise InvalidCommandError(
+            "exact-linear property verdict identity does not match its checked record"
+        )
 
 
 def _require_active(state: InquiryState, inquiry_id: str) -> None:
@@ -1068,6 +1152,7 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             if existing_evidence == command.evidence:
                 return ()
             raise IdentityConflictError("evidence id was reused")
+        _require_content_derived_linear_evidence(command.evidence)
         return (
             EvidenceRecorded(
                 event_id=command.event_id,
@@ -1089,6 +1174,7 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             or verdict.scope_fingerprint != evidence.scope_fingerprint
         ):
             raise InvalidCommandError("checker verdict does not match the exact evidence record")
+        _require_content_derived_linear_verdict(evidence, verdict)
         existing_verdict = state.checker_verdict_by_id(verdict.id)
         if existing_verdict is not None:
             if existing_verdict == verdict:
