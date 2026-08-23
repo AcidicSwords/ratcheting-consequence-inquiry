@@ -17,6 +17,8 @@ from sympy import Matrix, Rational  # type: ignore[import-untyped]
 
 from rci.claims.models import content_fingerprint
 from rci.compression.models import (
+    CompressionContract,
+    ExactClaimKind,
     ExactPropertyValidation,
     ReopeningOutcome,
     ValidationOutcome,
@@ -146,6 +148,7 @@ def _family_material(
         "equivalence_scope": equivalence_scope,
         "observations": observations,
         "representation_policy_id": representation_policy_id,
+        "equality_semantics_id": _linear_equality_semantics_id(equivalence_scope),
         "gram_semantics": "weighted_operator_gram",
         "distribution_moment_semantics": (
             "uncentered_second_moment"
@@ -166,6 +169,10 @@ class LinearQueryFamily(FrozenModel):
     equivalence_scope: LinearEquivalenceScope
     observations: tuple[WeightedLinearObservation, ...]
     representation_policy_id: Literal["exact-rational-linear-v1"]
+    equality_semantics_id: Literal[
+        "exact-rational-linear-universal.v1",
+        "exact-rational-linear-almost-sure.v1",
+    ]
     gram_semantics: Literal["weighted_operator_gram"] = "weighted_operator_gram"
     distribution_moment_semantics: Literal["uncentered_second_moment"] | None = None
 
@@ -194,6 +201,8 @@ class LinearQueryFamily(FrozenModel):
             raise ValueError("finite-support almost-sure weights must sum exactly to one")
         if distributional != (self.distribution_moment_semantics is not None):
             raise ValueError("only distributional families use uncentered second-moment semantics")
+        if self.equality_semantics_id != _linear_equality_semantics_id(self.equivalence_scope):
+            raise ValueError("linear equality semantics must match the exact equivalence scope")
         expected_id = _family_id(
             **_family_material(
                 binding_revision=self.binding_revision,
@@ -221,6 +230,17 @@ class LinearQueryFamily(FrozenModel):
 
 def _family_id(**fields: object) -> str:
     return f"lqf_{content_fingerprint('rci.linear-query-family-fields.v1', fields)[:24]}"
+
+
+def _linear_equality_semantics_id(
+    scope: LinearEquivalenceScope,
+) -> Literal[
+    "exact-rational-linear-universal.v1",
+    "exact-rational-linear-almost-sure.v1",
+]:
+    if scope is LinearEquivalenceScope.UNIVERSAL_FINITE_FAMILY:
+        return "exact-rational-linear-universal.v1"
+    return "exact-rational-linear-almost-sure.v1"
 
 
 def build_linear_query_family(
@@ -255,6 +275,7 @@ def build_linear_query_family(
         equivalence_scope=equivalence_scope,
         observations=ordered,
         representation_policy_id=representation_policy_id,
+        equality_semantics_id=_linear_equality_semantics_id(equivalence_scope),
         distribution_moment_semantics=(
             "uncentered_second_moment"
             if equivalence_scope is LinearEquivalenceScope.FINITE_SUPPORT_ALMOST_SURE
@@ -763,16 +784,21 @@ def independently_check_linear_analysis(
 def build_linear_validation_properties(
     check: ExactLinearCheck,
     *,
-    compression_contract_id: str,
+    family: LinearQueryFamily,
+    analysis: ExactLinearAnalysis,
+    compression_contract: CompressionContract,
     property_check_references: tuple[tuple[ValidationProperty, CheckReference], ...],
+    supplemental_properties: tuple[ExactPropertyValidation, ...],
     invalid_witness_artifact: ArtifactRef | None = None,
 ) -> tuple[ExactPropertyValidation, ...]:
     """Bridge checked binding evidence into the existing G3A-H property stages.
 
-    The aggregate must still resolve ``check_reference`` and separately record the
+    The aggregate must still resolve every check reference and separately record the
     resulting ``CompressionValidation``.  This pure adapter grants no warrant or licence.
     """
 
+    _require_intact_family(family)
+    _require_intact_analysis(analysis)
     try:
         validated_check = ExactLinearCheck.model_validate(
             check.model_dump(mode="python", warnings=False)
@@ -781,6 +807,37 @@ def build_linear_validation_properties(
         raise ValueError("linear validation requires an intact candidate check record") from exc
     if validated_check != check:
         raise ValueError("linear validation requires an intact candidate check record")
+    if check != independently_check_linear_analysis(family, analysis):
+        raise ValueError("linear validation check is not bound to the exact family analysis")
+    try:
+        validated_contract = CompressionContract.model_validate(
+            compression_contract.model_dump(mode="python", warnings=False)
+        )
+    except ValueError as exc:
+        raise ValueError("linear validation requires an intact compression contract") from exc
+    if validated_contract != compression_contract:
+        raise ValueError("linear validation requires an intact compression contract")
+    contract_issues: list[str] = []
+    if compression_contract.binding_revision != family.binding_revision:
+        contract_issues.append("binding")
+    if compression_contract.source_carrier_id != family.source_carrier_id:
+        contract_issues.append("source_carrier")
+    if compression_contract.scope_fingerprint != family.scope_fingerprint:
+        contract_issues.append("scope")
+    if compression_contract.protected_horizon_id != family.protected_horizon_id:
+        contract_issues.append("horizon")
+    if compression_contract.consequence_query_ids != tuple(item.id for item in family.observations):
+        contract_issues.append("consequence_queries")
+    if compression_contract.equality_semantics_id != family.equality_semantics_id:
+        contract_issues.append("equality_semantics")
+    if compression_contract.representation_policy_id != family.representation_policy_id:
+        contract_issues.append("representation_policy")
+    if family.id not in compression_contract.provenance_refs:
+        contract_issues.append("family_provenance")
+    if contract_issues:
+        raise ValueError(
+            "linear family does not match compression contract pins: " + ",".join(contract_issues)
+        )
     if check.verdict is LinearCheckVerdict.INVALID and invalid_witness_artifact is None:
         raise ValueError("invalid linear validation requires an exact counterexample artifact")
     referenced_properties = tuple(item[0] for item in property_check_references)
@@ -795,7 +852,74 @@ def build_linear_validation_properties(
     }
     if set(referenced_properties) != claimed_properties:
         raise ValueError("each claimed linear property requires its own exact check reference")
-    references = tuple(item[1] for item in property_check_references)
+    supplemental_names = tuple(item.property for item in supplemental_properties)
+    if supplemental_names != tuple(sorted(supplemental_names, key=lambda item: item.value)) or len(
+        set(supplemental_names)
+    ) != len(supplemental_names):
+        raise ValueError("supplemental linear properties must be unique and canonical")
+    if claimed_properties.intersection(supplemental_names):
+        raise ValueError("supplemental properties cannot replace linear-check properties")
+    supplemental_by_property = {item.property: item for item in supplemental_properties}
+    for item in supplemental_properties:
+        expected_proposition = (
+            f"compression-property:{compression_contract.id}:{item.property.value}"
+        )
+        if (
+            item.outcome is ValidationOutcome.NOT_CLAIMED
+            or item.proposition_id != expected_proposition
+        ):
+            raise ValueError(
+                "supplemental properties require an exact claimed contract proposition"
+            )
+    checks_by_property = dict(property_check_references)
+    properties: list[ExactPropertyValidation] = []
+    for property_kind, outcome in check.property_outcomes:
+        if outcome is ValidationOutcome.NOT_CLAIMED:
+            properties.append(
+                supplemental_by_property.get(
+                    property_kind,
+                    ExactPropertyValidation(property=property_kind, outcome=outcome),
+                )
+            )
+            continue
+        properties.append(
+            ExactPropertyValidation(
+                property=property_kind,
+                outcome=outcome,
+                proposition_id=(
+                    f"compression-property:{compression_contract.id}:{property_kind.value}"
+                ),
+                check=checks_by_property[property_kind],
+                witness_artifact=(
+                    invalid_witness_artifact if outcome is ValidationOutcome.INVALID else None
+                ),
+            )
+        )
+    properties_by_kind = {item.property: item for item in properties}
+    required_properties = {
+        ValidationProperty.CONSEQUENCE_FACTORIZATION,
+        ValidationProperty.RESIDUE_COMPLETENESS,
+    }
+    if ExactClaimKind.COARSEST_EXACT_QUOTIENT in compression_contract.claim_kinds:
+        required_properties.add(ValidationProperty.EXACT_EQUIVALENCE)
+    if ExactClaimKind.EXECUTABLE_RETAINED_STATE in compression_contract.claim_kinds:
+        required_properties.update(
+            {
+                ValidationProperty.CONTINUATION_COMPATIBILITY,
+                ValidationProperty.RECURSIVE_UPDATE,
+            }
+        )
+    if any(
+        properties_by_kind[item].outcome is ValidationOutcome.NOT_CLAIMED
+        for item in required_properties
+    ):
+        raise ValueError("compression claim lacks a required exact property disposition")
+    all_references = tuple(
+        item.check for item in properties if item.outcome is not ValidationOutcome.NOT_CLAIMED
+    )
+    if any(item is None for item in all_references):
+        raise ValueError("claimed compression properties require exact check references")
+    references = tuple(item for item in all_references if item is not None)
     if (
         len(set(references)) != len(references)
         or len({item.evidence_id for item in references}) != len(references)
@@ -803,25 +927,6 @@ def build_linear_validation_properties(
     ):
         raise ValueError(
             "claimed linear properties require distinct evidence and checker-verdict identities"
-        )
-    checks_by_property = dict(property_check_references)
-    properties: list[ExactPropertyValidation] = []
-    for property_kind, outcome in check.property_outcomes:
-        if outcome is ValidationOutcome.NOT_CLAIMED:
-            properties.append(ExactPropertyValidation(property=property_kind, outcome=outcome))
-            continue
-        properties.append(
-            ExactPropertyValidation(
-                property=property_kind,
-                outcome=outcome,
-                proposition_id=(
-                    f"compression-property:{compression_contract_id}:{property_kind.value}"
-                ),
-                check=checks_by_property[property_kind],
-                witness_artifact=(
-                    invalid_witness_artifact if outcome is ValidationOutcome.INVALID else None
-                ),
-            )
         )
     return tuple(properties)
 

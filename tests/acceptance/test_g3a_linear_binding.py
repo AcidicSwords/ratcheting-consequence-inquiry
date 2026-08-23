@@ -9,8 +9,13 @@ from typer.testing import CliRunner
 
 from rci.cli import app
 from rci.compression import (
+    CarrierContract,
+    CarrierRole,
+    CompressionContract,
     CompressionValidation,
+    ExactClaimKind,
     ExactLinearAnalysis,
+    ExactPropertyValidation,
     ExactRational,
     ExactRationalCoordinates,
     ExactRationalMatrix,
@@ -262,6 +267,30 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         ValidationOutcome.VALID
     )
 
+    compression_contract = CompressionContract(
+        id="compression-contract",
+        carrier_manifest_id="carrier-manifest-v1",
+        source_carrier_id=family.source_carrier_id,
+        target_carrier=CarrierContract(
+            id="linear-retained-carrier",
+            role=CarrierRole.OTHER_DECLARED,
+            schema_id="exact-rational-coordinates-v1",
+            binding_revision=family.binding_revision,
+        ),
+        binding_revision=family.binding_revision,
+        scope_fingerprint=family.scope_fingerprint,
+        protected_horizon_id=family.protected_horizon_id,
+        continuation_operation_ids=(),
+        consequence_query_ids=tuple(item.id for item in family.observations),
+        equality_semantics_id=family.equality_semantics_id,
+        recovery_semantics_ids=(),
+        claim_kinds=(
+            ExactClaimKind.COARSEST_EXACT_QUOTIENT,
+            ExactClaimKind.CONSEQUENCE_SUFFICIENT,
+        ),
+        representation_policy_id=family.representation_policy_id,
+        provenance_refs=(family.id,),
+    )
     check_refs = (
         (
             ValidationProperty.CONSEQUENCE_FACTORIZATION,
@@ -278,10 +307,24 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             ),
         ),
     )
+    supplemental_properties = (
+        ExactPropertyValidation(
+            property=ValidationProperty.RESIDUE_COMPLETENESS,
+            outcome=ValidationOutcome.VALID,
+            proposition_id="compression-property:compression-contract:residue_completeness",
+            check=CheckReference(
+                evidence_id="linear-residue-evidence",
+                checker_verdict_id="linear-residue-check",
+            ),
+        ),
+    )
     properties = build_linear_validation_properties(
         check,
-        compression_contract_id="compression-contract",
+        family=family,
+        analysis=analysis,
+        compression_contract=compression_contract,
         property_check_references=check_refs,
+        supplemental_properties=supplemental_properties,
     )
     validation = CompressionValidation(
         id="linear-validation",
@@ -297,16 +340,25 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
     claimed_checks = tuple(
         item.check for item in validation.properties if item.outcome is ValidationOutcome.VALID
     )
-    assert len(claimed_checks) == 2
-    assert len(set(claimed_checks)) == 2
+    assert len(claimed_checks) == 3
+    assert len(set(claimed_checks)) == 3
     assert (
         next(
             item
             for item in validation.properties
             if item.property is ValidationProperty.RESIDUE_COMPLETENESS
         ).outcome
-        is ValidationOutcome.NOT_CLAIMED
+        is ValidationOutcome.VALID
     )
+    with pytest.raises(ValueError, match="required exact property"):
+        build_linear_validation_properties(
+            check,
+            family=family,
+            analysis=analysis,
+            compression_contract=compression_contract,
+            property_check_references=check_refs,
+            supplemental_properties=(),
+        )
 
     substituted_identity = analysis.model_dump(mode="python")
     substituted_identity["id"] = "lin_substituted"
@@ -347,21 +399,30 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
     with pytest.raises(ValueError, match="intact candidate check"):
         build_linear_validation_properties(
             check.model_copy(update={"id": "lck_substituted"}),
-            compression_contract_id="compression-contract",
+            family=family,
+            analysis=analysis,
+            compression_contract=compression_contract,
             property_check_references=check_refs,
+            supplemental_properties=supplemental_properties,
         )
     with pytest.raises(ValueError, match="intact candidate check"):
         build_linear_validation_properties(
             check.model_copy(update={"verdict": LinearCheckVerdict.INVALID}),
-            compression_contract_id="compression-contract",
+            family=family,
+            analysis=analysis,
+            compression_contract=compression_contract,
             property_check_references=check_refs,
+            supplemental_properties=supplemental_properties,
             invalid_witness_artifact=ArtifactRef(digest=DIGEST, size=1),
         )
     with pytest.raises(ValueError, match="each claimed"):
         build_linear_validation_properties(
             check,
-            compression_contract_id="compression-contract",
+            family=family,
+            analysis=analysis,
+            compression_contract=compression_contract,
             property_check_references=check_refs[:1],
+            supplemental_properties=supplemental_properties,
         )
     for shared_refs in (
         (
@@ -392,14 +453,73 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         with pytest.raises(ValueError, match="distinct evidence"):
             build_linear_validation_properties(
                 check,
-                compression_contract_id="compression-contract",
+                family=family,
+                analysis=analysis,
+                compression_contract=compression_contract,
                 property_check_references=shared_refs,
+                supplemental_properties=supplemental_properties,
             )
-    with pytest.raises(ValueError, match="counterexample"):
+    foreign_target = compression_contract.target_carrier.model_copy(
+        update={"binding_revision": "foreign-binding"}
+    )
+    foreign_contracts = (
+        (
+            compression_contract.model_copy(
+                update={
+                    "binding_revision": "foreign-binding",
+                    "target_carrier": foreign_target,
+                }
+            ),
+            "binding",
+        ),
+        (
+            compression_contract.model_copy(update={"source_carrier_id": "foreign-source-carrier"}),
+            "source_carrier",
+        ),
+        (compression_contract.model_copy(update={"scope_fingerprint": "d" * 64}), "scope"),
+        (
+            compression_contract.model_copy(update={"protected_horizon_id": "foreign-horizon"}),
+            "horizon",
+        ),
+        (
+            compression_contract.model_copy(update={"consequence_query_ids": ("foreign-query",)}),
+            "consequence_queries",
+        ),
+        (
+            compression_contract.model_copy(
+                update={"equality_semantics_id": "foreign-equality-semantics"}
+            ),
+            "equality_semantics",
+        ),
+        (
+            compression_contract.model_copy(
+                update={"representation_policy_id": "foreign-linear-policy"}
+            ),
+            "representation_policy",
+        ),
+        (
+            compression_contract.model_copy(update={"provenance_refs": ("foreign-family",)}),
+            "family_provenance",
+        ),
+    )
+    for foreign_contract, mismatch in foreign_contracts:
+        with pytest.raises(ValueError, match=mismatch):
+            build_linear_validation_properties(
+                check,
+                family=family,
+                analysis=analysis,
+                compression_contract=foreign_contract,
+                property_check_references=check_refs,
+                supplemental_properties=supplemental_properties,
+            )
+    with pytest.raises(ValueError, match="exact family analysis"):
         build_linear_validation_properties(
             invalid,
-            compression_contract_id="compression-contract",
+            family=family,
+            analysis=analysis,
+            compression_contract=compression_contract,
             property_check_references=check_refs,
+            supplemental_properties=supplemental_properties,
         )
 
 
