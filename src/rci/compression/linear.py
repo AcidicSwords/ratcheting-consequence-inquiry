@@ -165,7 +165,7 @@ class LinearQueryFamily(FrozenModel):
     output_kind: LinearOutputKind
     equivalence_scope: LinearEquivalenceScope
     observations: tuple[WeightedLinearObservation, ...]
-    representation_policy_id: Identifier
+    representation_policy_id: Literal["exact-rational-linear-v1"]
     gram_semantics: Literal["weighted_operator_gram"] = "weighted_operator_gram"
     distribution_moment_semantics: Literal["uncentered_second_moment"] | None = None
 
@@ -232,7 +232,7 @@ def build_linear_query_family(
     output_kind: LinearOutputKind,
     equivalence_scope: LinearEquivalenceScope,
     observations: tuple[WeightedLinearObservation, ...],
-    representation_policy_id: str = "exact-rational-linear-v1",
+    representation_policy_id: Literal["exact-rational-linear-v1"] = "exact-rational-linear-v1",
 ) -> LinearQueryFamily:
     ordered = tuple(sorted(observations, key=lambda item: item.id))
     fields = _family_material(
@@ -510,9 +510,21 @@ def _analysis_id(
     )
 
 
+def _require_intact_family(family: LinearQueryFamily) -> None:
+    try:
+        validated = LinearQueryFamily.model_validate(
+            family.model_dump(mode="python", warnings=False)
+        )
+    except ValueError as exc:
+        raise ValueError("exact linear operations require an intact query family") from exc
+    if validated != family:
+        raise ValueError("exact linear operations require an intact query family")
+
+
 def analyze_linear_query_family(family: LinearQueryFamily) -> ExactLinearAnalysis:
     """Construct exact candidate quotient data with SymPy rational matrices."""
 
+    _require_intact_family(family)
     dimension = family.ambient_dimension
     gram = Matrix.zeros(dimension, dimension)
     for observation in family.observations:
@@ -631,6 +643,7 @@ def independently_check_linear_analysis(
 ) -> ExactLinearCheck:
     """Recompute every exact claim without using the SymPy analyzer."""
 
+    _require_intact_family(family)
     issues: set[str] = set()
     if analysis.family_id != family.id or analysis.family_fingerprint != family.fingerprint:
         issues.add("foreign_family")
@@ -819,6 +832,7 @@ def protected_consequences_equal(
     left: ExactRationalVector,
     right: ExactRationalVector,
 ) -> bool:
+    _require_intact_family(family)
     if (
         len(left.values) != family.ambient_dimension
         or len(right.values) != family.ambient_dimension
@@ -884,6 +898,8 @@ def detect_linear_kernel_reopening(
     expanded_family: LinearQueryFamily,
     expanded: ExactLinearAnalysis,
 ) -> LinearKernelReopening:
+    _require_intact_family(incumbent_family)
+    _require_intact_family(expanded_family)
     if (
         incumbent_family.binding_revision != expanded_family.binding_revision
         or incumbent_family.source_carrier_id != expanded_family.source_carrier_id

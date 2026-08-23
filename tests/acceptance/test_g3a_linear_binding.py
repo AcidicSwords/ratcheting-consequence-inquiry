@@ -198,6 +198,35 @@ def test_exact_input_contract_rejects_approximation_and_invalid_support() -> Non
             (_observation("universal-vector", ((1, 0), (0, 1))),),
             output=LinearOutputKind.VECTOR,
         )
+    with pytest.raises(ValidationError, match="exact-rational-linear-v1"):
+        build_linear_query_family(
+            binding_revision="binding-v1",
+            source_carrier_id="carrier-v1",
+            scope_fingerprint=SCOPE,
+            protected_horizon_id="horizon-v1",
+            output_kind=LinearOutputKind.SCALAR,
+            equivalence_scope=LinearEquivalenceScope.UNIVERSAL_FINITE_FAMILY,
+            observations=(_observation("unknown-policy", ((1, 0),)),),
+            representation_policy_id="unknown-linear-policy",  # type: ignore[arg-type]
+        )
+
+
+def test_public_analyzer_revalidates_the_exact_query_family_boundary() -> None:
+    family = _family((_observation("x", ((1, 0),)),))
+    with pytest.raises(ValueError, match="intact query family"):
+        analyze_linear_query_family(family.model_copy(update={"schema_version": 2}))
+    invalid_vector_family = family.model_copy(update={"output_kind": LinearOutputKind.VECTOR})
+    with pytest.raises(ValueError, match="intact query family"):
+        analyze_linear_query_family(invalid_vector_family)
+    with pytest.raises(ValueError, match="intact query family"):
+        independently_check_linear_analysis(
+            invalid_vector_family,
+            analyze_linear_query_family(family),
+        )
+    with pytest.raises(ValueError, match="intact query family"):
+        analyze_linear_query_family(
+            family.model_copy(update={"representation_policy_id": "unknown-linear-policy"})
+        )
 
 
 def test_zero_probe_has_a_lawful_zero_dimensional_linear_quotient() -> None:
