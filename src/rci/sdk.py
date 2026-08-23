@@ -112,11 +112,15 @@ from rci.core.events import (
     CognitivePlanRecorded,
     DomainEvent,
     EffectAttemptOutcomeRecorded,
+    EffectAttemptStarted,
+    EffectDecodeOutcomeRecorded,
     EffectNoAttemptDispositionRecorded,
     EffectRequested,
+    EffectResultAccepted,
     EvidenceRecorded,
     ImplementationGoalSealed,
     InquiryStarted,
+    MismatchRecorded,
     ObligationOpened,
     PredictionSealed,
     ProjectAnchorRecorded,
@@ -2159,6 +2163,7 @@ class RCI:
             "anchor_id",
             "goal_id",
             "obligation_id",
+            "task_id",
             "competence_id",
             "binding_revision",
             "scope_fingerprint",
@@ -2172,11 +2177,11 @@ class RCI:
             "context_artifact",
             "evidence_access_artifact",
             "budget_artifact",
+            "assistance_artifact",
+            "continuation_discriminator_id",
             "timeout_seconds",
         )
-        if any(getattr(task, field) != getattr(protocol, field) for field in task_fields) or (
-            task.protected_consequence_ids != protocol.protected_consequence_ids
-        ):
+        if any(getattr(task, field) != getattr(protocol, field) for field in task_fields):
             raise ValueError("protocol and actor-visible task pins differ")
 
         if protocol.predecessor_handoff_artifact is not None:
@@ -2205,7 +2210,10 @@ class RCI:
             continuity_fields = (
                 "anchor_fingerprint",
                 "goal_fingerprint",
+                "task_id",
                 "competence_id",
+                "operation_id",
+                "effect_kind",
                 "binding_revision",
                 "scope_fingerprint",
                 "protected_horizon_id",
@@ -2222,6 +2230,10 @@ class RCI:
                 for field in continuity_fields
             ):
                 raise ValueError("successor protocol changes protected predecessor task pins")
+            if predecessor_protocol.expectations != protocol.expectations:
+                raise ValueError("successor protocol changes protected predecessor expectations")
+            if protocol.continuation_discriminator_id != predecessor.next_discriminator_id:
+                raise ValueError("successor protocol changes the sealed next discriminator")
             repeated_requirements: set[str] = set()
             if protocol.route_definition_id in predecessor.forbidden_route_ids_until_reopen:
                 repeated_requirements.add(f"reopen-route:{protocol.route_definition_id}")
@@ -2229,6 +2241,8 @@ class RCI:
                 repeated_requirements.add(f"reopen-decoder:{protocol.decoder_id}")
             if protocol.reopening_evidence_artifacts and not repeated_requirements:
                 raise ValueError("reopening evidence has no failed route or decoder to reopen")
+            if not repeated_requirements.issubset(set(predecessor.reopening_condition_ids)):
+                raise ValueError("reopening target is not a sealed predecessor condition")
             source_state = self.inspect(predecessor.source_inquiry_id)
             source_stream = self.events.load_stream(predecessor.source_inquiry_id)
             covered_requirements: set[str] = set()
@@ -2253,6 +2267,8 @@ class RCI:
                     or verdict.certificate_artifact is None
                     or source_state.context is None
                     or verdict.checker_id not in source_state.context.discharge_mechanism_ids
+                    or verdict.checker_id == predecessor_protocol.actor_id
+                    or verdict.checker_id == protocol.actor_id
                     or evidence.proposition_id not in repeated_requirements
                 ):
                     raise ValueError("reopening evidence lacks an exact authorized valid check")
@@ -2517,6 +2533,75 @@ class RCI:
             if terminal_sequences and prediction_sequence >= min(terminal_sequences):
                 resolution_issues.append("prediction_not_antecedent_to_return")
 
+            if protocol.assistance_artifact is not None:
+                assistance_proposition = f"capability-assistance:{protocol.task_id}"
+                assistance_evidence = tuple(
+                    item
+                    for item in state.evidence_records
+                    if item.artifact == protocol.assistance_artifact
+                    and item.proposition_id == assistance_proposition
+                    and item.proposition_kind.value == "relation"
+                    and item.scope_fingerprint == protocol.scope_fingerprint
+                )
+                assistance_verdicts = (
+                    tuple(
+                        item
+                        for item in state.checker_verdicts
+                        if len(assistance_evidence) == 1
+                        and item.evidence_id == assistance_evidence[0].id
+                        and item.evidence_artifact == assistance_evidence[0].artifact
+                        and item.proposition_id == assistance_proposition
+                    )
+                    if assistance_evidence
+                    else ()
+                )
+                attempt_ids = {attempt.plan.id for attempt in request_state.attempts}
+                first_start_sequence = min(
+                    (
+                        stored.sequence
+                        for stored in selected_events
+                        if isinstance(stored.event, EffectAttemptStarted)
+                        and stored.event.attempt_id in attempt_ids
+                    ),
+                    default=None,
+                )
+                if first_start_sequence is None:
+                    pass
+                elif len(assistance_evidence) != 1 or len(assistance_verdicts) != 1:
+                    resolution_issues.append("assistance_not_uniquely_checked")
+                else:
+                    evidence = assistance_evidence[0]
+                    assistance_verdict = assistance_verdicts[0]
+                    evidence_sequence = next(
+                        (
+                            stored.sequence
+                            for stored in selected_events
+                            if isinstance(stored.event, EvidenceRecorded)
+                            and stored.event.evidence.id == evidence.id
+                        ),
+                        None,
+                    )
+                    verdict_sequence = next(
+                        (
+                            stored.sequence
+                            for stored in selected_events
+                            if isinstance(stored.event, CheckerVerdictRecorded)
+                            and stored.event.checker_verdict.id == assistance_verdict.id
+                        ),
+                        None,
+                    )
+                    if (
+                        evidence_sequence is None
+                        or verdict_sequence is None
+                        or not evidence_sequence <= verdict_sequence < first_start_sequence
+                        or assistance_verdict.verdict is not CheckerVerdict.VALID
+                        or assistance_verdict.certificate_artifact is None
+                        or assistance_verdict.checker_id
+                        not in state.context.discharge_mechanism_ids
+                        or assistance_verdict.checker_id == protocol.actor_id
+                    ):
+                        resolution_issues.append("assistance_not_independently_checked")
+
             prior_protocols: list[tuple[int, str, CapabilityEvaluationProtocol]] = []
             for prior_plan in state.cognitive_plans:
                 if prior_plan.effect_request_id == request_id:
@@ -2553,6 +2638,7 @@ class RCI:
                 if (
                     prior_protocol.anchor_id == protocol.anchor_id
                     and prior_protocol.goal_id == protocol.goal_id
+                    and prior_protocol.task_id == protocol.task_id
                     and prior_protocol.competence_id == protocol.competence_id
                     and prior_protocol.binding_revision == protocol.binding_revision
                     and prior_protocol.scope_fingerprint == protocol.scope_fingerprint
@@ -2591,7 +2677,10 @@ class RCI:
                     continuity_fields = (
                         "anchor_fingerprint",
                         "goal_fingerprint",
+                        "task_id",
                         "competence_id",
+                        "operation_id",
+                        "effect_kind",
                         "binding_revision",
                         "scope_fingerprint",
                         "protected_horizon_id",
@@ -2608,6 +2697,10 @@ class RCI:
                         for field in continuity_fields
                     ):
                         raise ValueError("changed predecessor pins")
+                    if prior_protocol.expectations != protocol.expectations:
+                        raise ValueError("changed predecessor expectations")
+                    if protocol.continuation_discriminator_id != predecessor.next_discriminator_id:
+                        raise ValueError("changed predecessor discriminator")
                     repeated_requirements: set[str] = set()
                     if protocol.route_definition_id in predecessor.forbidden_route_ids_until_reopen:
                         repeated_requirements.add(f"reopen-route:{protocol.route_definition_id}")
@@ -2621,6 +2714,8 @@ class RCI:
                         raise ValueError("wrong discriminator")
                     if protocol.reopening_evidence_artifacts and not repeated_requirements:
                         raise ValueError("irrelevant reopening evidence")
+                    if not repeated_requirements.issubset(set(predecessor.reopening_condition_ids)):
+                        raise ValueError("unsealed reopening target")
                     covered: set[str] = set()
                     for artifact, verdict_id in zip(
                         protocol.reopening_evidence_artifacts,
@@ -2666,6 +2761,8 @@ class RCI:
                             or verdict.certificate_artifact is None
                             or state.context is None
                             or verdict.checker_id not in state.context.discharge_mechanism_ids
+                            or verdict.checker_id == prior_protocol.actor_id
+                            or verdict.checker_id == protocol.actor_id
                             or evidence.proposition_id not in repeated_requirements
                         ):
                             raise ValueError("invalid reopening evidence")
@@ -2753,6 +2850,85 @@ class RCI:
             elif evidence_candidates:
                 resolution_issues.append("checker_evidence_ambiguous")
 
+        checker_sequence: int | None = None
+        if (
+            isinstance(accepted, Decoded)
+            and checker_evidence is not None
+            and checker_verdict is not None
+        ):
+            return_sequence = next(
+                (
+                    stored.sequence
+                    for stored in selected_events
+                    if isinstance(stored.event, EffectAttemptOutcomeRecorded)
+                    and stored.event.request_id == request_id
+                    and isinstance(stored.event.outcome, ReturnedOutcome)
+                    and stored.event.outcome.external_return.id == accepted.external_return_id
+                ),
+                None,
+            )
+            decode_sequence = next(
+                (
+                    stored.sequence
+                    for stored in selected_events
+                    if isinstance(stored.event, EffectDecodeOutcomeRecorded)
+                    and stored.event.request_id == request_id
+                    and stored.event.outcome.id == accepted.id
+                ),
+                None,
+            )
+            acceptance_sequence = next(
+                (
+                    stored.sequence
+                    for stored in selected_events
+                    if isinstance(stored.event, EffectResultAccepted)
+                    and stored.event.request_id == request_id
+                    and stored.event.decoded_outcome_id == accepted.id
+                ),
+                None,
+            )
+            evidence_sequence = next(
+                (
+                    stored.sequence
+                    for stored in selected_events
+                    if isinstance(stored.event, EvidenceRecorded)
+                    and stored.event.evidence.id == checker_evidence.id
+                ),
+                None,
+            )
+            checker_sequence = next(
+                (
+                    stored.sequence
+                    for stored in selected_events
+                    if isinstance(stored.event, CheckerVerdictRecorded)
+                    and stored.event.checker_verdict.id == checker_verdict.id
+                ),
+                None,
+            )
+            semantic_sequences = (
+                return_sequence,
+                decode_sequence,
+                acceptance_sequence,
+                evidence_sequence,
+                checker_sequence,
+            )
+            if any(sequence is None for sequence in semantic_sequences):
+                resolution_issues.append("semantic_antecedence_record_missing")
+            else:
+                assert return_sequence is not None
+                assert decode_sequence is not None
+                assert acceptance_sequence is not None
+                assert evidence_sequence is not None
+                assert checker_sequence is not None
+                if not (
+                    return_sequence
+                    < decode_sequence
+                    <= acceptance_sequence
+                    < evidence_sequence
+                    < checker_sequence
+                ):
+                    resolution_issues.append("checker_not_subsequent_to_accepted_return")
+
         if resolution_issues:
             bundle = build_resolution_invalid_bundle(
                 protocol=protocol,
@@ -2780,6 +2956,32 @@ class RCI:
             )
             self._publish_capability_bundle(bundle)
             return bundle
+        if owned_mismatches:
+            mismatch_sequences = tuple(
+                next(
+                    (
+                        stored.sequence
+                        for stored in selected_events
+                        if isinstance(stored.event, MismatchRecorded)
+                        and stored.event.mismatch.id == mismatch.id
+                    ),
+                    None,
+                )
+                for mismatch in owned_mismatches
+            )
+            if checker_sequence is None or any(
+                sequence is None or sequence <= checker_sequence for sequence in mismatch_sequences
+            ):
+                bundle = build_resolution_invalid_bundle(
+                    protocol=protocol,
+                    protocol_artifact=protocol_artifact,
+                    source_inquiry_id=inquiry_id,
+                    source_sequence=state.sequence,
+                    request_id=request_id,
+                    issue_codes=("mismatch_not_subsequent_to_check",),
+                )
+                self._publish_capability_bundle(bundle)
+                return bundle
 
         owned_refs = tuple(
             _artifact_refs(

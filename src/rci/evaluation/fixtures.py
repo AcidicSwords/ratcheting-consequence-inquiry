@@ -35,6 +35,7 @@ class WeakReasonerRun(FrozenModel):
     actor_manifest_digest: Sha256Digest
     evidence_universe_digest: Sha256Digest
     budget_digest: Sha256Digest
+    assistance_digests: tuple[Sha256Digest, ...]
     conclusions: tuple[WeakReasonerConclusion, ...]
     cost: WeakReasonerCost
     request_ids: tuple[Identifier, ...]
@@ -53,6 +54,8 @@ class WeakReasonerFixture(FrozenModel):
             or self.baseline.budget_digest != self.assisted.budget_digest
         ):
             raise ValueError("weak-reasoner branches require identical actor/evidence/budget pins")
+        if self.baseline.assistance_digests or not self.assisted.assistance_digests:
+            raise ValueError("only the assisted branch may consume exact RCI assistance")
         baseline_correct = sum(item.correct for item in self.baseline.conclusions)
         assisted_correct = sum(item.correct for item in self.assisted.conclusions)
         if assisted_correct <= baseline_correct:
@@ -167,6 +170,15 @@ def _run(
     )
     evidence_universe_digest = next(iter(evidence_pins)).digest
     budget_digest = next(iter(budget_pins)).digest
+    assistance_digests = tuple(
+        sorted(
+            {
+                item.assistance_artifact.digest
+                for item in protocols
+                if item.assistance_artifact is not None
+            }
+        )
+    )
     attempts = sum(len(item.attempts) for item in requests)
     retries = sum(max(0, len(item.attempts) - 1) for item in requests)
     return WeakReasonerRun(
@@ -174,6 +186,7 @@ def _run(
         actor_manifest_digest=actor_manifest_digest,
         evidence_universe_digest=evidence_universe_digest,
         budget_digest=budget_digest,
+        assistance_digests=assistance_digests,
         conclusions=tuple(
             sorted((_conclusion(item) for item in bundles), key=lambda x: x.consequence_id)
         ),
@@ -181,7 +194,11 @@ def _run(
             attempts=attempts,
             checks=len(checker_verdicts),
             retries=retries,
-            context_bytes=sum(item.context_artifact.size for item in protocols),
+            context_bytes=sum(
+                item.context_artifact.size
+                + (0 if item.assistance_artifact is None else item.assistance_artifact.size)
+                for item in protocols
+            ),
         ),
         request_ids=tuple(item.request.id for item in requests),
         used_check_ids=tuple(item.id for item in checker_verdicts),
@@ -211,19 +228,40 @@ def _build_weak_reasoner_fixture(
         protocols=assisted_protocols,
         bundles=assisted_bundles,
     )
-    baseline_by_consequence = {
-        item.expectations[0].consequence_id: item for item in baseline_protocols
+    required_tasks = {
+        "finite-task-alpha": "main-power-not-necessary",
+        "finite-task-beta": "may-reach-does-not-imply-must-reach",
     }
-    assisted_by_consequence = {
-        item.expectations[0].consequence_id: item for item in assisted_protocols
-    }
-    if set(baseline_by_consequence) != set(assisted_by_consequence):
+
+    def _index(
+        protocols: tuple[CapabilityEvaluationProtocol, ...],
+    ) -> dict[str, CapabilityEvaluationProtocol]:
+        indexed: dict[str, CapabilityEvaluationProtocol] = {}
+        for protocol in protocols:
+            if len(protocol.expectations) != 1:
+                raise ValueError("weak-reasoner tasks require one exact protected consequence")
+            expected_consequence = required_tasks.get(protocol.task_id)
+            if (
+                expected_consequence is None
+                or protocol.expectations[0].consequence_id != expected_consequence
+                or protocol.task_id in indexed
+            ):
+                raise ValueError("weak-reasoner branches require each exact task exactly once")
+            indexed[protocol.task_id] = protocol
+        return indexed
+
+    baseline_by_task = _index(baseline_protocols)
+    assisted_by_task = _index(assisted_protocols)
+    if set(baseline_by_task) != set(required_tasks) or set(assisted_by_task) != set(required_tasks):
+        raise ValueError("weak-reasoner branches require each exact task exactly once")
+    if set(baseline_by_task) != set(assisted_by_task):
         raise ValueError("weak-reasoner branches must evaluate identical consequence tasks")
-    for consequence_id in sorted(baseline_by_consequence):
-        baseline_protocol = baseline_by_consequence[consequence_id]
-        assisted_protocol = assisted_by_consequence[consequence_id]
+    for task_id in sorted(baseline_by_task):
+        baseline_protocol = baseline_by_task[task_id]
+        assisted_protocol = assisted_by_task[task_id]
         comparable_fields = (
             "competence_id",
+            "task_id",
             "project_head_sha",
             "gate_digest",
             "binding_revision",

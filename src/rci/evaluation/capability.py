@@ -106,6 +106,7 @@ class CapabilityTaskEnvelope(FrozenModel):
     anchor_id: Identifier
     goal_id: Identifier
     obligation_id: Identifier
+    task_id: Identifier
     competence_id: Identifier
     binding_revision: Identifier
     scope_fingerprint: Sha256Digest
@@ -119,12 +120,12 @@ class CapabilityTaskEnvelope(FrozenModel):
     context_artifact: ArtifactRef
     evidence_access_artifact: ArtifactRef
     budget_artifact: ArtifactRef
+    assistance_artifact: ArtifactRef | None = None
+    continuation_discriminator_id: Identifier | None = None
     timeout_seconds: Annotated[int, Field(ge=1, le=86_400)]
-    protected_consequence_ids: tuple[Identifier, ...]
 
     @model_validator(mode="after")
     def validate_task(self) -> CapabilityTaskEnvelope:
-        _canonical(self.protected_consequence_ids, "task protected consequences", nonempty=True)
         expected_id = _content_id("cap_task", self.model_dump(mode="json", exclude={"id"}))
         if self.id != expected_id:
             raise ValueError("capability task identity must be content-derived")
@@ -135,7 +136,11 @@ def build_capability_task_envelope(**fields: object) -> CapabilityTaskEnvelope:
     reserved = {"id", "schema_version"} & set(fields)
     if reserved:
         raise ValueError("task builder fields cannot override identity or version")
-    material = {"schema_version": 1, **fields}
+    material = {
+        "schema_version": 1,
+        "continuation_discriminator_id": None,
+        **fields,
+    }
     return CapabilityTaskEnvelope.model_validate(
         {"id": _content_id("cap_task", material), **material}, strict=True
     )
@@ -163,6 +168,7 @@ class CapabilityEvaluationProtocol(FrozenModel):
     goal_fingerprint: Sha256Digest
     obligation_id: Identifier
     step_plan_id: Identifier
+    task_id: Identifier
     competence_id: Identifier
     project_head_sha: GitCommitSha
     gate_digest: Sha256Digest
@@ -180,6 +186,7 @@ class CapabilityEvaluationProtocol(FrozenModel):
     context_artifact: ArtifactRef
     evidence_access_artifact: ArtifactRef
     budget_artifact: ArtifactRef
+    assistance_artifact: ArtifactRef | None = None
     timeout_seconds: Annotated[int, Field(ge=1, le=86_400)]
     comparison_policy_id: Literal["exact-artifact-equality"]
     comparison_policy_version: Literal["1"]
@@ -193,6 +200,7 @@ class CapabilityEvaluationProtocol(FrozenModel):
     stopping_condition_ids: tuple[Identifier, ...]
     reopening_condition_ids: tuple[Identifier, ...]
     continuity_kind: Literal["new_episode", "continue"] = "new_episode"
+    continuation_discriminator_id: Identifier | None = None
     predecessor_handoff_artifact: ArtifactRef | None = None
     reopening_evidence_artifacts: tuple[ArtifactRef, ...] = ()
     reopening_checker_verdict_ids: tuple[Identifier, ...] = ()
@@ -223,8 +231,12 @@ class CapabilityEvaluationProtocol(FrozenModel):
             raise ValueError("reopening evidence requires an exact predecessor handoff")
         if self.continuity_kind == "continue" and self.predecessor_handoff_artifact is None:
             raise ValueError("a continuing protocol requires an exact predecessor handoff")
+        if self.continuity_kind == "continue" and self.continuation_discriminator_id is None:
+            raise ValueError("a continuing protocol requires its sealed next discriminator")
         if self.continuity_kind == "new_episode" and self.predecessor_handoff_artifact is not None:
             raise ValueError("a new episode cannot silently carry predecessor continuity")
+        if self.continuity_kind == "new_episode" and self.continuation_discriminator_id is not None:
+            raise ValueError("a new episode cannot claim predecessor discriminator continuity")
         expected_id = derive_protocol_id(self.model_dump(mode="json", exclude={"id"}))
         if self.id != expected_id:
             raise ValueError("capability evaluation protocol identity must be content-derived")
@@ -249,6 +261,7 @@ def build_capability_evaluation_protocol(**fields: object) -> CapabilityEvaluati
         "schema_version": 1,
         "policy_version": EVALUATION_POLICY_VERSION,
         "predecessor_handoff_artifact": None,
+        "continuation_discriminator_id": None,
         "reopening_evidence_artifacts": (),
         "reopening_checker_verdict_ids": (),
         "continuity_kind": "new_episode",
@@ -392,15 +405,26 @@ class DecodeIndeterminateObserved(FrozenModel):
     evidence_artifacts: tuple[ArtifactRef, ...]
 
 
-class CheckIndeterminateObserved(FrozenModel):
-    kind: Literal["check_indeterminate"] = "check_indeterminate"
+class CheckInvalidObserved(FrozenModel):
+    kind: Literal["check_invalid"] = "check_invalid"
     schema_version: Literal[1] = 1
     id: Identifier
     protocol_id: Identifier
     request_id: Identifier
     decode_outcome_id: Identifier
     checker_verdict_id: Identifier
-    reason_kind: Literal["invalid", "indeterminate", "timeout", "unsupported", "failed"]
+    evidence_artifacts: tuple[ArtifactRef, ...]
+
+
+class CheckUnresolvedObserved(FrozenModel):
+    kind: Literal["check_unresolved"] = "check_unresolved"
+    schema_version: Literal[1] = 1
+    id: Identifier
+    protocol_id: Identifier
+    request_id: Identifier
+    decode_outcome_id: Identifier
+    checker_verdict_id: Identifier
+    reason_kind: Literal["indeterminate", "timeout", "unsupported", "failed"]
     evidence_artifacts: tuple[ArtifactRef, ...]
 
 
@@ -442,7 +466,8 @@ CapabilityEvaluationResult = Annotated[
     EvaluationPassed
     | ProtectedMismatchObserved
     | DecodeIndeterminateObserved
-    | CheckIndeterminateObserved
+    | CheckInvalidObserved
+    | CheckUnresolvedObserved
     | OperationalUnknownObserved
     | EvaluationProtocolInvalid,
     Field(discriminator="kind"),
@@ -682,6 +707,7 @@ def _lifecycle_issues(
         "anchor_id": protocol.anchor_id,
         "goal_id": protocol.goal_id,
         "obligation_id": protocol.obligation_id,
+        "task_id": protocol.task_id,
         "competence_id": protocol.competence_id,
         "binding_revision": protocol.binding_revision,
         "scope_fingerprint": protocol.scope_fingerprint,
@@ -695,8 +721,9 @@ def _lifecycle_issues(
         "context_artifact": protocol.context_artifact,
         "evidence_access_artifact": protocol.evidence_access_artifact,
         "budget_artifact": protocol.budget_artifact,
+        "assistance_artifact": protocol.assistance_artifact,
+        "continuation_discriminator_id": protocol.continuation_discriminator_id,
         "timeout_seconds": protocol.timeout_seconds,
-        "protected_consequence_ids": protocol.protected_consequence_ids,
     }
     actual_task = episode.actor_task.model_dump(mode="json", exclude={"id", "schema_version"})
     expected_task_json = _json_material(expected_task)
@@ -722,7 +749,27 @@ def _lifecycle_issues(
         "comparison_policy_version": protocol.comparison_policy_version,
     }:
         issues.add("comparison_policy_mismatch")
-    for attempt in episode.effect.attempts:
+    accepted_decode = next(
+        (
+            item
+            for item in episode.effect.decode_outcomes
+            if item.id == episode.effect.accepted_decoded_outcome_id
+        ),
+        None,
+    )
+    accepted_attempts = tuple(
+        attempt
+        for attempt in episode.effect.attempts
+        if isinstance(attempt.outcome, ReturnedOutcome)
+        and isinstance(accepted_decode, Decoded)
+        and attempt.outcome.external_return.id == accepted_decode.external_return_id
+    )
+    attempts_to_validate = (
+        accepted_attempts
+        if episode.effect.accepted_decoded_outcome_id is not None
+        else episode.effect.attempts
+    )
+    for attempt in attempts_to_validate:
         if attempt.plan.request_id != request.id:
             issues.add("foreign_attempt")
         route = attempt.plan.route
@@ -773,6 +820,10 @@ def _operational_result(
     protocol: CapabilityEvaluationProtocol, episode: CapabilityEvaluationEpisode
 ) -> OperationalUnknownObserved | None:
     request = episode.effect.request
+    if episode.effect.accepted_decoded_outcome_id is not None:
+        return None
+    if any(isinstance(attempt.outcome, ReturnedOutcome) for attempt in episode.effect.attempts):
+        return None
     evidence: list[ArtifactRef] = []
     if episode.effect.no_attempt_dispositions:
         disposition = episode.effect.no_attempt_dispositions[-1]
@@ -788,12 +839,17 @@ def _operational_result(
     elif episode.effect.attempts:
         attempt = episode.effect.attempts[-1]
         outcome = attempt.outcome
-        if outcome is None or isinstance(outcome, ReturnedOutcome):
+        if isinstance(outcome, ReturnedOutcome):
             return None
         attempt_id = attempt.plan.id
-        if outcome.diagnostics is not None:
+        if outcome is None:
+            reason = OperationalUnknownReason.PENDING
+            outcome = None
+        elif outcome.diagnostics is not None:
             evidence.append(outcome.diagnostics)
-        if isinstance(outcome, NotPresentedOutcome):
+        if outcome is None:
+            pass
+        elif isinstance(outcome, NotPresentedOutcome):
             reason = OperationalUnknownReason.NOT_PRESENTED
         elif isinstance(outcome, PresentationUnknownOutcome):
             reason = (
@@ -942,15 +998,13 @@ def evaluate_capability_episode(
                 (checker.verdict_artifact,),
             )
         checker_reason: dict[
-            CheckerVerdict, Literal["invalid", "indeterminate", "timeout", "unsupported", "failed"]
+            CheckerVerdict, Literal["indeterminate", "timeout", "unsupported", "failed"]
         ] = {
-            CheckerVerdict.INVALID: "invalid",
             CheckerVerdict.INDETERMINATE: "indeterminate",
             CheckerVerdict.TIMEOUT: "timeout",
             CheckerVerdict.UNSUPPORTED: "unsupported",
             CheckerVerdict.FAILED: "failed",
         }
-        check_reason = checker_reason[checker.verdict]
         checker_artifacts = tuple(
             sorted(
                 (
@@ -965,16 +1019,26 @@ def evaluate_capability_episode(
             "protocol_id": protocol.id,
             "request_id": episode.effect.request.id,
             "decode_id": accepted.id,
-            "reason": check_reason,
+            "reason": checker.verdict.value,
             "evidence": tuple(item.digest for item in checker_artifacts),
         }
-        return CheckIndeterminateObserved(
-            id=_content_id("cap_eval_check", check_material),
+        result_id = _content_id("cap_eval_check", check_material)
+        if checker.verdict is CheckerVerdict.INVALID:
+            return CheckInvalidObserved(
+                id=result_id,
+                protocol_id=protocol.id,
+                request_id=episode.effect.request.id,
+                decode_outcome_id=accepted.id,
+                checker_verdict_id=checker.id,
+                evidence_artifacts=checker_artifacts,
+            )
+        return CheckUnresolvedObserved(
+            id=result_id,
             protocol_id=protocol.id,
             request_id=episode.effect.request.id,
             decode_outcome_id=accepted.id,
             checker_verdict_id=checker.id,
-            reason_kind=check_reason,
+            reason_kind=checker_reason[checker.verdict],
             evidence_artifacts=checker_artifacts,
         )
 
@@ -1170,19 +1234,46 @@ def derive_cognitive_handoff(
         next_id = frame.next_discriminator_id
         next_route = frame.next_discriminator_route_id
     else:
-        status = HandoffStatus.STOP_UNKNOWN
+        continuable = isinstance(
+            result,
+            (
+                DecodeIndeterminateObserved,
+                CheckInvalidObserved,
+                CheckUnresolvedObserved,
+            ),
+        ) or (
+            isinstance(result, OperationalUnknownObserved)
+            and result.reason_kind is not OperationalUnknownReason.PENDING
+        )
+        status = HandoffStatus.CONTINUE if continuable else HandoffStatus.STOP_UNKNOWN
         evidence = result.evidence_artifacts
         failed = (
             tuple(sorted(set(attempted_route_ids)))
-            if isinstance(result, OperationalUnknownObserved) and result.attempt_id is not None
+            if isinstance(result, OperationalUnknownObserved)
+            and result.attempt_id is not None
+            and result.reason_kind is not OperationalUnknownReason.PENDING
             else ()
         )
         failed_decoders = (
             (protocol.decoder_id,) if isinstance(result, DecodeIndeterminateObserved) else ()
         )
         live = ()
-        next_id = None
-        next_route = None
+        next_id = f"recover-{result.kind}-v1" if continuable else None
+        next_route = (
+            protocol.route_definition_id
+            if isinstance(result, DecodeIndeterminateObserved)
+            else protocol.discriminator_route_ids[0]
+            if continuable
+            else None
+        )
+    exact_reopening_conditions = tuple(
+        sorted(
+            (
+                *(f"reopen-route:{item}" for item in failed),
+                *(f"reopen-decoder:{item}" for item in failed_decoders),
+            )
+        )
+    )
     fields: dict[str, object] = {
         "schema_version": 1,
         "policy_version": HANDOFF_POLICY_VERSION,
@@ -1213,7 +1304,7 @@ def derive_cognitive_handoff(
         "next_discriminator_id": next_id,
         "next_discriminator_route_id": next_route,
         "stopping_condition_ids": protocol.stopping_condition_ids,
-        "reopening_condition_ids": protocol.reopening_condition_ids,
+        "reopening_condition_ids": exact_reopening_conditions,
         "status": status,
     }
     return CognitiveHandoff.model_validate(
@@ -1242,6 +1333,39 @@ def build_capability_evaluation_bundle(
     accepted = next(
         (item for item in episode.effect.decode_outcomes if item.id == accepted_id), None
     )
+    relevant_decode = accepted
+    if relevant_decode is None and isinstance(result, DecodeIndeterminateObserved):
+        relevant_decode = next(
+            (
+                item
+                for item in episode.effect.decode_outcomes
+                if item.id == result.decode_outcome_id
+            ),
+            None,
+        )
+    relevant_return_id = relevant_decode.external_return_id if relevant_decode is not None else None
+    if relevant_return_id is None:
+        returned = tuple(
+            attempt.outcome.external_return
+            for attempt in episode.effect.attempts
+            if isinstance(attempt.outcome, ReturnedOutcome)
+        )
+        if len(returned) == 1:
+            relevant_return_id = returned[0].id
+    relevant_attempts = tuple(
+        attempt
+        for attempt in episode.effect.attempts
+        if (
+            relevant_return_id is not None
+            and isinstance(attempt.outcome, ReturnedOutcome)
+            and attempt.outcome.external_return.id == relevant_return_id
+        )
+        or (
+            isinstance(result, OperationalUnknownObserved)
+            and result.attempt_id is not None
+            and attempt.plan.id == result.attempt_id
+        )
+    )
     handoff = derive_cognitive_handoff(
         protocol,
         result,
@@ -1250,13 +1374,13 @@ def build_capability_evaluation_bundle(
         source_sequence=episode.source_sequence,
         protocol_artifact=episode.protocol_artifact,
         effect_request_id=episode.effect.request.id,
-        external_return_id=(accepted.external_return_id if isinstance(accepted, Decoded) else None),
-        decode_outcome_id=(None if accepted is None else accepted.id),
+        external_return_id=relevant_return_id,
+        decode_outcome_id=(None if relevant_decode is None else relevant_decode.id),
         checker_verdict_id=(
             None if episode.checker_verdict is None else episode.checker_verdict.id
         ),
         attempted_route_ids=tuple(
-            attempt.plan.route.definition_id for attempt in episode.effect.attempts
+            attempt.plan.route.definition_id for attempt in relevant_attempts
         ),
     )
     return CapabilityEvaluationBundle(
