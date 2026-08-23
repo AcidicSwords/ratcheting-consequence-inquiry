@@ -1,6 +1,6 @@
 # ADR-0016: Failure-first evidence before compositional question grammar
 
-- Status: accepted design; G3FO implementation stopped indeterminate and unpromoted
+- Status: selection deferral superseded by ADR-0018; no-collapse constraints retained
 - Date: 2026-08-23
 - Requirements: RCI-073, RCI-074, RCI-077, and RCI-078
 
@@ -66,3 +66,10 @@ or continuation. If selected later, implementation proceeds as three separate Go
 finite dependent frames, answer-conditioned continuation, and only after two shared
 implementations a bounded compositional kernel. Existing catalogs remain compatibility
 profiles and generated expressions remain inert until independently admitted.
+
+## Supersession
+
+G3K-S later reproduced the two distinct owned failures required above: static rejection
+of answer-conditioned generated continuation, and runtime collapse of a partial
+multi-cell return. ADR-0018 therefore supersedes the deferral on its own stated terms.
+All rejected collapses and authority separations in this ADR remain binding.

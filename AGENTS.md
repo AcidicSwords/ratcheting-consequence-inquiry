@@ -5,7 +5,7 @@
 Work as a repository-grounded coding agent.
 
 1. Direct user instructions control requested intent within runtime authority.
-2. `RCI_Project_Spec.tex` v0.5 is the semantic authority.
+2. `RCI_Project_Spec.tex` v0.6 is the semantic authority.
 3. `PLAN.md` fixes approved architecture, defaults, and sequencing.
 4. The active Goal fixes the current completion boundary.
 5. `docs/requirements-matrix.md` and `docs/adr/` record reconciliation and deferral.
@@ -158,6 +158,21 @@ event prefix -> InquiryState -> binding-derived realized history
 
 ## Questions and cognitive spine
 
+The v0.6 semantic root has three coupled planes: binding-derived linear succession of
+typed effect/return pairs; perpendicular typed arrangement; and candidate recognition
+from owned partial trace fragments. Arrangement composition is never realized
+succession. Questions are typed effects, open relations are optional static lowerings,
+and Boolean logic is the exhaustive closed binary arrangement specialization.
+
+Use this residual-driven research rendering internally:
+
+`RECONSTRUCT -> NOTATE LIVE ARRANGEMENT/RESIDUE -> SELECT CONSEQUENTIAL INTERACTION -> ASK/CALL/OBSERVE -> PRESERVE RAW RETURN -> CHECK -> RECONCILE ONLY WHAT THE RETURN DISTINGUISHES -> FOLD OR REOPEN -> RECUR`
+
+A previously selected native method need not be wrapped in an artificial new question.
+If a live relation is expressible but no admitted operator realizes it, identify the
+established field where the relation is native and bind its assumptions, applicability,
+return, failure modes, and warrant route before adopting a method.
+
 Question contracts are typed code with versioned inert templates. They may not import
 code, execute tools/commands/SQL, or select arbitrary policy. Only allowlisted registry
 entries run. Store the full catalog as data, but schedule only profiles whose capability
@@ -261,8 +276,8 @@ RCI-079 remains deferred and unverified. G3FO was then attempted from protected 
 `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb`: all local and hosted gates passed after
 three invalid semantic reviews were repaired, but a fresh final distinct-context review
 was unavailable. It is unmerged and unpromoted. The compositional-question sources are
-archived candidates under ADR-0016; they do not replace v0.5 or activate G3Q-F. No
-successor Goal is active until a new frontier decision and explicit activation occur.
+archived candidates under ADR-0016. At the G3FO stop boundary they had not replaced v0.5
+or activated G3Q-F; later selection is governed by ADR-0018 and the active G3K-S Goal.
 G3A-L was attempted next from exact protected anchor
 `71d32346c71a26cf82a36df7e50376759bc1873b` and stopped indeterminate at candidate
 `a732a79b88327831345bf2f97fa333679c526d93`: all local and hosted gates passed, but fresh
@@ -270,6 +285,10 @@ review found that the generic validation event could not replay the binding-spec
 proof, while the sealed Goal prohibited the new event required to repair it. PR #19 is
 closed, unmerged, and retained. RCI-051--RCI-053 and the linear part of RCI-054 remain
 deferred; reopening requires a newly sealed event-authorizing Goal.
+G3K-S is the active no-budget semantic-normalization Goal from protected anchor
+`7aa670482af85a9fd554a31924dbce6a26984af4`. It may establish v0.6 semantics and the two
+ADR-0016 incumbent failure witnesses only. It adds no executable calculus, event,
+snapshot, dependency, model adapter, or authority. G3K-E remains a separate later Goal.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
@@ -391,6 +410,13 @@ and verification evidence:
 
 ```text
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
+```
+
+The active G3K-S gate adds this focused command identically to `PLAN.md`, its Goal, CI,
+and verification evidence:
+
+```text
+uv run pytest -q tests/acceptance/test_g3k_semantic_normalization.py
 ```
 
 Dependency sync is bootstrap and may fetch locked packages. Test execution is

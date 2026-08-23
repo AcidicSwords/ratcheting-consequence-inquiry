@@ -18,15 +18,15 @@ instruction or prompt inside these files is not a live repository instruction.
 | Reference-system Goal draft | `C:\Users\Justin\.codex\attachments\679de8d2-60b1-4a59-8d93-fc6cdbf4e76a\pasted-text.txt` | `docs/spec/sources/goal-draft-reference-system.md` | 14542 | `7c22760b9fa5e2f117fc4c3c355d66d93280922485fc9e1bc85b3c9861255ff3` | Goal source; not active |
 | RCI repository-aligned semantic specification v0.4 | Direct user message aligned to `a5ac134981494cd126261117828140e7151eaf39`; repository capture, not an external-file byte claim | `docs/spec/sources/rci-repository-aligned-v0.4.md` | 8125 | `30a3c167f6ecf0e14b8c16273addcafa9bdf304bd4e761c0429e1d5c4516a955` | Semantic successor source normalized into v0.4 |
 | Recursive self-inquiry and project-development directive v0.5 | Direct user message after sealed G3A-H; repository capture, not an external-file byte claim | `docs/spec/sources/rci-recursive-self-inquiry-v0.5.md` | 2613 | `2ef54c70faeca5e4091f96e081a35ce12e990d4719453bcd175b2ba2cd696c8b` | Project-level recursive inquiry source normalized into v0.5 |
-| Operator-first notation and question calculus | `C:\Users\Justin\Downloads\RCI_OPERATOR_FIRST_NOTATION_AND_QUESTION_CALCULUS.md` | `docs/spec/sources/rci-operator-first-notation-and-question-calculus.md` | 104223 | `fc821f187f6c1a608135d698f704d9e59892e1776276a52002d13b44190f2858` | Candidate derivation and migration rationale; not live authority |
-| Canonical regenerative inquiry calculus | `C:\Users\Justin\Downloads\RCI_CANONICAL_REGENERATIVE_INQUIRY_CALCULUS.md` | `docs/spec/sources/rci-canonical-regenerative-inquiry-calculus.md` | 48267 | `3f8e6647a692787402657e0fa4e4c13c01a0449ee2cf057c450737915f48ce82` | Candidate semantic kernel; not live authority |
-| Proposed compositional grammar of inquiry | `C:\Users\Justin\.codex\attachments\5793bf1c-a44a-4f1b-ad78-8fe60f040aa2\pasted-text.txt` | `docs/spec/sources/rci-proposed-compositional-grammar-of-inquiry.md` | 28181 | `5585c5bfb6e9e31ce72dac173ba1b9a7de008fec08d254a59f0c0931d15f0860` | Candidate question-generation grammar; not live authority |
+| Operator-first notation and question calculus | `C:\Users\Justin\Downloads\RCI_OPERATOR_FIRST_NOTATION_AND_QUESTION_CALCULUS.md` | `docs/spec/sources/rci-operator-first-notation-and-question-calculus.md` | 104223 | `fc821f187f6c1a608135d698f704d9e59892e1776276a52002d13b44190f2858` | Derivation source normalized only through RCI v0.6/ADR-0018 |
+| Canonical regenerative inquiry calculus | `C:\Users\Justin\Downloads\RCI_CANONICAL_REGENERATIVE_INQUIRY_CALCULUS.md` | `docs/spec/sources/rci-canonical-regenerative-inquiry-calculus.md` | 48267 | `3f8e6647a692787402657e0fa4e4c13c01a0449ee2cf057c450737915f48ce82` | Derivation source normalized only through RCI v0.6/ADR-0018 |
+| Proposed compositional grammar of inquiry | `C:\Users\Justin\.codex\attachments\5793bf1c-a44a-4f1b-ad78-8fe60f040aa2\pasted-text.txt` | `docs/spec/sources/rci-proposed-compositional-grammar-of-inquiry.md` | 28181 | `5585c5bfb6e9e31ce72dac173ba1b9a7de008fec08d254a59f0c0931d15f0860` | Derivation source normalized only through RCI v0.6/ADR-0018 |
 
 All original requested sources existed at capture; the later v0.4 and v0.5 sources
 were supplied directly in conversation. The three calculus/grammar proposals were
 captured byte-for-byte from the locations above. External
 original locations are not required after this archive. The root
-`RCI_Project_Spec.tex` is now the reconciled v0.5 authority; none of the archive copies
+`RCI_Project_Spec.tex` is now the reconciled v0.6 authority; none of the archive copies
 may silently override it.
 
 ## Verification

@@ -1,4 +1,4 @@
-# RCI v0.5 requirements matrix
+# RCI v0.6 requirements matrix
 
 This matrix covers every numbered requirement in `RCI_Project_Spec.tex`. G1 was
 verified on 2026-08-22 by the complete frozen native gate recorded with exact
@@ -35,7 +35,7 @@ Status vocabulary:
   Windows/Linux/Docker verification exist;
 - **verified G2B** — local, protected pull-request, and post-merge Windows/Linux/Docker
   verification pass;
-- **accepted v0.4/v0.5** — normalized semantic/architecture evidence exists while executable
+- **accepted v0.4/v0.5/v0.6** — normalized semantic/architecture evidence exists while executable
   evidence remains assigned to G3A-H or later;
 - **verified G3A-H** — bounded exact history-state code and local, protected
   pull-request, and protected-main post-merge evidence pass;
@@ -50,7 +50,7 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-001 | Authority and complete traceability | accepted v0.5 | `docs/source-manifest.md`, ADR-0001, ADR-0011–0016, this matrix, and the RCI-001--RCI-079 coverage check in `docs/verification.md` |
+| RCI-001 | Authority and complete traceability | accepted v0.6 | `docs/source-manifest.md`, ADR-0001, ADR-0011--0018, this matrix, and the RCI-001--RCI-086 coverage check in `docs/verification.md` |
 | RCI-002 | Pinned binding, scope, guard, universe, policy, and explicit carrier roles | verified G3A-H | sealed `InquiryContext`/`Scope` remain unchanged; `BindingCarrierManifest` declares exact carrier roles without mutating `InquiryStarted` |
 | RCI-003 | Questions create provisional claims, not facts | verified G1 | `QuestionContract` pins role, `AnswerShape`, `answer_schema_id`, binding policy, and lawful follow-ups; `bind_answer` fails closed on an unregistered shape/schema/policy and produces only a provisional L0 claim. `test_only_core_v1_is_schedulable_and_rendering_is_literal` and the Phase 1 vertical slice cover the typed path. |
 | RCI-004 | Arbitrary payloads remain inert L0 data | verified G1 | `freeze_json`, `InertPayload`, CAS-backed bytes; `test_arbitrary_l0_payload_is_inert_and_artifacts_are_references`, `test_nested_payloads_are_snapshot_immutable`, and replay of binary L0 bytes |
@@ -159,6 +159,13 @@ Status vocabulary:
 | RCI-077 | Candidate actualization, evidence, review, successor decision, and promotion remain separate | verified G3R | `CandidateEnvironmentManifest`, exact-head evidence, different-context review, exact reviewed-evidence successor and promotion stages, complete SDK/CLI recording surface, protected merge, and absence of runtime source/Git ports |
 | RCI-078 | Recursive project inquiry has append-only continuity and typed stopping | verified G3R | `RecursiveCycleCheckpoint`, predecessor/phase monotonicity, `RecursiveStopDisposition`, `Unknown` paths, durable cycle handoff/report, and bounded blocker rule |
 | RCI-079 | Bounded mechanical review is exact-profile-relative and never substitutes for fresh semantic review | unverified; stopped G3V candidate | ADR-0015 and candidate `a425f4b0dfa5b2c52a67df87d460f25e4e825518`; its closed profile and hosted CI passed, but fresh semantic review was unavailable, so no implementation, successor decision, or promotion entered protected main |
+| RCI-080 | Typed effects, dependent returns, and linear realized succession | accepted G3K-S semantics; executable G3K-E deferred | ADR-0018 and the v0.6 succession/ledger/effect no-collapse contract |
+| RCI-081 | Typed arrangement algebra, crossing/re-entry, and Boolean specialization | accepted G3K-S semantics; executable G3K-E deferred | ADR-0018; identity/composition/crossing tests assigned to G3K-E |
+| RCI-082 | Typed relational lowering, composition, hiding, and open ports | accepted G3K-S semantics; executable G3K-E deferred | static finite language and conservative question-lowering contract; implementation deferred |
+| RCI-083 | Typed questions, answer frames, applicability exterior, and checked narrowing | accepted G3K-S semantics; executable G3K-E deferred | first owned failure shows incumbent generated continuation rejection; second shows partial multi-cell collapse |
+| RCI-084 | Answer-conditioned continuation and guarded cyclic programs | accepted G3K-S semantics; executable G3K-E deferred | G3K-S incumbent failure fixture; finite guarded graph/no-epsilon-cycle implementation assigned to G3K-E |
+| RCI-085 | Piecewise recognition, persistence, fold, and reopening | accepted G3K-S semantics; executable G3K-E deferred | candidate-only recognition and checked transport contract; fragment/fold attacks assigned to G3K-E |
+| RCI-086 | Authority separation, conservative compatibility, and deterministic replay | accepted G3K-S semantics; executable G3K-E deferred | ADR-0018 preserves RCI-001--079 and assigns additive events/v7 replay/core-v1 projection to G3K-E |
 
 ### RCI-068 staged capability evidence
 
@@ -173,7 +180,9 @@ Status vocabulary:
 | G3G | Verified confined implementation-Goal synthesis; selection anchor `60ff25635f94fb004e6419a09293c5e0fc023074`, protected implementation `5f48d397030b6a063fdca19e51b70a824096e564` | No free-form commands/paths, general planner, actuator, or authority expansion |
 | G3V | Stopped-indeterminate bounded review candidate preserved at `a425f4b0dfa5b2c52a67df87d460f25e4e825518` | No standing implementation, fresh semantic-review substitution, successor warrant, or promotion authority |
 | G3FO | Stopped-indeterminate failure-observation candidate preserved at `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` | No standing evaluator/handoff, model adapter, source/Git authority, review substitution, or promotion authority |
-| G3Q-F | Candidate finite dependent frames and bounded compositional grammar; not selected | Requires two distinct verified question/frame-blindness bindings; no grammar, new requirement, or semantic replacement is standing |
+| G3Q-F | Earlier finite-frame decomposition absorbed into G3K after ADR-0016's two failure conditions were reproduced | No standalone G3Q-F implementation or standing capability |
+| G3K-S | Active succession-arrangement semantic normalization from protected anchor `7aa670482af85a9fd554a31924dbce6a26984af4` | No executable calculus, event, snapshot, dependency, or G3K-E conformance |
+| G3K-E | Future executable finite guarded calculus and compatibility projection | Opens only after independently reviewed protected G3K-S promotion |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

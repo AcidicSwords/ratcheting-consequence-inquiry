@@ -10,7 +10,7 @@
 \title{Ratcheting Consequence Inquiry\\
 Normative Project Specification}
 \author{RCI Project}
-\date{Version 0.5 --- 2026-08-22}
+\date{Version 0.6 --- 2026-08-23}
 
 \begin{document}
 \maketitle
@@ -18,7 +18,8 @@ Normative Project Specification}
 \section*{Status, interpretation, and conformance}
 
 This document is the normative semantic specification for Ratcheting Consequence
-Inquiry (RCI) version 0.5. It preserves the v0.4 aggregate/history correction and is a
+Inquiry (RCI) version 0.6. It preserves the v0.4 aggregate/history correction and v0.5
+recursive-project authority discipline, and is a
 reconciled rewrite of the archived research
 drafts listed in \path{docs/source-manifest.md}. Those drafts are provenance and
 research context, not live instructions. Direct user instructions retain runtime
@@ -36,7 +37,7 @@ claim executable support.
 
 \begin{longtable}{p{0.18\linewidth}p{0.30\linewidth}p{0.44\linewidth}}
 \toprule
-Source & Role in 0.5 & Reconciliation \\
+Source & Role in 0.6 & Reconciliation \\
 \midrule
 \endhead
 RCI 0.1 & Original project and staged implementation draft &
@@ -83,12 +84,11 @@ Recursive self-inquiry source & Project-level question/method/implementation rat
 Adopted as the G3R bridge. It treats development as an RCI binding while keeping
 candidate generation, independent return, review, and protected promotion separate. \\
 Operator-first, regenerative-calculus, and compositional-grammar proposals &
-Candidate relation/question kernels &
-Archived as proposed derivations, not adopted as live authority. Their admissible
-future role is bounded inert question generation from typed open relation ports after
-measured failure evidence. Candidate completions are not truths; semantic completion is
-not an external return; observation availability does not replace protected consequence;
-and generic operator composition and semantic replacement remain deferred. \\
+Derivations for the succession--arrangement kernel &
+Their typed effects, arrangements, open relations, answer frames, and bounded
+recognition are normalized through ADR-0018 after two owned incumbent expressivity
+failures. Candidate completions remain non-truths; semantic completion remains distinct
+from external return; and generated syntax retains no execution or authority. \\
 \bottomrule
 \end{longtable}
 
@@ -830,6 +830,64 @@ dispositions. Scope tradeoffs and candidates that dominate in neither direction
 remain explicit frontier members or provisional candidates; no total order is
 assumed.
 
+\section{Succession--arrangement compositional kernel}
+
+For a typed return interface $A$, a represented effect has type
+$e:\mathsf{Eff}[A]$. Actualization produces a dependent pair
+$\langle e,a\rangle$ with $a:A$. A binding-derived realized interaction trace is linear:
+\[
+ \tau ::= \varepsilon \mid \tau\mathbin{\cdot_S}\langle e,a\rangle.
+\]
+It is not ledger order, aggregate state, arbitrary event history, or a universal
+occurrence carrier. Represented effect, persisted request, attempt, raw return, decoded
+result, and checked observation remain distinct.
+
+An arrangement $\alpha:\mathsf{Arr}[I,O]$ is perpendicular to succession. Its bounded
+forms include typed identity and primitive arrangements, sequential composition
+$\beta\circ_A\alpha$, typed parallel composition, finite hiding with reopening
+provenance, finite case arrangements, typed crossing/permutation, preservation-checked
+transport, and bounded structural re-entry. Normatively,
+\[
+ \circ_A\neq\cdot_S.
+\]
+Composition builds a represented arrangement; succession records what was realized.
+
+The canonical interaction-program relation is
+\[
+ P ::= \operatorname{Ret}(z)\mid\operatorname{Vis}(e,\kappa),
+ \qquad \kappa:A\to P,
+\]
+with transition
+\[
+ \operatorname{Vis}(e,\kappa)\xrightarrow{\langle e,a\rangle}\kappa(a).
+\]
+The executable repository realization MUST be a finite typed guarded graph; every cycle
+contains a new-return boundary and epsilon cycles are forbidden.
+
+A question $q:\mathsf Q[A(q)]$ specializes the effect family through
+$\operatorname{Ask}(q):\mathsf{Eff}[A(q)]$. It owns stable interrogative identity,
+answer interface, applicability/comparison semantics, and renderer. An optional
+relational lowering $\operatorname{Lower}_R(q)=U_q$ does not identify $q$ with $U_q$.
+Discharge authority remains external to question identity.
+
+The static relational source language retains truth, equality, registered relation
+application, negation, conjunction, and finite existential hiding. Open ports are typed
+compiler objects. Candidate completions are elements of a declared completion carrier,
+not asserted members of a solution fiber. A decoded observation may leave multiple
+answer cells live; applicability exterior, malformed decode, checker outcome, and
+operational failure remain outside semantic sibling cells.
+
+For a closed exhaustive binary answer interface, case arrangement specializes to
+Boolean distinction. Crossing by swap is involutive and projects extensionally to field
+complement. Conjunction, disjunction, implication, and equivalence are deterministic
+surface macros. No Boolean surface form erases succession order.
+
+Finite owned trace fragments may support an inert arrangement candidate through a
+binding-specific recognition relation. Recognition does not establish actuality or
+warrant. A later fragment may break the candidate and reopen any fold. Persistence of
+an arrangement across a succession is a protected transport/commutation claim, not a
+state bit, and requires independent checking under the declared horizon.
+
 \section{Recursive project inquiry}
 
 The repository and its operating agent MAY be investigated through an ordinary
@@ -913,6 +971,49 @@ output remains indeterminate and cannot weaken the deterministic profile. This
 requirement is accepted semantically but remains unverified after the stopped G3V
 candidate.
 
+\paragraph{RCI-080 --- Typed effects and realized succession.}
+Every represented effect MUST declare one return interface. Realized interaction MUST be
+an ordered typed effect/return pair in a binding-derived linear trace. Ledger order,
+represented effect, request, attempt, return, decode, check, and realized succession
+MUST NOT collapse.
+
+\paragraph{RCI-081 --- Typed arrangement algebra and Boolean specialization.}
+Arrangement identity, sequential/parallel composition, finite hiding, case, crossing,
+transport, and bounded re-entry MUST preserve exact interfaces. Arrangement composition
+MUST remain distinct from realized succession. Closed exhaustive binary crossing MUST be
+involutive and project losslessly to legacy Boolean complement semantics.
+
+\paragraph{RCI-082 --- Relational lowering and open ports.}
+The finite typed relational language MUST fix composition direction, bound/open port
+identity, and hiding provenance. A relational question lowering is optional and
+conservative; it MUST NOT identify a question with its open relation or a candidate
+completion with truth.
+
+\paragraph{RCI-083 --- Typed questions and checked answer frames.}
+Questions MUST declare answer interfaces and antecedent finite frames. Sibling cells are
+exclusive only inside their applicability field. Partial observations MAY leave several
+cells live; exterior, malformed, checker, unsupported, timeout, failure, and Unknown
+outcomes remain stage-distinct. Branch narrowing requires the declared independent check.
+
+\paragraph{RCI-084 --- Answer-conditioned guarded continuation.}
+A checked answer MAY select a typed successor program through a finite response-indexed
+continuation table. Every directed cycle MUST cross an effect whose resolution requires
+a new return. Interpretation emits only inert actions and MUST NOT execute, admit,
+check, warrant, review, or promote itself.
+
+\paragraph{RCI-085 --- Piecewise recognition, persistence, fold, and reopening.}
+Owned ordered trace fragments MAY support an inert arrangement candidate. Recognition
+MUST preserve fragment provenance and survive independent discriminators before fold or
+operator admission. Persistence across succession requires checked protected transport;
+a breaking fragment or failed transport MUST reopen the fold or return Unknown.
+
+\paragraph{RCI-086 --- Conservative authority and replay compatibility.}
+G3K implementations MUST preserve every RCI-001--RCI-079 disposition, sealed event byte
+and meaning, aggregate/history/state distinction, core-v1 behavior, and admission/warrant
+boundary. New durable grammar ownership uses additive version-1 events and a rebuildable
+folded-state version. Generated or recognized structures remain inert until separately
+admitted, and deterministic replay invokes no effect.
+
 \section{Consequence operators retained from prior drafts}
 
 For a typed relation \(R:X\rightsquigarrow Y\) and target predicate
@@ -961,8 +1062,8 @@ levels and MUST stay coherent with this specification:
 \item \path{docs/architecture.md}: implementer-facing ownership and data flow;
 \item \path{docs/requirements-matrix.md}: requirement disposition and evidence;
 \item \path{docs/adr/}: explicit reconciliations and consequential decisions;
-\item \path{docs/goals/}: bounded milestone targets, including sealed G1/G2A/G2B
-      and the active G3A history-state target;
+\item \path{docs/goals/}: bounded milestone targets, including sealed predecessors,
+      stopped candidates, and the active G3K-S semantic-normalization target;
 \item \path{docs/verification.md}: executed checks and honest returns;
 \item \path{docs/source-manifest.md}: immutable source provenance.
 \end{itemize}
