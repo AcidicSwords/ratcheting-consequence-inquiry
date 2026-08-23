@@ -46,7 +46,7 @@ def test_root_and_governance_command_groups_are_discoverable() -> None:
 
     compression_help = runner.invoke(app, ["compression", "--help"])
     assert compression_help.exit_code == 0
-    for command in ("fixture", "inspect"):
+    for command in ("fixture", "inspect", "linear-analyze"):
         assert command in compression_help.stdout
     parity = runner.invoke(app, ["compression", "fixture", "unary-parity"])
     assert parity.exit_code == 0

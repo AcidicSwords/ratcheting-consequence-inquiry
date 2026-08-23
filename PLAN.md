@@ -498,9 +498,12 @@ three Goals: finite dependent frames; checked answer-conditioned continuation; a
 after two frame implementations share the abstraction, bounded compositional
 generation. Broad operator algebra and v0.6 normalization remain deferred.
 
-The present post-G3FO frontier returns `Unknown`: the candidate review findings exposed
+The post-G3FO grammar frontier remains `Unknown`: the candidate review findings exposed
 authority, lifecycle, continuity, and implementation defects, not two independently
-verified question/frame-blindness failures. No successor Goal is active.
+verified question/frame-blindness failures. G3Q-F is therefore not selected. A separate
+governed frontier at protected anchor `71d32346c71a26cf82a36df7e50376759bc1873b`
+selects G3A-L as the smallest already-authorized successor with a finite independent
+discriminator. G3A-L is the active no-budget Goal.
 
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
@@ -509,8 +512,13 @@ verified question/frame-blindness failures. No successor Goal is active.
   path residue; exact compression and recovery licenses; representation succession;
   generic reopening; unary-parity and order-sensitive history fixtures. It uses current
   dependencies only.
-- G3A-L: SymPy exact rational linear binding; universal/distributional/vector forms;
-  positive-weight probes; linear-only minimum dimension; exact kernel reopening.
+- G3A-L (active): SymPy exact rational linear binding; universal/distributional/vector
+  forms; positive-weight probes; linear-only minimum dimension; exact kernel reopening;
+  and a separate `Fraction`-based checker. Its focused command is:
+
+  ```text
+  uv run pytest -q tests/acceptance/test_g3a_linear_binding.py
+  ```
 - G3B: approximate loss licenses, budgets/risk/confidence/debt composition, NumPy
   numerical candidates, and a deterministic toy quantizer/reference oracle.
 - G3C: isolated native adapters. QJL is the first candidate; EDEN/DRIVE remain blocked

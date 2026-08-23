@@ -4,6 +4,55 @@ This is an append-oriented evidence log. Record commands, environment, exit
 status, and material returns. A planned, skipped, unavailable, or failed check is
 not passing evidence.
 
+## Active G3A-L candidate local gate — 2026-08-22
+
+Selection anchor: `71d32346c71a26cf82a36df7e50376759bc1873b`.
+ADR-0017 and `docs/goals/G3A-L.md` seal the exact finite rational linear binding.
+Environment: Windows PowerShell, Python 3.12, uv 0.9.18, SymPy 1.14.0. The candidate
+local gate passed; hosted CI, fresh distinct-context review, protected promotion, and
+post-merge verification remain pending, so no standing G3A-L capability is claimed.
+
+Focused command:
+
+```text
+uv run pytest -q tests/acceptance/test_g3a_linear_binding.py
+```
+
+Exit `0`: `11 passed in 0.83s`.
+
+Complete sealed gate returns:
+
+```text
+uv lock --check                                      exit 0
+uv sync --dev                                        exit 0
+uv run python -c "import rci"                        exit 0
+uv run pytest -q -m "not optional"                   206 passed, 1 skipped, 4 deselected
+uv sync --all-extras --dev                           exit 0
+uv run ruff format --check .                         175 files already formatted
+uv run ruff check .                                  All checks passed
+uv run mypy src/rci tests                            121 source files, no issues
+uv run pytest -q                                     210 passed, 1 skipped
+uv run pytest -q tests/acceptance                    46 passed
+uv run pytest -q tests/acceptance/test_g2a_retrieval_recovery.py
+                                                       3 passed
+uv run pytest -q tests/acceptance/test_g2b_consolidation_plasticity.py
+                                                       1 passed
+uv run pytest -q tests/acceptance/test_g3a_history_state.py
+                                                       2 passed
+uv run pytest -q tests/acceptance/test_recursive_project_inquiry.py
+                                                       7 passed
+uv run pytest -q tests/acceptance/test_regenerative_questions.py
+                                                       7 passed
+uv run pytest -q tests/acceptance/test_goal_synthesis.py
+                                                       3 passed
+uv run rci --help                                    exit 0
+uv build                                             sdist and wheel built, exit 0
+```
+
+Governance audit: requirement parity `79/79`; ADR count `17`; `git diff --check`
+returned clean. The single skip is the previously qualified Windows symlink-privilege
+fixture and is unchanged by G3A-L.
+
 ## G0 governance normalization — 2026-08-22
 
 Environment: Windows PowerShell, repository

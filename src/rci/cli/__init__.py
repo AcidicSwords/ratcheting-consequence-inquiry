@@ -23,7 +23,11 @@ from rci.backlog import (
     reconcile,
 )
 from rci.bindings import circuit_demonstration, route_demonstration
-from rci.compression import validate_order_sensitive_count, validate_unary_parity
+from rci.compression import (
+    LinearQueryFamily,
+    validate_order_sensitive_count,
+    validate_unary_parity,
+)
 from rci.evaluation import evaluate_cases
 from rci.learning import (
     MemoryPatchCandidate,
@@ -686,6 +690,31 @@ def compression_fixture(
     else:
         raise typer.BadParameter("fixture must be unary-parity or order-sensitive")
     typer.echo(_json(result.__dict__))
+
+
+@compression_app.command("linear-analyze")
+def compression_linear_analyze(
+    family_file: Annotated[Path, typer.Option("--family")],
+) -> None:
+    """Construct and independently check an inert exact-rational linear candidate."""
+
+    try:
+        family = LinearQueryFamily.model_validate_json(
+            _read_bounded_regular_file(family_file, max_bytes=1_048_576),
+            strict=True,
+        )
+    except (OSError, ValueError) as error:
+        raise typer.BadParameter(str(error), param_hint="--family") from error
+    analysis, check = RCI.analyze_exact_linear(family)
+    typer.echo(
+        _json(
+            {
+                "analysis": analysis.model_dump(mode="json"),
+                "check": check.model_dump(mode="json"),
+                "family": family.model_dump(mode="json"),
+            }
+        )
+    )
 
 
 @project_app.command("anchor")

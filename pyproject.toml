@@ -19,6 +19,7 @@ classifiers = [
 ]
 dependencies = [
   "pydantic>=2.12,<3",
+  "sympy==1.14.0",
   "typer>=0.16,<1",
 ]
 

@@ -33,12 +33,17 @@ from rci.compression import (
     CompressionContract,
     CompressionValidation,
     ExactCompressionLicense,
+    ExactLinearAnalysis,
+    ExactLinearCheck,
+    LinearQueryFamily,
     PathResidue,
     RealizedHistoryDerivation,
     RecoveryLicense,
     RepresentationReopening,
     RepresentationSuccessorDecision,
     RetentionCapabilityLink,
+    analyze_linear_query_family,
+    independently_check_linear_analysis,
 )
 from rci.core.commands import (
     AcceptEffectResult,
@@ -1751,6 +1756,15 @@ class RCI:
                 contract=contract,
             )
         )
+
+    @staticmethod
+    def analyze_exact_linear(
+        family: LinearQueryFamily,
+    ) -> tuple[ExactLinearAnalysis, ExactLinearCheck]:
+        """Construct and independently check one inert exact-linear candidate."""
+
+        analysis = analyze_linear_query_family(family)
+        return analysis, independently_check_linear_analysis(family, analysis)
 
     def record_compression_validation(
         self, inquiry_id: str, validation: CompressionValidation

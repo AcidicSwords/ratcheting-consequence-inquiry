@@ -270,7 +270,10 @@ continuation checks, exact compression/recovery licensing, path residue, represe
 succession, and generic reopening described in `PLAN.md` and ADR-0011. G3Q adds only
 confined, independently admitted, data-only generated question scheduling. G3G adds
 deterministic inert Goal-candidate compilation plus separate admission under ADR-0014.
-G3A-L and the other nondominated successors remain deferred rather than rejected.
+G3A-L is the active no-budget Goal selected at exact protected-main anchor
+`71d32346c71a26cf82a36df7e50376759bc1873b`. It implements only the exact finite
+rational linear binding under ADR-0017. G3Q-F and the other nondominated successors
+remain deferred rather than rejected.
 
 - Candidate question completions are not truths, and semantic completion is not an
   external return.
@@ -384,6 +387,13 @@ and verification evidence:
 
 ```text
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
+```
+
+The active G3A-L gate adds this focused command identically to `PLAN.md`, its Goal, CI,
+and verification evidence:
+
+```text
+uv run pytest -q tests/acceptance/test_g3a_linear_binding.py
 ```
 
 Dependency sync is bootstrap and may fetch locked packages. Test execution is

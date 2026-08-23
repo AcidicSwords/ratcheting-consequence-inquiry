@@ -16,8 +16,10 @@ RCI-079 remains unverified. G3FO candidate
 `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` likewise stopped indeterminate after its
 final fresh distinct-context review was unavailable; it is unmerged and supplies no
 standing failure-observation capability. ADR-0016 preserves the compositional grammar as
-a candidate only; G3Q-F is not selected. G3A-L and later
-phases remain outside the completed implementation boundary.
+a candidate only; G3Q-F is not selected. G3A-L is the active no-budget Goal selected at
+protected anchor `71d32346c71a26cf82a36df7e50376759bc1873b`; it remains unverified
+until its exact candidate, complete gates, and fresh review pass. Later phases remain
+outside the completed implementation boundary.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
 
@@ -35,6 +37,8 @@ Status vocabulary:
   evidence remains assigned to G3A-H or later;
 - **verified G3A-H** — bounded exact history-state code and local, protected
   pull-request, and protected-main post-merge evidence pass;
+- **active G3A-L** — exact finite rational linear-binding work is inside the sealed Goal,
+  but no implementation or verification conclusion is yet standing;
 - **verified G3R** — recursive project inquiry, adversarial acceptance, exact-head
   distinct-context review, protected pull-request CI, merge, and post-merge main CI pass;
 - **stopped indeterminate** — a candidate and its returns are preserved, but a required
@@ -116,10 +120,10 @@ Status vocabulary:
 | RCI-048 | Explicit carrier contract; validation/license/application separate | verified G3A-H exact; deferred G3B approximate | strict `CompressionContract`/`CompressionValidation`/`ExactCompressionLicense`/`CompressionApplication` stages; property checks bind the exact contract fingerprint and property |
 | RCI-049 | Route-specific licensed capabilities join package/application/license | verified G3A-H | unchanged G2 route schemas plus `RecoveryLicense` and `RetentionCapabilityLink`; derived capability remains empty until the complete join exists |
 | RCI-050 | Path residue differs from open dependency; debt/ancestry/fallback/reopening preserved | implemented G3A-H exact residue; deferred G3B debt | typed `PathResidue`, recoverable parity reopening, missing-residue `Unknown`, and successor lineage tests |
-| RCI-051 | Correct exact finite linear-family theorem | deferred G3A | rational quotient/kernel proof tests |
-| RCI-052 | Distributional/vector corollaries with almost-sure scope | deferred G3A | symbolic/finite distribution fixtures |
-| RCI-053 | Finite-probe rank and only linear minimality | deferred G3A | rational rank and redundant-probe tests |
-| RCI-054 | Generic factorization reopening; linear kernel is one instance | verified G3A-H generic; deferred G3A-L linear | exact factorization-failure check, parity horizon extension, recoverable residue, and lawful `Unknown`; kernel-shrink remains G3A-L |
+| RCI-051 | Correct exact finite linear-family theorem | active G3A-L | exact rational quotient/kernel construction plus independent Fraction checker |
+| RCI-052 | Distributional/vector corollaries with almost-sure scope | active G3A-L | finite positive rational scalar/vector support and uncentered Gram fixtures |
+| RCI-053 | Finite-probe rank and only linear minimality | active G3A-L | exact rational rank, redundant/independent probe, and scope-label tests |
+| RCI-054 | Generic factorization reopening; linear kernel is one instance | verified G3A-H generic; active G3A-L linear | existing generic evidence plus exact old-kernel/new-kernel witness, reversed-inclusion rejection, residue/recovery/Unknown disposition |
 | RCI-055 | Approximate geometry never establishes exact proof | deferred G3B | numerical near-zero/zero-loss non-promotion tests |
 | RCI-056 | Native methods remain isolated adapters | deferred G3C | ADR-0008; container-policy and provenance tests |
 
@@ -129,7 +133,7 @@ Status vocabulary:
 |---|---|---|---|
 | RCI-057 | G1 is Foundation + Phases 1–2 + bounded cognitive spine | verified G1 | `docs/goals/G1.md`, Python packaging, native Windows/Linux CI, pinned supplementary Docker image, and the implementation evidence itemized above. The frozen 12-command native gate is recorded with all commands exiting 0 in `docs/verification.md`; later retrieval/compression/formal-control/release capabilities remain absent or inert as assigned. |
 | RCI-058 | G2 retrieval/consolidation/retention/probes/reacquisition | verified G2A and G2B | ADR-0009/0010, sealed Goals, 170-test local gate, protected PR checks, and successful post-merge workflow 32576841848 |
-| RCI-059 | G3A-H/L then G3B/C gate exact history, exact linear, approximate, native | verified G3A-H; later sub-gates deferred | v1 G3 events, folded-state v4 rebuild, exact finite transition checker, SDK/CLI, and focused acceptance; later sub-gates remain deferred |
+| RCI-059 | G3A-H/L then G3B/C gate exact history, exact linear, approximate, native | verified G3A-H; active G3A-L; G3B/C deferred | unchanged G3A-H authority plus pure exact-linear binding and focused acceptance; no event/snapshot change |
 | RCI-060 | G4–G7 remain separately gated | deferred G4–G7 | later Goals; no G1 stubs |
 | RCI-061 | Backlog policy is human-owned and close proposal-only | verified G1 | tracked `.rci/config.toml`; pure reconciliation/apply allowlist; dedicated `BacklogEffectRecorded` ledger ownership rather than synthetic external-return evidence; shadow non-mutation, close proposal-only, checked-evidence, repeat-apply, out-of-order mutation, and linked-recurrence tests |
 | RCI-062 | Evidence runners are bounded and lack mutation authority | verified G1 | explicit argv and captured-input models, digest-pinned isolated Docker plan, timeout/output/input bounds, read-only/network-none/capability-drop flags, and runner unit/integration/security tests rejecting mutation, Git, packaging, and release actions. The one Windows symlink-fixture privilege skip is explicitly qualified in `docs/verification.md` and remains live in native Linux CI. |
@@ -170,7 +174,8 @@ Status vocabulary:
 | G3V | Stopped-indeterminate bounded review candidate preserved at `a425f4b0dfa5b2c52a67df87d460f25e4e825518` | No standing implementation, fresh semantic-review substitution, successor warrant, or promotion authority |
 | G3FO | Stopped-indeterminate failure-observation candidate preserved at `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` | No standing evaluator/handoff, model adapter, source/Git authority, review substitution, or promotion authority |
 | G3Q-F | Candidate finite dependent frames and bounded compositional grammar; not selected | Requires two distinct verified question/frame-blindness bindings; no grammar, new requirement, or semantic replacement is standing |
-| G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
+| G3A-L | Active exact finite rational linear binding | No approximation, native adapter, raw-environment system identification, or unrestricted minimality |
+| G3B/G3C | Approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |
 | G6 | Multi-backend evidence for learned relations | No production benchmark hardening |
