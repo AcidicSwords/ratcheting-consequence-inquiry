@@ -1,1 +1,4 @@
 * text=auto eol=lf
+docs/spec/sources/rci-canonical-regenerative-inquiry-calculus.md -text
+docs/spec/sources/rci-operator-first-notation-and-question-calculus.md -text
+docs/spec/sources/rci-proposed-compositional-grammar-of-inquiry.md -text

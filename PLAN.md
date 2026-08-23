@@ -475,6 +475,33 @@ Reopening requires a distinct Goal and fresh independent review, a surviving see
 fault, a new reproducible breaker family, or a separately governed review-policy
 comparison. The preserved branch and PR are evidence, not standing implementation.
 
+### G3FO (stopped indeterminate) — failure-first externalized cognition candidate
+
+G3FO began from protected-main anchor
+`ed6f5922815a29b856786660e76d62b68eeae26a`. Final candidate
+`b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` preserved the owned pre-return/effect/
+return/decode/check/mismatch lifecycle and derived a typed evaluation, unresolved
+localization frame, inert limitation candidate, and bounded handoff without adding an
+event, snapshot, dependency, model adapter, or authority port.
+
+The candidate passed its complete local and hosted gates after three invalid semantic
+reviews were repaired. A fresh distinct-context semantic review of the final exact head
+was unavailable, so the candidate was stopped indeterminate, PR #16 was closed without
+merge, and the branch was retained. No G3FO implementation or focused CI check entered
+protected main.
+
+ADR-0016 preserves three question-calculus/grammar sources as candidate derivations. A
+future G3Q-F is not selected merely from their elegance. It requires two distinct owned,
+verified failure bindings showing that current `QuestionContract`/G3Q shapes cannot
+express a consequential discriminator or continuation. If selected, it proceeds in
+three Goals: finite dependent frames; checked answer-conditioned continuation; and only
+after two frame implementations share the abstraction, bounded compositional
+generation. Broad operator algebra and v0.6 normalization remain deferred.
+
+The present post-G3FO frontier returns `Unknown`: the candidate review findings exposed
+authority, lifecycle, continuity, and implementation defects, not two independently
+verified question/frame-blindness failures. No successor Goal is active.
+
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
 - G3A-H (verified): explicit carrier roles; binding-derived realized history; exact consequence

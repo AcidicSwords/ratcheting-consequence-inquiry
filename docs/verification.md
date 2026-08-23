@@ -1101,3 +1101,80 @@ its bounded profile from substituting for it, no `IndependentReview`, successor
 decision, or promotion was lawful. PR #14 was closed without merge and its branch was
 retained. The executable candidate is not part of protected main; RCI-079 remains
 unverified and may be reopened only through a new Goal.
+
+## G3FO stopped-indeterminate disposition and grammar reconciliation — 2026-08-23
+
+G3FO began from protected-main anchor
+`ed6f5922815a29b856786660e76d62b68eeae26a`. PR #16 preserved four candidate heads:
+
+- `f6ba64c7adfe87ff27dea9e590f7a95343cff791`: invalid; evaluation trusted a
+  caller-authored lifecycle, comparison policy was decorative, permutation changed a
+  result, stage outcomes collapsed, handoff was not resolvable, and the weak fixture was
+  self-authored;
+- `f0592800e983b9a5655f82f381a34cae38288032`: invalid; authority could be appended
+  after return, reopening was self-authorizable, decode/check stages still collapsed,
+  and fixture pins were forgeable;
+- `ee32c3fad87dab177c372bbd7ba4cb089167b2ce`: invalid; pre-return checks could validate
+  later returns, late rejected evidence superseded accepted standing, continuation pins
+  were incomplete, and duplicate tasks collapsed;
+- `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb`: repaired final candidate; review
+  conclusion unavailable.
+
+The final candidate added explicit authority regressions for pre-return project/evidence
+antecedence, independently checked assistance, lawful delivery retry, accepted-evidence
+dominance, pending/decode/check/operational separation, exact raw/decode/check handoff
+references, task/expectation/operation/effect/discriminator continuity, independently
+checked route/decoder reopening, closed neutral task mapping, and owned branch comparison.
+
+The complete local gate passed at the exact final head:
+
+- `uv lock --check`: passed;
+- `uv sync --dev`: passed;
+- `uv run python -c "import rci"`: passed;
+- `uv run pytest -q -m "not optional"`: 215 passed, one documented skip, four
+  deselected;
+- `uv sync --all-extras --dev`: passed;
+- `uv run ruff format --check .`: 170 files formatted;
+- `uv run ruff check .`: passed;
+- `uv run mypy src/rci tests`: 121 source files passed;
+- `uv run pytest -q`: 219 passed, one documented skip;
+- `uv run pytest -q tests/acceptance`: 56 passed;
+- every sealed predecessor focused command passed with counts 3, 1, 2, 7, 7, and 3;
+- `uv run pytest -q tests/acceptance/test_capability_failure_observation.py`: 21
+  passed;
+- `uv run rci --help` and `uv build`: passed; sdist and wheel built.
+
+Hosted exact-head run
+[`32619654627`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32619654627)
+passed all nine jobs: base on Ubuntu/Windows; extras on Ubuntu/Windows; recursive,
+regenerative, goal-synthesis, and failure-observation on Ubuntu; and Docker.
+
+Fresh review remained a blocking relation. The hosted Codex reviewer reported exhausted
+code-review quota on PR #16. A GitHub Copilot review request produced no reviewer or
+review, and the installed local Codex executable was inaccessible. These are unavailable
+review returns, not semantic validation. In accordance with the presealed boundary,
+G3FO was stopped indeterminate, PR #16 was closed without merge, and its branch was
+retained. No G3FO source, CI requirement, evaluator, handoff, or claimed weak-reasoner
+improvement entered protected main.
+
+Three candidate source documents are preserved byte-for-byte:
+
+- operator-first calculus: 104223 bytes, SHA-256
+  `fc821f187f6c1a608135d698f704d9e59892e1776276a52002d13b44190f2858`;
+- canonical regenerative calculus: 48267 bytes, SHA-256
+  `3f8e6647a692787402657e0fa4e4c13c01a0449ee2cf057c450737915f48ce82`;
+- proposed compositional grammar: 28181 bytes, SHA-256
+  `5585c5bfb6e9e31ce72dac173ba1b9a7de008fec08d254a59f0c0931d15f0860`.
+
+ADR-0016 records their candidate correspondences and rejected collapses. Requirement
+parity remains exactly RCI-001--RCI-079; no new stable requirement or v0.6 authority was
+allocated. The post-G3FO frontier is `Unknown`: the preserved reviews demonstrated
+authority/lifecycle/implementation defects, not two verified failures requiring a shared
+dependent-question frame. G3Q-F therefore remains a candidate and no successor Goal is
+active.
+
+The documentation-only stop/reconciliation tree then passed the unchanged protected
+gate locally: source integrity 15/15, requirement parity 79/79, ADR count 16, 194
+non-optional tests plus one documented skip and four deselected, 198 full tests plus the
+same skip, 35 acceptance tests, all six predecessor focused gates, Ruff, mypy over 118
+source files, import, CLI help, and build. It adds no G3FO code or focused CI check.
