@@ -252,7 +252,11 @@ successors distinct; a failure in one category does not authorize mutation in an
 G1, G2A, G2B, G3A-H, G3R, G3Q, and G3G are sealed verified baselines. The post-G3Q recursive
 frontier selection is protected at exact selection anchor
 `60ff25635f94fb004e6419a09293c5e0fc023074`; G3G was promoted through protected main at
-`5f48d397030b6a063fdca19e51b70a824096e564`. No successor Goal is active until a new
+`5f48d397030b6a063fdca19e51b70a824096e564`. G3V was attempted from
+`b6069c0a58a669eed21005bada407eff1828071a` and stopped indeterminate at candidate
+`a425f4b0dfa5b2c52a67df87d460f25e4e825518`: its closed profile passed, but fresh
+distinct-context semantic review was unavailable. It is unmerged and unpromoted;
+RCI-079 remains deferred and unverified. No successor Goal is active until a new
 frontier decision and explicit activation occur.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier

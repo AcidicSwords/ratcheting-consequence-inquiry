@@ -1063,3 +1063,41 @@ at exact SHA `5f48d397030b6a063fdca19e51b70a824096e564` passed:
 Branch-protection read-back requires all eight strict current checks, including the new
 goal-synthesis context, with linear history and owner enforcement; force pushes and
 deletion remain blocked. G3G is sealed. No later frontier member is selected or active.
+
+## G3V stopped-indeterminate disposition — 2026-08-22
+
+G3V began from protected-main anchor
+`b6069c0a58a669eed21005bada407eff1828071a`. Its implementation commit was
+`21855a932a45b8d38118dca3447697bf7ab2c1eb`; the final documentation head was
+`a425f4b0dfa5b2c52a67df87d460f25e4e825518` on pull request
+[#14](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/14).
+
+The candidate's recorded local returns were:
+
+- focused bounded-review acceptance: 6 passed;
+- non-optional suite: 200 passed, one intentional platform skip, four deselected;
+- full suite: 204 passed, one intentional platform skip;
+- acceptance suite: 41 passed;
+- mypy: 120 source files passed;
+- Ruff format/check and build: passed.
+
+Hosted candidate [run
+32600257888](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32600257888)
+reported success for all nine candidate contexts:
+
+- `base (ubuntu-latest)`: job `97097350801`;
+- `base (windows-latest)`: job `97097350757`;
+- `extras (ubuntu-latest)`: job `97097350765`;
+- `extras (windows-latest)`: job `97097350769`;
+- `docker`: job `97097350664`;
+- `recursive (ubuntu-latest)`: job `97097350777`;
+- `regenerative (ubuntu-latest)`: job `97097350791`;
+- `goal-synthesis (ubuntu-latest)`: job `97097350774`;
+- `review-equivalence (ubuntu-latest)`: job `97097350763`.
+
+Fresh exact-head semantic review from a context distinct from the developer was
+unavailable. That return is `Unknown`. Because G3R requires it and G3V explicitly forbids
+its bounded profile from substituting for it, no `IndependentReview`, successor
+decision, or promotion was lawful. PR #14 was closed without merge and its branch was
+retained. The executable candidate is not part of protected main; RCI-079 remains
+unverified and may be reopened only through a new Goal.
