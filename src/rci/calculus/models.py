@@ -84,6 +84,7 @@ class EffectRef(FrozenModel):
     schema_version: Literal[1] = 1
     id: Identifier
     signature_id: Identifier
+    request_input_artifact: ArtifactRef
     represented_only: Literal[True] = True
 
 
@@ -593,10 +594,12 @@ class ArrangementProgramAdmission(FrozenModel):
 class InteractionOccurrence(FrozenModel):
     schema_version: Literal[1] = 1
     id: Identifier
+    execution_id: Identifier
     program_id: Identifier
     node_id: Identifier
     effect_id: Identifier
     effect_request_id: Identifier
+    predecessor_continuation_id: Identifier | None = None
     source_sequence: int = Field(ge=1)
 
 

@@ -14,6 +14,7 @@ from rci.calculus import (
     build_question_partition,
     compose_relation_extensions,
     crossing_is_involutive,
+    frame_observation_proposition_id,
     interpret_node,
     project_question_to_legacy,
     question_is_productive,
@@ -66,7 +67,7 @@ from rci.warrant import (
 NOW = datetime(2026, 8, 23, tzinfo=UTC)
 
 
-def _program() -> InteractionProgram:
+def _program(*, request_input_artifact: ArtifactRef | None = None) -> InteractionProgram:
     cells = (
         AnswerCell(id="answer-yes", label="yes"),
         AnswerCell(id="answer-no", label="no"),
@@ -78,7 +79,19 @@ def _program() -> InteractionProgram:
         return_interface_id=return_interface.id,
         operation_id="semantic.manual_answer",
     )
-    effect = EffectRef(id="ask-effect", signature_id=signature.id)
+    effect = EffectRef(
+        id="ask-effect",
+        signature_id=signature.id,
+        request_input_artifact=(
+            request_input_artifact
+            or ArtifactRef(
+                digest="0" * 64,
+                size=0,
+                media_type="application/octet-stream",
+                encoding="binary",
+            )
+        ),
+    )
     frame = QuestionFrame(
         id="binary-frame",
         question_id="binary-question",
@@ -465,7 +478,14 @@ def test_program_lifecycle_is_owned_checked_replayable_and_cannot_self_admit(
 ) -> None:
     sdk = RCI(tmp_path, clock=lambda: NOW)
     sdk.start("inquiry")
-    program = _program()
+    step = sdk.step("inquiry")
+    assert step.request_id is not None
+    requested = next(
+        item
+        for item in sdk.inspect("inquiry").effect_requests
+        if item.request.id == step.request_id
+    )
+    program = _program(request_input_artifact=requested.request.input_artifact)
     sdk.record_arrangement_program_candidate("inquiry", program)
     forged = ArrangementProgramAdmission(
         id="admission",
@@ -484,11 +504,115 @@ def test_program_lifecycle_is_owned_checked_replayable_and_cannot_self_admit(
     )
     sdk.decide_arrangement_program_admission("inquiry", forged.model_copy(update={"check": check}))
 
-    step = sdk.step("inquiry")
-    assert step.request_id is not None
+    wrong_input_artifact = sdk.artifacts.put_bytes(
+        b"foreign-input",
+        media_type="application/octet-stream",
+        encoding="binary",
+    )
+    wrong_input_program = program.model_copy(
+        update={
+            "id": "wrong-input-program",
+            "effects": tuple(
+                item.model_copy(update={"request_input_artifact": wrong_input_artifact})
+                for item in program.effects
+            ),
+        }
+    )
+    sdk.record_arrangement_program_candidate("inquiry", wrong_input_program)
+    wrong_input_check = _record_check(
+        sdk,
+        "inquiry",
+        f"admit-arrangement-program:{wrong_input_program.id}",
+        "wrong-input-program-admission",
+    )
+    sdk.decide_arrangement_program_admission(
+        "inquiry",
+        ArrangementProgramAdmission(
+            id="wrong-input-admission",
+            program_id=wrong_input_program.id,
+            outcome="admit",
+            check=wrong_input_check,
+        ),
+    )
+    state = sdk.inspect("inquiry")
+    with pytest.raises(InvalidCommandError, match="exact represented operation and input"):
+        sdk.open_interaction_occurrence(
+            "inquiry",
+            InteractionOccurrence(
+                id="wrong-input-occurrence",
+                execution_id="wrong-input-execution",
+                program_id=wrong_input_program.id,
+                node_id="ask-node",
+                effect_id="ask-effect",
+                effect_request_id=step.request_id,
+                source_sequence=state.sequence,
+            ),
+        )
+
+    skipped_node_program = program.model_copy(
+        update={
+            "id": "skipped-node-program",
+            "nodes": (
+                *program.nodes,
+                EffectNode(
+                    id="second-ask-node",
+                    effect_id="ask-effect",
+                    return_interface_id="binary-return",
+                    frame_id="binary-frame",
+                ),
+            ),
+            "continuation_edges": (
+                *program.continuation_edges,
+                ContinuationEdge(
+                    id="second-edge-yes",
+                    source_node_id="second-ask-node",
+                    answer_cell_id="answer-yes",
+                    target_node_id="yes-node",
+                ),
+                ContinuationEdge(
+                    id="second-edge-no",
+                    source_node_id="second-ask-node",
+                    answer_cell_id="answer-no",
+                    target_node_id="no-node",
+                ),
+            ),
+        }
+    )
+    sdk.record_arrangement_program_candidate("inquiry", skipped_node_program)
+    skipped_node_check = _record_check(
+        sdk,
+        "inquiry",
+        f"admit-arrangement-program:{skipped_node_program.id}",
+        "skipped-node-program-admission",
+    )
+    sdk.decide_arrangement_program_admission(
+        "inquiry",
+        ArrangementProgramAdmission(
+            id="skipped-node-admission",
+            program_id=skipped_node_program.id,
+            outcome="admit",
+            check=skipped_node_check,
+        ),
+    )
+    state = sdk.inspect("inquiry")
+    with pytest.raises(InvalidCommandError, match="program entry node"):
+        sdk.open_interaction_occurrence(
+            "inquiry",
+            InteractionOccurrence(
+                id="skipped-node-occurrence",
+                execution_id="skipped-node-execution",
+                program_id=skipped_node_program.id,
+                node_id="second-ask-node",
+                effect_id="ask-effect",
+                effect_request_id=step.request_id,
+                source_sequence=state.sequence,
+            ),
+        )
+
     prefix = sdk.inspect("inquiry")
     occurrence = InteractionOccurrence(
         id="occurrence",
+        execution_id="execution",
         program_id=program.id,
         node_id="ask-node",
         effect_id="ask-effect",
@@ -525,15 +649,8 @@ def test_program_lifecycle_is_owned_checked_replayable_and_cannot_self_admit(
             check=premature_check,
         ),
     )
-    with pytest.raises(InvalidCommandError, match="must follow the exact accepted decode"):
+    with pytest.raises(InvalidCommandError, match=r"does not match|must follow"):
         sdk.record_interaction_frame_observation("inquiry", premature)
-    frame_check = _record_check(
-        sdk,
-        "inquiry",
-        "observe-frame:frame-yes",
-        "frame-yes",
-        evidence_artifact=accepted.result.semantic_artifact,
-    )
     wrong_frame = InteractionFrameObservation(
         id="wrong-owned-frame",
         occurrence_id=occurrence.id,
@@ -543,15 +660,23 @@ def test_program_lifecycle_is_owned_checked_replayable_and_cannot_self_admit(
             kind=FrameObservationKind.COMPLETE,
             live_answer_cell_ids=("answer-yes",),
             decode_outcome_id=request.accepted_decoded_outcome_id,
-            check=frame_check,
+            check=CheckReference(evidence_id="wrong-frame", checker_verdict_id="wrong-frame"),
         ),
     )
     with pytest.raises(InvalidCommandError, match="exact owned frame"):
         sdk.record_interaction_frame_observation("inquiry", wrong_frame)
+    unauthorized_draft = FrameObservation(
+        id="wrong-checker-frame",
+        frame_id="binary-frame",
+        kind=FrameObservationKind.COMPLETE,
+        live_answer_cell_ids=("answer-yes",),
+        decode_outcome_id=request.accepted_decoded_outcome_id,
+        check=CheckReference(evidence_id="pending", checker_verdict_id="pending"),
+    )
     wrong_checker = _record_check(
         sdk,
         "inquiry",
-        "observe-frame:wrong-checker-frame",
+        frame_observation_proposition_id(unauthorized_draft),
         "wrong-checker-frame",
         evidence_artifact=accepted.result.semantic_artifact,
         checker_id="manual-v1",
@@ -559,28 +684,41 @@ def test_program_lifecycle_is_owned_checked_replayable_and_cannot_self_admit(
     unauthorized_discharge = InteractionFrameObservation(
         id="unauthorized-discharge-frame",
         occurrence_id=occurrence.id,
-        observation=FrameObservation(
-            id="wrong-checker-frame",
-            frame_id="binary-frame",
-            kind=FrameObservationKind.COMPLETE,
-            live_answer_cell_ids=("answer-yes",),
-            decode_outcome_id=request.accepted_decoded_outcome_id,
-            check=wrong_checker,
-        ),
+        observation=unauthorized_draft.model_copy(update={"check": wrong_checker}),
     )
     with pytest.raises(InvalidCommandError, match="not authorized by the exact owned frame"):
         sdk.record_interaction_frame_observation("inquiry", unauthorized_discharge)
+    observation_draft = FrameObservation(
+        id="frame-yes",
+        frame_id="binary-frame",
+        kind=FrameObservationKind.COMPLETE,
+        live_answer_cell_ids=("answer-yes",),
+        decode_outcome_id=request.accepted_decoded_outcome_id,
+        check=CheckReference(evidence_id="pending", checker_verdict_id="pending"),
+    )
+    frame_check = _record_check(
+        sdk,
+        "inquiry",
+        frame_observation_proposition_id(observation_draft),
+        "frame-yes",
+        evidence_artifact=accepted.result.semantic_artifact,
+    )
+    classification_substitution = InteractionFrameObservation(
+        id="substituted-frame-classification",
+        occurrence_id=occurrence.id,
+        observation=observation_draft.model_copy(
+            update={
+                "live_answer_cell_ids": ("answer-no",),
+                "check": frame_check,
+            }
+        ),
+    )
+    with pytest.raises(InvalidCommandError, match="proposition does not match"):
+        sdk.record_interaction_frame_observation("inquiry", classification_substitution)
     observation = InteractionFrameObservation(
         id="owned-frame-yes",
         occurrence_id=occurrence.id,
-        observation=FrameObservation(
-            id="frame-yes",
-            frame_id="binary-frame",
-            kind=FrameObservationKind.COMPLETE,
-            live_answer_cell_ids=("answer-yes",),
-            decode_outcome_id=request.accepted_decoded_outcome_id,
-            check=frame_check,
-        ),
+        observation=observation_draft.model_copy(update={"check": frame_check}),
     )
     sdk.record_interaction_frame_observation("inquiry", observation)
     continuation = InteractionContinuation(

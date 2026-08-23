@@ -36,6 +36,18 @@ Complete local candidate gate:
 
 Hosted CI, fresh exact-head review, and protected promotion remain pending.
 
+Fresh review of intermediate head `cd69cfeffddcec8f59255321c44687912cfd48b1`
+returned `INVALID` despite a completely green hosted gate. It reproduced four authority
+failures: the checker proposition did not bind the exact frame classification; a root
+occurrence could skip the program entry; a guarded cycle could reuse an already resolved
+request; and represented effects matched only an operation kind rather than the exact
+request input. It also found that frame/interface comparison used answer-cell IDs rather
+than complete cell definitions. The successor repair binds the canonical frame/decode/
+kind/cell classification into the checked proposition, owns execution/predecessor links,
+requires one fresh post-selection request per occurrence, pins exact request input, and
+compares complete answer-cell records. The focused, full, acceptance, Ruff, and mypy
+checks pass after that repair; a new exact-head review is required.
+
 ## G3K-S semantic-normalization promotion — 2026-08-23
 
 Anchor: `7aa670482af85a9fd554a31924dbce6a26984af4`. ADR-0018 and

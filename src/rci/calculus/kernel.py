@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
+from hashlib import sha256
 
 from rci.calculus.models import (
     Arrangement,
@@ -192,9 +194,7 @@ def validate_program(program: InteractionProgram) -> None:
             frame = frames.get(node.frame_id)
             if frame is None or frame.return_interface_id != interface.id:
                 raise CalculusValidationError("effect node requires its exact owned answer frame")
-            if tuple(cell.id for cell in frame.answer_cells) != tuple(
-                cell.id for cell in interface.answer_cells
-            ):
+            if frame.answer_cells != interface.answer_cells:
                 raise CalculusValidationError("effect frame and return-interface cells differ")
             if frame.applicability_exterior_cell_id != interface.applicability_exterior_cell_id:
                 raise CalculusValidationError("effect frame applicability exterior differs")
@@ -305,3 +305,17 @@ def select_continuation(
     if len(matches) != 1:
         raise CalculusValidationError("checked answer does not determine one continuation")
     return matches[0].target_node_id
+
+
+def frame_observation_proposition_id(observation: FrameObservation) -> str:
+    """Bind a checker proposition to the exact decoded frame classification."""
+
+    payload = observation.model_dump(mode="json", exclude={"check"})
+    canonical = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return f"observe-frame:{sha256(canonical).hexdigest()}"

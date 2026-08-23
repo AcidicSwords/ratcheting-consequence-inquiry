@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from rci.backlog.models import G1_APPLICABLE_EFFECT_KINDS, BacklogItem
 from rci.backlog.reconcile import BacklogPolicy, apply_effects
-from rci.calculus.kernel import select_continuation, validate_program
+from rci.calculus.kernel import (
+    frame_observation_proposition_id,
+    select_continuation,
+    validate_program,
+)
 from rci.calculus.models import EffectNode, FrameObservationKind
 from rci.claims.logic import (
     conflict_obligation,
@@ -3914,6 +3918,59 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             or g3k_effect_node.effect_id != g3k_occurrence.effect_id
         ):
             raise InvalidCommandError("occurrence must open the exact represented effect node")
+        if any(
+            item.effect_request_id == g3k_occurrence.effect_request_id
+            for item in state.interaction_occurrences
+        ):
+            raise InvalidCommandError(
+                "one persisted effect request can actualize only one interaction occurrence"
+            )
+        if g3k_occurrence.predecessor_continuation_id is None:
+            if g3k_occurrence.node_id != g3k_occurrence_program.entry_node_id:
+                raise InvalidCommandError(
+                    "a root interaction occurrence must open the program entry node"
+                )
+            if any(
+                item.execution_id == g3k_occurrence.execution_id
+                for item in state.interaction_occurrences
+            ):
+                raise InvalidCommandError("program execution already has its root occurrence")
+        else:
+            g3k_predecessor_continuation = next(
+                (
+                    item
+                    for item in state.interaction_continuations
+                    if item.id == g3k_occurrence.predecessor_continuation_id
+                ),
+                None,
+            )
+            g3k_predecessor_occurrence = (
+                next(
+                    (
+                        item
+                        for item in state.interaction_occurrences
+                        if item.id == g3k_predecessor_continuation.occurrence_id
+                    ),
+                    None,
+                )
+                if g3k_predecessor_continuation is not None
+                else None
+            )
+            if (
+                g3k_predecessor_continuation is None
+                or g3k_predecessor_occurrence is None
+                or g3k_predecessor_occurrence.execution_id != g3k_occurrence.execution_id
+                or g3k_predecessor_occurrence.program_id != g3k_occurrence.program_id
+                or g3k_predecessor_continuation.successor_node_id != g3k_occurrence.node_id
+            ):
+                raise InvalidCommandError(
+                    "interaction occurrence must follow its exact selected predecessor"
+                )
+            if any(
+                item.predecessor_continuation_id == g3k_occurrence.predecessor_continuation_id
+                for item in state.interaction_occurrences
+            ):
+                raise InvalidCommandError("selected continuation was already actualized")
         request_state = next(
             (
                 item
@@ -3947,8 +4004,27 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
         if (
             g3k_effect_signature is None
             or request_state.request.effect_kind != g3k_effect_signature.operation_id
+            or g3k_effect_ref is None
+            or request_state.request.input_artifact != g3k_effect_ref.request_input_artifact
         ):
-            raise InvalidCommandError("effect request does not actualize the represented operation")
+            raise InvalidCommandError(
+                "effect request does not actualize the exact represented operation and input"
+            )
+        if g3k_occurrence.predecessor_continuation_id is not None:
+            g3k_request_position = state.record_position(
+                "effect_request", g3k_occurrence.effect_request_id
+            )
+            g3k_predecessor_position = state.record_position(
+                "interaction_continuation", g3k_occurrence.predecessor_continuation_id
+            )
+            if (
+                g3k_request_position is None
+                or g3k_predecessor_position is None
+                or g3k_request_position <= g3k_predecessor_position
+            ):
+                raise InvalidCommandError(
+                    "successor effect request must be persisted after branch selection"
+                )
         if g3k_occurrence.source_sequence != state.sequence:
             raise InvalidCommandError(
                 "interaction occurrence must pin the exact request-owned prefix"
@@ -4082,7 +4158,7 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
                 g3k_frame_observation.check,
                 evidence_by_id=evidence_index(state.evidence_records),
                 checker_verdict_by_id=checker_verdict_index(state.checker_verdicts),
-                proposition_id=f"observe-frame:{g3k_frame_observation.id}",
+                proposition_id=frame_observation_proposition_id(g3k_frame_observation),
                 proposition_kind=PropositionKind.RELATION,
                 scope_fingerprint=state.context.scope_fingerprint,
                 authorized_checker_ids=state.context.discharge_mechanism_ids,
