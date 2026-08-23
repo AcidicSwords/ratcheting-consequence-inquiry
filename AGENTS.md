@@ -256,8 +256,12 @@ frontier selection is protected at exact selection anchor
 `b6069c0a58a669eed21005bada407eff1828071a` and stopped indeterminate at candidate
 `a425f4b0dfa5b2c52a67df87d460f25e4e825518`: its closed profile passed, but fresh
 distinct-context semantic review was unavailable. It is unmerged and unpromoted;
-RCI-079 remains deferred and unverified. No successor Goal is active until a new
-frontier decision and explicit activation occur.
+RCI-079 remains deferred and unverified. G3FO is the active no-budget Goal from exact
+protected-main anchor `ed6f5922815a29b856786660e76d62b68eeae26a`. It adds only a
+derived consequence-pinned failure observation, unresolved localization frame, inert
+limitation candidate, and cognitive handoff under ADR-0016. It adds no event/snapshot
+schema, model adapter, source/Git port, warrant, review substitution, or promotion
+authority.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
@@ -371,6 +375,13 @@ and verification evidence:
 
 ```text
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
+```
+
+The active G3FO gate adds this focused command identically to `PLAN.md`, its Goal, CI,
+and verification evidence:
+
+```text
+uv run pytest -q tests/acceptance/test_capability_failure_observation.py
 ```
 
 Dependency sync is bootstrap and may fetch locked packages. Test execution is

@@ -1101,3 +1101,46 @@ its bounded profile from substituting for it, no `IndependentReview`, successor
 decision, or promotion was lawful. PR #14 was closed without merge and its branch was
 retained. The executable candidate is not part of protected main; RCI-079 remains
 unverified and may be reopened only through a new Goal.
+
+## Active G3FO verification boundary — 2026-08-22
+
+G3FO begins from protected-main anchor
+`ed6f5922815a29b856786660e76d62b68eeae26a` under ADR-0016 and
+`docs/goals/G3FO.md`. The two candidate calculus documents are preserved byte-for-byte:
+
+- operator-first: 104223 bytes, SHA-256
+  `fc821f187f6c1a608135d698f704d9e59892e1776276a52002d13b44190f2858`;
+- canonical regenerative: 48267 bytes, SHA-256
+  `3f8e6647a692787402657e0fa4e4c13c01a0449ee2cf057c450737915f48ce82`.
+
+They remain historical candidate sources. RCI v0.5 remains authoritative and no new
+stable requirement is allocated before the G3FO discriminator passes.
+
+The active focused command is:
+
+```text
+uv run pytest -q tests/acceptance/test_capability_failure_observation.py
+```
+
+Local candidate verification on Windows PowerShell completed with exact commands from
+the frozen gate and the focused command:
+
+- archive integrity: 14/14 byte counts and SHA-256 digests matched;
+- requirement parity: 79/79 stable IDs in the specification and matrix;
+- ADR count: 16;
+- focused G3FO acceptance: 9 passed;
+- non-optional suite: 203 passed, one intentional platform skip, four deselected;
+- full suite: 207 passed, one intentional platform skip;
+- acceptance suite: 44 passed;
+- mypy: 121 source files passed;
+- Ruff format/check, import, root CLI help, and build: passed.
+
+The focused suite includes exact byte comparison independent of descriptive media
+labels. It also exercises the six outcome classes, unresolved localization, handoff
+route exclusion, protocol/CAS mutation, late unaccepted decode, foreign actor/route,
+permutation stability, SDK/CLI parity, inert model prose, and the bounded weak-reasoner
+fixture.
+
+Hosted exact-head CI, fresh independent semantic review, successor disposition, and
+protected promotion remain pending. These local returns do not authorize any of those
+stages. Every predecessor gate remains unchanged.

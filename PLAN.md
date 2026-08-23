@@ -475,6 +475,28 @@ Reopening requires a distinct Goal and fresh independent review, a surviving see
 fault, a new reproducible breaker family, or a separately governed review-policy
 comparison. The preserved branch and PR are evidence, not standing implementation.
 
+### G3FO (active) — failure-first externalized cognition
+
+G3FO begins from protected-main anchor
+`ed6f5922815a29b856786660e76d62b68eeae26a`. It seals expected task consequences before
+return and derives, without effects, one of pass, protected mismatch, decode
+indeterminacy, operational `Unknown`, or protocol invalidity from the existing
+authoritative lifecycle.
+
+The bounded slice adds strict protocol/result/localization/limitation-candidate/handoff
+records, CAS verification, SDK/CLI inspection, and one deterministic weak-reasoner
+fixture. Only protected mismatch may produce an inert limitation candidate. Cause
+classification remains a fixed frontier until independently narrowed. Malformed output,
+timeout, unsupported execution, and stale/foreign evidence cannot become semantic
+failure or implementation blame.
+
+The operator-first and regenerative-calculus inputs are archived proposals under
+ADR-0016. G3FO adopts only antecedent answer cells, partial/indeterminate outcomes,
+discharge-route pins, and answer-conditioned next discrimination at the measured
+failure boundary. Generic relation/operator composition and a v0.6 rewrite remain
+deferred. G3FO changes no event or snapshot schema and grants no model, execution,
+source, Git, warrant, review, or promotion authority.
+
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
 - G3A-H (verified): explicit carrier roles; binding-derived realized history; exact consequence
@@ -597,6 +619,13 @@ The sealed G3G baseline retains this focused command:
 
 ```text
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
+```
+
+Active G3FO additionally requires this focused acceptance command, identically present
+in AGENTS, the G3FO Goal, CI, and the verification record:
+
+```text
+uv run pytest -q tests/acceptance/test_capability_failure_observation.py
 ```
 
 Synchronization may fetch locked packages; test execution is credential-free,

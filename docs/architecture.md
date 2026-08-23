@@ -99,6 +99,24 @@ review required by G3R, so it was stopped indeterminate and never entered this s
 architecture. ADR-0015 preserves the boundary: finite seeded-fault coverage may remain
 useful evidence, but it is not an `IndependentReview` and cannot promote itself.
 
+G3FO adds a derived evaluation seam before attempting a general question/operator
+kernel:
+
+```text
+sealed Goal/context + protocol CAS artifact
+  -> persisted effect request + prediction seal
+  -> exact attempt/return/decode/acceptance/mismatch records
+  -> pure consequential evaluation
+  -> unresolved antecedent localization frame
+  -> inert limitation candidate or typed operational Unknown
+  -> bounded cognitive handoff and next discriminator
+```
+
+This is not a second authority or event fold. The records consumed remain owned by the
+existing ledger/CAS lifecycle; the result, frame, candidate, and handoff are deterministic
+derived views. A model may propose diagnostic material but cannot choose its cause cell,
+change a sealed expectation, admit a limitation, review a patch, or promote anything.
+
 ## Durable authority and logical ownership
 
 The SQLite event ledger and content-addressed artifact store are the only durable

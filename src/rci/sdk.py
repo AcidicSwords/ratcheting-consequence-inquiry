@@ -14,7 +14,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
 from rci.backlog.models import G1_APPLICABLE_EFFECT_KINDS, BacklogEffect
 from rci.claims.models import (
@@ -112,6 +112,16 @@ from rci.core.model import ArtifactRef, CapturedPayload, InquiryContext
 from rci.core.serialization import canonical_json_bytes, sha256_digest
 from rci.core.state import InquiryState
 from rci.core.transitions import decide, evolve
+from rci.evaluation import (
+    CapabilityConsequenceReport,
+    CapabilityEvaluationBundle,
+    CapabilityEvaluationEpisode,
+    CapabilityEvaluationProtocol,
+    CognitiveHandoff,
+    build_capability_evaluation_bundle,
+    build_protocol_invalid_bundle,
+    capability_protocol_artifact,
+)
 from rci.learning import (
     ConsolidationCandidate,
     ConsolidationCheckpoint,
@@ -155,7 +165,7 @@ from rci.orchestration import (
     StepPlan,
     plan_next,
 )
-from rci.persistence import ArtifactStore, SQLiteEventStore
+from rci.persistence import ArtifactIntegrityError, ArtifactStore, SQLiteEventStore
 from rci.project import (
     CandidateEnvironmentManifest,
     CapabilityFrontier,
@@ -271,6 +281,19 @@ def _stable_id(prefix: str, *parts: str) -> str:
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def _artifact_refs(value: object) -> Iterable[ArtifactRef]:
+    """Walk strict records without serializing away ArtifactRef identity."""
+
+    if isinstance(value, ArtifactRef):
+        yield value
+    elif isinstance(value, BaseModel):
+        for name in type(value).model_fields:
+            yield from _artifact_refs(getattr(value, name))
+    elif isinstance(value, (tuple, list)):
+        for item in value:
+            yield from _artifact_refs(item)
 
 
 class RCI:
@@ -2086,6 +2109,76 @@ class RCI:
                 disposition=disposition,
             )
         )
+
+    def publish_capability_evaluation_protocol(
+        self, protocol: CapabilityEvaluationProtocol
+    ) -> ArtifactRef:
+        """Publish the exact pre-return protocol bytes to CAS."""
+
+        artifact = self.artifacts.put_bytes(
+            canonical_json_bytes(protocol),
+            media_type="application/vnd.rci.capability-evaluation+json",
+            encoding="utf-8",
+        )
+        if artifact != capability_protocol_artifact(protocol):
+            raise ArtifactIntegrityError("published capability protocol metadata changed")
+        return artifact
+
+    def evaluate_capability_episode(
+        self, episode: CapabilityEvaluationEpisode
+    ) -> CapabilityEvaluationBundle:
+        """Load and verify exact CAS bytes, then invoke the effect-free projector."""
+
+        protocol = episode.protocol
+        try:
+            stored_protocol = CapabilityEvaluationProtocol.model_validate_json(
+                self.artifacts.get_bytes(episode.protocol_artifact), strict=True
+            )
+            if stored_protocol != protocol:
+                raise ValueError("protocol object differs from its CAS bytes")
+            unique_refs = {
+                item.digest: item
+                for item in (*tuple(_artifact_refs(protocol)), *tuple(_artifact_refs(episode)))
+            }
+            for digest in sorted(unique_refs):
+                self.artifacts.verify(unique_refs[digest])
+
+            accepted_id = episode.effect.accepted_decoded_outcome_id
+            accepted = next(
+                (
+                    outcome
+                    for outcome in episode.effect.decode_outcomes
+                    if outcome.id == accepted_id
+                ),
+                None,
+            )
+            report = (
+                CapabilityConsequenceReport.model_validate_json(
+                    self.artifacts.get_bytes(accepted.result.semantic_artifact), strict=True
+                )
+                if isinstance(accepted, Decoded)
+                else None
+            )
+            if report is not None:
+                report_refs = {item.digest: item for item in _artifact_refs(report)}
+                for digest in sorted(report_refs):
+                    self.artifacts.verify(report_refs[digest])
+        except (ArtifactIntegrityError, ValidationError, ValueError):
+            return build_protocol_invalid_bundle(
+                protocol=protocol,
+                episode=episode,
+                issue_codes=("artifact_missing_tampered_or_malformed",),
+            )
+        return build_capability_evaluation_bundle(
+            protocol=protocol,
+            episode=episode,
+            report=report,
+        )
+
+    def capability_handoff(self, episode: CapabilityEvaluationEpisode) -> CognitiveHandoff:
+        """Return only the canonical context-reset handoff for one exact episode."""
+
+        return self.evaluate_capability_episode(episode).handoff
 
     def append_local_effects(
         self,
