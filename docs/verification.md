@@ -4,6 +4,26 @@ This is an append-oriented evidence log. Record commands, environment, exit
 status, and material returns. A planned, skipped, unavailable, or failed check is
 not passing evidence.
 
+## Active G3K-S semantic-normalization evidence — 2026-08-23
+
+Anchor: `7aa670482af85a9fd554a31924dbce6a26984af4`. ADR-0018 and
+`docs/goals/G3K-S.md` seal semantic normalization only; no executable kernel is claimed.
+
+Focused command:
+
+```text
+uv run pytest -q tests/acceptance/test_g3k_semantic_normalization.py
+```
+
+Initial return: exit `0`, `2 passed`. The two owned bindings independently reproduce
+the incumbent boundaries required by ADR-0016: general answer-conditioned successor
+rules are rejected by the admitted G3Q compiler, while a partial two-class answer is
+collapsed to one unclassified residual rather than preserving multiple live cells.
+
+Complete local gate, hosted CI, exact-head fresh semantic review, protected promotion,
+and post-merge verification remain pending. RCI-080--RCI-086 are accepted semantic
+targets but have no executable standing until their assigned G3K-E evidence exists.
+
 ## G3A-L stopped-indeterminate disposition — 2026-08-23
 
 Selection anchor: `71d32346c71a26cf82a36df7e50376759bc1873b`.

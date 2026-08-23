@@ -1,9 +1,9 @@
-# RCI v0.5 implementation plan
+# RCI v0.6 implementation plan
 
 ## Status and authority
 
 This document is the approved engineering architecture and delivery sequence for
-`RCI_Project_Spec.tex` v0.5. The specification defines RCI semantics; this plan fixes
+`RCI_Project_Spec.tex` v0.6. The specification defines RCI semantics; this plan fixes
 implementation choices, trust boundaries, dependencies, and milestone gates. The active
 Goal fixes the current completion boundary. Ambiguities are recorded in
 `docs/requirements-matrix.md` and, when a decision is required, `docs/adr/`; code does
@@ -500,7 +500,7 @@ generation. Broad operator algebra and v0.6 normalization remain deferred.
 
 The present post-G3FO frontier returns `Unknown`: the candidate review findings exposed
 authority, lifecycle, continuity, and implementation defects, not two independently
-verified question/frame-blindness failures. No successor Goal is active.
+verified question/frame-blindness failures. At that stop boundary no successor Goal was active.
 
 G3A-L was subsequently attempted from exact protected anchor
 `71d32346c71a26cf82a36df7e50376759bc1873b` and stopped indeterminate at candidate
@@ -510,6 +510,19 @@ not replay the binding-specific family/analysis/check proof. The sealed Goal pro
 the new event needed to repair that boundary, so PR #19 was closed without merge and the
 candidate branch was retained. RCI-051--RCI-053 and the linear part of RCI-054 remain
 deferred. Reopening requires a newly sealed event-authorizing Goal.
+
+G3K-S is selected from protected anchor `7aa670482af85a9fd554a31924dbce6a26984af4`.
+It normalizes v0.6 around perpendicular realized succession, typed arrangement, and
+piecewise recognition after two incumbent expressivity failures pass the focused gate.
+It adds no executable kernel or event. G3K-E follows only after protected G3K-S
+promotion and implements the finite typed graph, frames, recognition, compatibility
+projections, additive events, and folded-state v7.
+
+Focused G3K-S command:
+
+```text
+uv run pytest -q tests/acceptance/test_g3k_semantic_normalization.py
+```
 
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 

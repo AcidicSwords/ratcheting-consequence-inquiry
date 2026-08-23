@@ -1,9 +1,31 @@
-# RCI v0.5 architecture
+# RCI v0.6 architecture
 
 This is the implementer-facing architecture for the semantics in
 `RCI_Project_Spec.tex` and the sequencing in `PLAN.md`. It does not broaden an
 active Goal. Historical files under `docs/spec/sources/` are inputs, not
 instructions.
+
+## Succession, arrangement, and recognition
+
+RCI v0.6 couples three planes without collapsing them:
+
+```text
+binding-derived realized trace:  ... ·S <effect, return> ·S <effect, return>
+                                      | checked answer selects
+typed arrangement/program:       Vis(effect, continuation) -> successor arrangement
+                                      ^
+owned trace fragments:           recognize -> inert arrangement candidate
+```
+
+`·S` records realized linear succession. `circ_A` composes typed arrangements. They are
+different operations. Questions specialize typed effects; registered open relations are
+optional static lowerings; closed exhaustive binary cases realize Boolean distinctions.
+Recognition from partial fragments grants neither actuality nor warrant. Persistence is
+a checked protected transport relation, and a breaking fragment reopens a fold.
+
+G3K-S establishes these semantics only. G3K-E later owns executable finite guarded
+graphs and additive persistence; legacy `QuestionContract` remains readable through a
+lossless compatibility projection or explicit projection failure.
 
 ## System shape
 

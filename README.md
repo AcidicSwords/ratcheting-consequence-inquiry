@@ -8,7 +8,7 @@ implement the event/effect foundation, finite formalization and warrant, a bound
 cognitive spine, deterministic
 structural retrieval, provisional retention routes, measured reacquisition,
 consolidation, versioned repair, semantic-field evaluation, and learned-probe admission.
-RCI v0.5 preserves the v0.4 distinction between the replay-complete aggregate and a protected
+RCI v0.6 preserves the v0.4 distinction between the replay-complete aggregate and a protected
 consequence-sufficient retained state. G3A-H adds bounded exact history-state contracts,
 finite transition fixtures, licensed retained-capability joins, path residue, reopening,
 and a warranted representation ratchet. Verified G3R applies the same discipline to project
