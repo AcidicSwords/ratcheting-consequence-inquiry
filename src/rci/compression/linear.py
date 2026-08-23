@@ -806,9 +806,21 @@ def build_linear_validation_properties(
     return tuple(properties)
 
 
+def _require_intact_analysis(analysis: ExactLinearAnalysis) -> None:
+    try:
+        validated = ExactLinearAnalysis.model_validate(
+            analysis.model_dump(mode="python", warnings=False)
+        )
+    except ValueError as exc:
+        raise ValueError("exact linear operations require an intact analysis record") from exc
+    if validated != analysis:
+        raise ValueError("exact linear operations require an intact analysis record")
+
+
 def encode_quotient(
     analysis: ExactLinearAnalysis, source: ExactRationalVector
 ) -> ExactRationalCoordinates:
+    _require_intact_analysis(analysis)
     if len(source.values) != analysis.gram_matrix.column_count:
         raise ValueError("source vector does not inhabit the analyzed carrier")
     source_values = [value.as_fraction() for value in source.values]

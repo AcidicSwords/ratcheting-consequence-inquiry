@@ -109,6 +109,18 @@ def test_exact_universal_quotient_is_permutation_stable_and_linear_only() -> Non
     assert encode_quotient(
         analysis, ExactRationalVector(values=(_r(2), _r(3), _r(99)))
     ) == ExactRationalCoordinates(values=(_r(2), _r(3)))
+    with pytest.raises(ValueError, match="intact analysis record"):
+        encode_quotient(
+            analysis.model_copy(
+                update={
+                    "quotient_basis": (
+                        ExactRationalVector(values=(_r(0), _r(0), _r(1))),
+                        ExactRationalVector(values=(_r(0), _r(1), _r(0))),
+                    )
+                }
+            ),
+            ExactRationalVector(values=(_r(2), _r(3), _r(99))),
+        )
     assert protected_consequences_equal(
         family,
         ExactRationalVector(values=(_r(2), _r(3), _r(0))),
