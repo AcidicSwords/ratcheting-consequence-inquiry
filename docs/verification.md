@@ -1178,3 +1178,11 @@ gate locally: source integrity 15/15, requirement parity 79/79, ADR count 16, 19
 non-optional tests plus one documented skip and four deselected, 198 full tests plus the
 same skip, 35 acceptance tests, all six predecessor focused gates, Ruff, mypy over 118
 source files, import, CLI help, and build. It adds no G3FO code or focused CI check.
+
+The stop/reconciliation record was promoted linearly through
+[PR #17](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/pull/17) as
+protected-main commit `66da91aa56b3949845032f0c428ab331bdc7ec55`. Post-merge hosted
+[run `32620214741`](https://github.com/AcidicSwords/ratcheting-consequence-inquiry/actions/runs/32620214741)
+passed base and extras on Ubuntu/Windows, recursive, regenerative, goal-synthesis, and
+Docker. This verifies the stop record and source reconciliation; it does not validate or
+promote the unmerged G3FO implementation.
