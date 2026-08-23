@@ -18,8 +18,9 @@ independently; and detects the corrected kernel-shrink reopening condition.
 
 Separator: exact finite fixtures must distinguish independent from redundant probes,
 positive from zero/negative weights, universal from almost-sure scope, scalar from vector
-outputs, correct from reversed kernel inclusion, recoverable from unrecoverable reopening,
-and exact rationals from numerical approximations.
+outputs, correct from reversed kernel inclusion, reopening witnesses from unchanged kernels,
+and exact rationals from numerical approximations. Pure reopening witnesses remain `Unknown`;
+the sealed G3A-H aggregate owns any later residue or licensed-recovery disposition.
 
 Preserve: every sealed event and snapshot schema, the replay-complete `InquiryState`, all
 G3A-H carrier and authority distinctions, independent validation/license/application

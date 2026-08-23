@@ -295,16 +295,29 @@ class ExactLinearAnalysis(FrozenModel):
         ):
             raise ValueError("linear basis vectors must inhabit the source carrier")
         if self.id != _analysis_identity(
+            schema_version=self.schema_version,
             family_id=self.family_id,
             family_fingerprint=self.family_fingerprint,
             gram=self.gram_matrix,
+            quotient_basis=self.quotient_basis,
+            kernel_basis=self.kernel_basis,
+            rank=self.rank,
+            minimum_linear_encoder_dimension=self.minimum_linear_encoder_dimension,
+            minimality_scope=self.minimality_scope,
+            equivalence_scope=self.equivalence_scope,
+            construction_backend_id=self.construction_backend_id,
+            construction_backend_version=self.construction_backend_version,
+            standing=self.standing,
         ):
             raise ValueError("exact linear analysis identity must be content-derived")
         return self
 
     @property
     def fingerprint(self) -> str:
-        return content_fingerprint("rci.exact-linear-analysis.v1", self)
+        return content_fingerprint(
+            "rci.exact-linear-analysis.v1",
+            self.model_dump(mode="json", warnings=False),
+        )
 
 
 class ExactLinearCheck(FrozenModel):
@@ -334,6 +347,19 @@ class ExactLinearCheck(FrozenModel):
             raise ValueError("invalid linear checks require canonical issues")
         if tuple(sorted(set(self.issue_ids))) != self.issue_ids:
             raise ValueError("linear check issues must be unique and canonical")
+        if set(properties) != set(ValidationProperty):
+            raise ValueError("linear checks must disposition every exact validation property")
+        if self.id != _linear_check_id(
+            family_id=self.family_id,
+            family_fingerprint=self.family_fingerprint,
+            analysis_id=self.analysis_id,
+            analysis_fingerprint=self.analysis_fingerprint,
+            property_outcomes=self.property_outcomes,
+            issue_ids=self.issue_ids,
+            checker_id=self.checker_id,
+            standing=self.standing,
+        ):
+            raise ValueError("exact linear check identity must be content-derived")
         return self
 
 
@@ -365,6 +391,17 @@ class LinearKernelReopening(FrozenModel):
             raise ValueError(
                 "pure linear reopening remains Unknown until aggregate-owned recovery resolution"
             )
+        if self.id != _linear_reopening_id(
+            incumbent_analysis_id=self.incumbent_analysis_id,
+            expanded_analysis_id=self.expanded_analysis_id,
+            incumbent_horizon_id=self.incumbent_horizon_id,
+            expanded_horizon_id=self.expanded_horizon_id,
+            witness=self.witness,
+            positive_observation_addition=self.positive_observation_addition,
+            strict_kernel_shrink=self.strict_kernel_shrink,
+            disposition=self.disposition,
+        ):
+            raise ValueError("linear kernel reopening identity must be content-derived")
         return self
 
 
@@ -415,22 +452,61 @@ def _from_sympy_vectors(vectors: list[Matrix]) -> tuple[ExactRationalVector, ...
 
 
 def _analysis_identity(
-    *, family_id: str, family_fingerprint: str, gram: ExactRationalMatrix
+    *,
+    schema_version: int,
+    family_id: str,
+    family_fingerprint: str,
+    gram: ExactRationalMatrix,
+    quotient_basis: tuple[ExactRationalVector, ...],
+    kernel_basis: tuple[ExactRationalVector, ...],
+    rank: int,
+    minimum_linear_encoder_dimension: int,
+    minimality_scope: str,
+    equivalence_scope: LinearEquivalenceScope,
+    construction_backend_id: str,
+    construction_backend_version: str,
+    standing: LinearAnalysisStanding,
 ) -> str:
     material = {
+        "schema_version": schema_version,
         "family_id": family_id,
         "family_fingerprint": family_fingerprint,
         "gram_matrix": gram,
-        "backend": "sympy-exact-rational@1.14.0",
+        "quotient_basis": quotient_basis,
+        "kernel_basis": kernel_basis,
+        "rank": rank,
+        "minimum_linear_encoder_dimension": minimum_linear_encoder_dimension,
+        "minimality_scope": minimality_scope,
+        "equivalence_scope": equivalence_scope,
+        "construction_backend_id": construction_backend_id,
+        "construction_backend_version": construction_backend_version,
+        "standing": standing,
     }
     return f"lin_{content_fingerprint('rci.exact-linear-analysis-fields.v1', material)[:24]}"
 
 
-def _analysis_id(family: LinearQueryFamily, gram: ExactRationalMatrix) -> str:
+def _analysis_id(
+    family: LinearQueryFamily,
+    *,
+    gram: ExactRationalMatrix,
+    quotient_basis: tuple[ExactRationalVector, ...],
+    kernel_basis: tuple[ExactRationalVector, ...],
+    rank: int,
+) -> str:
     return _analysis_identity(
+        schema_version=1,
         family_id=family.id,
         family_fingerprint=family.fingerprint,
         gram=gram,
+        quotient_basis=quotient_basis,
+        kernel_basis=kernel_basis,
+        rank=rank,
+        minimum_linear_encoder_dimension=rank,
+        minimality_scope="linear_encoders_only",
+        equivalence_scope=family.equivalence_scope,
+        construction_backend_id="sympy-exact-rational",
+        construction_backend_version="1.14.0",
+        standing=LinearAnalysisStanding.CANDIDATE_UNLICENSED,
     )
 
 
@@ -446,15 +522,24 @@ def analyze_linear_query_family(family: LinearQueryFamily) -> ExactLinearAnalysi
     gram_record = _from_sympy_matrix(gram)
     rref, _ = gram.rref()
     quotient_rows = [rref.row(index).T for index in range(rref.rows) if any(rref.row(index))]
+    quotient_basis = _from_sympy_vectors(quotient_rows)
+    kernel_basis = _from_sympy_vectors(gram.nullspace())
+    rank = int(gram.rank())
     return ExactLinearAnalysis(
-        id=_analysis_id(family, gram_record),
+        id=_analysis_id(
+            family,
+            gram=gram_record,
+            quotient_basis=quotient_basis,
+            kernel_basis=kernel_basis,
+            rank=rank,
+        ),
         family_id=family.id,
         family_fingerprint=family.fingerprint,
         gram_matrix=gram_record,
-        quotient_basis=_from_sympy_vectors(quotient_rows),
-        kernel_basis=_from_sympy_vectors(gram.nullspace()),
-        rank=int(gram.rank()),
-        minimum_linear_encoder_dimension=int(gram.rank()),
+        quotient_basis=quotient_basis,
+        kernel_basis=kernel_basis,
+        rank=rank,
+        minimum_linear_encoder_dimension=rank,
         equivalence_scope=family.equivalence_scope,
     )
 
@@ -516,6 +601,31 @@ def _fraction_nullspace(rows: list[list[Fraction]]) -> list[list[Fraction]]:
     return basis
 
 
+def _linear_check_id(
+    *,
+    family_id: str,
+    family_fingerprint: str,
+    analysis_id: str,
+    analysis_fingerprint: str,
+    property_outcomes: tuple[tuple[ValidationProperty, ValidationOutcome], ...],
+    issue_ids: tuple[str, ...],
+    checker_id: str,
+    standing: str,
+) -> str:
+    material = {
+        "schema_version": 1,
+        "family_id": family_id,
+        "family_fingerprint": family_fingerprint,
+        "analysis_id": analysis_id,
+        "analysis_fingerprint": analysis_fingerprint,
+        "properties": property_outcomes,
+        "issues": issue_ids,
+        "checker": checker_id,
+        "standing": standing,
+    }
+    return f"lck_{content_fingerprint('rci.exact-linear-check.v1', material)[:24]}"
+
+
 def independently_check_linear_analysis(
     family: LinearQueryFamily, analysis: ExactLinearAnalysis
 ) -> ExactLinearCheck:
@@ -528,14 +638,47 @@ def independently_check_linear_analysis(
     rref, pivots = _rref(expected_gram)
     expected_quotient = [row for row in rref if any(row)]
     expected_kernel = _fraction_nullspace(expected_gram)
+    expected_gram_record = _exact_matrix(expected_gram)
+    expected_quotient_record = _exact_vectors(expected_quotient)
+    expected_kernel_record = _exact_vectors(expected_kernel)
+    expected_analysis_id = _analysis_id(
+        family,
+        gram=expected_gram_record,
+        quotient_basis=expected_quotient_record,
+        kernel_basis=expected_kernel_record,
+        rank=len(pivots),
+    )
+    candidate_analysis_id = _analysis_identity(
+        schema_version=analysis.schema_version,
+        family_id=analysis.family_id,
+        family_fingerprint=analysis.family_fingerprint,
+        gram=analysis.gram_matrix,
+        quotient_basis=analysis.quotient_basis,
+        kernel_basis=analysis.kernel_basis,
+        rank=analysis.rank,
+        minimum_linear_encoder_dimension=analysis.minimum_linear_encoder_dimension,
+        minimality_scope=analysis.minimality_scope,
+        equivalence_scope=analysis.equivalence_scope,
+        construction_backend_id=analysis.construction_backend_id,
+        construction_backend_version=analysis.construction_backend_version,
+        standing=analysis.standing,
+    )
     query_rows = [
         row for observation in family.observations for row in _fraction_rows(observation.operator)
     ]
     _, query_pivots = _rref(query_rows)
     query_kernel = _fraction_nullspace(query_rows)
-    if analysis.gram_matrix != _exact_matrix(expected_gram):
+    if analysis.schema_version != 1:
+        issues.add("schema_version_mismatch")
+    if analysis.construction_backend_id != "sympy-exact-rational":
+        issues.add("construction_backend_mismatch")
+    if analysis.construction_backend_version != "1.14.0":
+        issues.add("construction_backend_version_mismatch")
+    if analysis.standing != LinearAnalysisStanding.CANDIDATE_UNLICENSED:
+        issues.add("standing_mismatch")
+    if analysis.gram_matrix != expected_gram_record:
         issues.add("gram_mismatch")
-    if analysis.id != _analysis_id(family, _exact_matrix(expected_gram)):
+    if analysis.id != expected_analysis_id or analysis.id != candidate_analysis_id:
         issues.add("analysis_id_mismatch")
     if analysis.rank != len(pivots):
         issues.add("rank_mismatch")
@@ -543,9 +686,9 @@ def independently_check_linear_analysis(
         issues.add("linear_minimum_mismatch")
     if analysis.minimality_scope != "linear_encoders_only":
         issues.add("minimality_scope_mismatch")
-    if analysis.quotient_basis != _exact_vectors(expected_quotient):
+    if analysis.quotient_basis != expected_quotient_record:
         issues.add("quotient_basis_mismatch")
-    if analysis.kernel_basis != _exact_vectors(expected_kernel):
+    if analysis.kernel_basis != expected_kernel_record:
         issues.add("kernel_basis_mismatch")
     if len(query_pivots) != len(pivots):
         issues.add("query_rank_mismatch")
@@ -574,24 +717,26 @@ def independently_check_linear_analysis(
             key=lambda item: item[0].value,
         )
     )
-    material = {
-        "family_id": family.id,
-        "family_fingerprint": family.fingerprint,
-        "analysis_id": analysis.id,
-        "analysis_fingerprint": analysis.fingerprint,
-        "properties": property_outcomes,
-        "issues": tuple(sorted(issues)),
-        "checker": "fraction-rref-v1",
-    }
+    issue_ids = tuple(sorted(issues))
+    check_id = _linear_check_id(
+        family_id=family.id,
+        family_fingerprint=family.fingerprint,
+        analysis_id=analysis.id,
+        analysis_fingerprint=analysis.fingerprint,
+        property_outcomes=property_outcomes,
+        issue_ids=issue_ids,
+        checker_id="fraction-rref-v1",
+        standing="candidate_check_evidence",
+    )
     return ExactLinearCheck(
-        id=f"lck_{content_fingerprint('rci.exact-linear-check.v1', material)[:24]}",
+        id=check_id,
         family_id=family.id,
         family_fingerprint=family.fingerprint,
         analysis_id=analysis.id,
         analysis_fingerprint=analysis.fingerprint,
         verdict=LinearCheckVerdict.INVALID if invalid else LinearCheckVerdict.VALID,
         property_outcomes=property_outcomes,
-        issue_ids=tuple(sorted(issues)),
+        issue_ids=issue_ids,
     )
 
 
@@ -608,6 +753,23 @@ def build_linear_validation_properties(
     resulting ``CompressionValidation``.  This pure adapter grants no warrant or licence.
     """
 
+    if (
+        check.schema_version != 1
+        or check.checker_id != "fraction-rref-v1"
+        or check.standing != "candidate_check_evidence"
+        or check.id
+        != _linear_check_id(
+            family_id=check.family_id,
+            family_fingerprint=check.family_fingerprint,
+            analysis_id=check.analysis_id,
+            analysis_fingerprint=check.analysis_fingerprint,
+            property_outcomes=check.property_outcomes,
+            issue_ids=check.issue_ids,
+            checker_id=check.checker_id,
+            standing=check.standing,
+        )
+    ):
+        raise ValueError("linear validation requires an intact candidate check record")
     if check.verdict is LinearCheckVerdict.INVALID and invalid_witness_artifact is None:
         raise ValueError("invalid linear validation requires an exact counterexample artifact")
     properties: list[ExactPropertyValidation] = []
@@ -690,6 +852,31 @@ def _matvec(matrix: ExactRationalMatrix, vector: ExactRationalVector) -> tuple[F
     )
 
 
+def _linear_reopening_id(
+    *,
+    incumbent_analysis_id: str,
+    expanded_analysis_id: str,
+    incumbent_horizon_id: str,
+    expanded_horizon_id: str,
+    witness: ExactRationalVector | None,
+    positive_observation_addition: bool,
+    strict_kernel_shrink: bool,
+    disposition: LinearReopeningDisposition,
+) -> str:
+    material = {
+        "schema_version": 1,
+        "incumbent_analysis_id": incumbent_analysis_id,
+        "expanded_analysis_id": expanded_analysis_id,
+        "incumbent_horizon_id": incumbent_horizon_id,
+        "expanded_horizon_id": expanded_horizon_id,
+        "witness": witness,
+        "positive_observation_addition": positive_observation_addition,
+        "strict_kernel_shrink": strict_kernel_shrink,
+        "disposition": disposition,
+    }
+    return f"lrp_{content_fingerprint('rci.linear-kernel-reopening.v1', material)[:24]}"
+
+
 def detect_linear_kernel_reopening(
     *,
     incumbent_family: LinearQueryFamily,
@@ -737,18 +924,18 @@ def detect_linear_kernel_reopening(
         if witness is None
         else LinearReopeningDisposition.UNKNOWN
     )
-    material = {
-        "incumbent": incumbent.fingerprint,
-        "expanded": expanded.fingerprint,
-        "incumbent_horizon": incumbent_family.protected_horizon_id,
-        "expanded_horizon": expanded_family.protected_horizon_id,
-        "witness": witness,
-        "positive_addition": positive_addition,
-        "strict_shrink": strict_shrink,
-        "disposition": disposition,
-    }
+    reopening_id = _linear_reopening_id(
+        incumbent_analysis_id=incumbent.id,
+        expanded_analysis_id=expanded.id,
+        incumbent_horizon_id=incumbent_family.protected_horizon_id,
+        expanded_horizon_id=expanded_family.protected_horizon_id,
+        witness=witness,
+        positive_observation_addition=positive_addition,
+        strict_kernel_shrink=strict_shrink,
+        disposition=disposition,
+    )
     return LinearKernelReopening(
-        id=f"lrp_{content_fingerprint('rci.linear-kernel-reopening.v1', material)[:24]}",
+        id=reopening_id,
         incumbent_analysis_id=incumbent.id,
         expanded_analysis_id=expanded.id,
         incumbent_horizon_id=incumbent_family.protected_horizon_id,

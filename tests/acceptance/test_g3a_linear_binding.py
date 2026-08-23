@@ -251,6 +251,10 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
     substituted_identity["id"] = "lin_substituted"
     with pytest.raises(ValidationError, match="content-derived"):
         ExactLinearAnalysis.model_validate(substituted_identity)
+    substituted_basis = analysis.model_dump(mode="python")
+    substituted_basis["quotient_basis"] = (ExactRationalVector(values=(_r(0), _r(1))),)
+    with pytest.raises(ValidationError, match="content-derived"):
+        ExactLinearAnalysis.model_validate(substituted_basis)
 
     tampered = analysis.model_copy(update={"gram_matrix": _matrix(((2, 0), (0, 0)))})
     invalid = independently_check_linear_analysis(family, tampered)
@@ -266,6 +270,25 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
     )
     assert scope_check.verdict is LinearCheckVerdict.INVALID
     assert "minimality_scope_mismatch" in scope_check.issue_ids
+    fixed_pin_mutations = (
+        ("schema_version", 2, "schema_version_mismatch"),
+        ("construction_backend_id", "foreign-backend", "construction_backend_mismatch"),
+        ("construction_backend_version", "999", "construction_backend_version_mismatch"),
+        ("standing", "licensed", "standing_mismatch"),
+    )
+    for field, value, issue in fixed_pin_mutations:
+        pin_check = independently_check_linear_analysis(
+            family, analysis.model_copy(update={field: value})
+        )
+        assert pin_check.verdict is LinearCheckVerdict.INVALID
+        assert issue in pin_check.issue_ids
+        assert "analysis_id_mismatch" in pin_check.issue_ids
+    with pytest.raises(ValueError, match="intact candidate check"):
+        build_linear_validation_properties(
+            check.model_copy(update={"id": "lck_substituted"}),
+            compression_contract_id="compression-contract",
+            check_reference=check_ref,
+        )
     with pytest.raises(ValueError, match="counterexample"):
         build_linear_validation_properties(
             invalid,
@@ -295,6 +318,10 @@ def test_positive_probe_addition_opens_exact_unknown_for_owned_g3a_resolution() 
     assert unknown.disposition is LinearReopeningDisposition.UNKNOWN
     assert not hasattr(unknown, "path_residue_id")
     assert not hasattr(unknown, "recovery_license_id")
+    substituted_reopening = unknown.model_dump(mode="python")
+    substituted_reopening["id"] = "lrp_substituted"
+    with pytest.raises(ValidationError, match="content-derived"):
+        type(unknown).model_validate(substituted_reopening)
 
 
 def test_reversed_kernel_inclusion_does_not_fabricate_reopening() -> None:
