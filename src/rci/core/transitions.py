@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from rci.backlog.models import G1_APPLICABLE_EFFECT_KINDS, BacklogItem
 from rci.backlog.reconcile import BacklogPolicy, apply_effects
+from rci.calculus.kernel import select_continuation, validate_program
+from rci.calculus.models import EffectNode, FrameObservationKind
 from rci.claims.logic import (
     conflict_obligation,
     mandatory_attack_obligation,
@@ -36,6 +38,7 @@ from rci.core.commands import (
     ChangeNogoodStanding,
     ChangeSupportRouteStanding,
     CommitSemanticDelta,
+    DecideArrangementProgramAdmission,
     DecideGoalAdmission,
     DecideMethodAdmission,
     DecideProjectSuccessor,
@@ -47,9 +50,11 @@ from rci.core.commands import (
     GrantRecoveryLicense,
     LinkReacquisitionInquiry,
     LinkRetentionCapability,
+    OpenInteractionOccurrence,
     OpenObligation,
     PlanEffectAttempt,
     PromoteClaim,
+    RecordArrangementProgramCandidate,
     RecordAttemptOutcome,
     RecordBacklogEffect,
     RecordCandidate,
@@ -68,6 +73,7 @@ from rci.core.commands import (
     RecordEvidence,
     RecordImplementationGoalCandidate,
     RecordIndependentReview,
+    RecordInteractionFrameObservation,
     RecordLearnedProbeCandidate,
     RecordMemoryPatchCandidate,
     RecordMethodBindingCandidate,
@@ -101,6 +107,7 @@ from rci.core.commands import (
     RunRetrieval,
     SealImplementationGoal,
     SealPrediction,
+    SelectInteractionContinuation,
     StartEffectAttempt,
     StartInquiry,
 )
@@ -113,6 +120,8 @@ from rci.core.errors import (
     InvalidTransitionError,
 )
 from rci.core.events import (
+    ArrangementProgramAdmissionDecided,
+    ArrangementProgramCandidateRecorded,
     BacklogEffectRecorded,
     BindingCarrierManifestRegistered,
     CandidateEnvironmentRecorded,
@@ -146,6 +155,9 @@ from rci.core.events import (
     ImplementationGoalSealed,
     IndependentReviewRecorded,
     InquiryStarted,
+    InteractionContinuationSelected,
+    InteractionFrameObservationRecorded,
+    InteractionOccurrenceOpened,
     LearnedProbeCandidateRecorded,
     LemmaPromoted,
     MemoryPatchCandidateRecorded,
@@ -191,7 +203,7 @@ from rci.core.events import (
 )
 from rci.core.planning import PlanStatus
 from rci.core.serialization import canonical_json_bytes, sha256_digest
-from rci.core.state import InquiryState
+from rci.core.state import InquiryState, LedgerRecordPosition
 from rci.learning.models import (
     ConsolidationStatus,
     DependencyDispositionKind,
@@ -3785,6 +3797,416 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             ),
         )
 
+    if isinstance(command, RecordArrangementProgramCandidate):
+        g3k_program = command.program
+        g3k_program_existing = next(
+            (item for item in state.arrangement_programs if item.id == g3k_program.id), None
+        )
+        if g3k_program_existing is not None:
+            if g3k_program_existing == g3k_program:
+                return ()
+            raise IdentityConflictError("arrangement-program identity was reused")
+        if g3k_program.status != "inert_candidate":
+            raise InvalidCommandError("new arrangement programs must remain inert candidates")
+        try:
+            validate_program(g3k_program)
+        except ValueError as exc:
+            raise InvalidCommandError(str(exc)) from exc
+        return (
+            ArrangementProgramCandidateRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                program=g3k_program,
+            ),
+        )
+
+    if isinstance(command, DecideArrangementProgramAdmission):
+        g3k_admission = command.decision
+        g3k_admission_existing = next(
+            (item for item in state.arrangement_program_admissions if item.id == g3k_admission.id),
+            None,
+        )
+        if g3k_admission_existing is not None:
+            if g3k_admission_existing == g3k_admission:
+                return ()
+            raise IdentityConflictError("arrangement-program admission identity was reused")
+        g3k_admission_program = next(
+            (item for item in state.arrangement_programs if item.id == g3k_admission.program_id),
+            None,
+        )
+        if g3k_admission_program is None:
+            raise InvalidCommandError("arrangement-program admission requires its inert candidate")
+        if any(
+            item.program_id == g3k_admission_program.id
+            for item in state.arrangement_program_admissions
+        ):
+            raise InvalidCommandError("arrangement program already has an admission decision")
+        if state.context is None:
+            raise InvalidCommandError("arrangement-program admission requires inquiry context")
+        checked, reason = resolve_check_reference(
+            g3k_admission.check,
+            evidence_by_id=evidence_index(state.evidence_records),
+            checker_verdict_by_id=checker_verdict_index(state.checker_verdicts),
+            proposition_id=f"admit-arrangement-program:{g3k_admission_program.id}",
+            proposition_kind=PropositionKind.RELATION,
+            scope_fingerprint=state.context.scope_fingerprint,
+            authorized_checker_ids=state.context.discharge_mechanism_ids,
+        )
+        if not checked:
+            raise InvalidCommandError(reason)
+        g3k_program_position = state.record_position(
+            "arrangement_program", g3k_admission_program.id
+        )
+        g3k_admission_evidence_position = state.record_position(
+            "evidence", g3k_admission.check.evidence_id
+        )
+        g3k_admission_checker_position = state.record_position(
+            "checker_verdict", g3k_admission.check.checker_verdict_id
+        )
+        if (
+            g3k_program_position is None
+            or g3k_admission_evidence_position is None
+            or g3k_admission_checker_position is None
+            or not (
+                g3k_program_position
+                < g3k_admission_evidence_position
+                < g3k_admission_checker_position
+            )
+        ):
+            raise InvalidCommandError(
+                "arrangement admission check must follow the exact owned candidate"
+            )
+        return (
+            ArrangementProgramAdmissionDecided(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                decision=g3k_admission,
+            ),
+        )
+
+    if isinstance(command, OpenInteractionOccurrence):
+        g3k_occurrence = command.occurrence
+        g3k_occurrence_existing = next(
+            (item for item in state.interaction_occurrences if item.id == g3k_occurrence.id), None
+        )
+        if g3k_occurrence_existing is not None:
+            if g3k_occurrence_existing == g3k_occurrence:
+                return ()
+            raise IdentityConflictError("interaction-occurrence identity was reused")
+        g3k_occurrence_program = next(
+            (item for item in state.arrangement_programs if item.id == g3k_occurrence.program_id),
+            None,
+        )
+        g3k_program_admitted = any(
+            item.program_id == g3k_occurrence.program_id and item.outcome == "admit"
+            for item in state.arrangement_program_admissions
+        )
+        if g3k_occurrence_program is None or not g3k_program_admitted:
+            raise InvalidCommandError("interaction occurrence requires an admitted program")
+        g3k_effect_node = next(
+            (item for item in g3k_occurrence_program.nodes if item.id == g3k_occurrence.node_id),
+            None,
+        )
+        if (
+            not isinstance(g3k_effect_node, EffectNode)
+            or g3k_effect_node.effect_id != g3k_occurrence.effect_id
+        ):
+            raise InvalidCommandError("occurrence must open the exact represented effect node")
+        request_state = next(
+            (
+                item
+                for item in state.effect_requests
+                if item.request.id == g3k_occurrence.effect_request_id
+            ),
+            None,
+        )
+        if request_state is None:
+            raise InvalidCommandError("represented effect requires an already persisted request")
+        g3k_effect_ref = next(
+            (
+                item
+                for item in g3k_occurrence_program.effects
+                if item.id == g3k_effect_node.effect_id
+            ),
+            None,
+        )
+        g3k_effect_signature = (
+            next(
+                (
+                    item
+                    for item in g3k_occurrence_program.effect_signatures
+                    if item.id == g3k_effect_ref.signature_id
+                ),
+                None,
+            )
+            if g3k_effect_ref is not None
+            else None
+        )
+        if (
+            g3k_effect_signature is None
+            or request_state.request.effect_kind != g3k_effect_signature.operation_id
+        ):
+            raise InvalidCommandError("effect request does not actualize the represented operation")
+        if g3k_occurrence.source_sequence != state.sequence:
+            raise InvalidCommandError(
+                "interaction occurrence must pin the exact request-owned prefix"
+            )
+        return (
+            InteractionOccurrenceOpened(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                occurrence=g3k_occurrence,
+            ),
+        )
+
+    if isinstance(command, RecordInteractionFrameObservation):
+        g3k_owned_observation = command.observation
+        g3k_observation_existing = next(
+            (
+                item
+                for item in state.interaction_frame_observations
+                if item.id == g3k_owned_observation.id
+            ),
+            None,
+        )
+        if g3k_observation_existing is not None:
+            if g3k_observation_existing == g3k_owned_observation:
+                return ()
+            raise IdentityConflictError("interaction-frame observation identity was reused")
+        g3k_observation_occurrence = next(
+            (
+                item
+                for item in state.interaction_occurrences
+                if item.id == g3k_owned_observation.occurrence_id
+            ),
+            None,
+        )
+        if g3k_observation_occurrence is None:
+            raise InvalidCommandError("frame observation requires its owned occurrence")
+        g3k_observation_program = next(
+            (
+                item
+                for item in state.arrangement_programs
+                if item.id == g3k_observation_occurrence.program_id
+            ),
+            None,
+        )
+        g3k_observation_node = (
+            next(
+                (
+                    item
+                    for item in g3k_observation_program.nodes
+                    if item.id == g3k_observation_occurrence.node_id
+                ),
+                None,
+            )
+            if g3k_observation_program is not None
+            else None
+        )
+        g3k_owned_frame = (
+            next(
+                (
+                    item
+                    for item in g3k_observation_program.question_frames
+                    if isinstance(g3k_observation_node, EffectNode)
+                    and item.id == g3k_observation_node.frame_id
+                ),
+                None,
+            )
+            if g3k_observation_program is not None
+            else None
+        )
+        if g3k_owned_frame is None:
+            raise InvalidCommandError("frame observation requires the program-owned answer frame")
+        request_state = next(
+            (
+                item
+                for item in state.effect_requests
+                if item.request.id == g3k_observation_occurrence.effect_request_id
+            ),
+            None,
+        )
+        if request_state is None:
+            raise InvalidCommandError("frame observation request is not owned")
+        g3k_frame_observation = g3k_owned_observation.observation
+        g3k_frame_cell_ids = {item.id for item in g3k_owned_frame.answer_cells}
+        if (
+            g3k_frame_observation.frame_id != g3k_owned_frame.id
+            or not set(g3k_frame_observation.live_answer_cell_ids) <= g3k_frame_cell_ids
+        ):
+            raise InvalidCommandError("frame observation does not match the exact owned frame")
+        if (
+            g3k_frame_observation.kind is FrameObservationKind.EXTERIOR
+            and g3k_owned_frame.applicability_exterior_cell_id is None
+        ):
+            raise InvalidCommandError("frame has no declared applicability exterior")
+        decode_ids = {item.id for item in request_state.decode_outcomes}
+        if g3k_frame_observation.decode_outcome_id not in decode_ids:
+            raise InvalidCommandError("frame observation must pin an exact owned decode outcome")
+        if g3k_frame_observation.kind is FrameObservationKind.INDETERMINATE:
+            if g3k_frame_observation.decode_outcome_id == request_state.accepted_decoded_outcome_id:
+                raise InvalidCommandError("accepted decode cannot be classified as indeterminate")
+            g3k_indeterminate_decode = next(
+                (
+                    item
+                    for item in request_state.decode_outcomes
+                    if item.id == g3k_frame_observation.decode_outcome_id
+                ),
+                None,
+            )
+            if isinstance(g3k_indeterminate_decode, Decoded):
+                raise InvalidCommandError(
+                    "successful unaccepted decode is rejected evidence, not decode indeterminacy"
+                )
+        else:
+            if g3k_frame_observation.decode_outcome_id != request_state.accepted_decoded_outcome_id:
+                raise InvalidCommandError("semantic frame observation requires the accepted decode")
+            if state.context is None or g3k_frame_observation.check is None:
+                raise InvalidCommandError(
+                    "semantic frame observation requires an independent check"
+                )
+            g3k_observation_verdict = checker_verdict_index(state.checker_verdicts).get(
+                g3k_frame_observation.check.checker_verdict_id
+            )
+            if (
+                g3k_observation_verdict is None
+                or g3k_observation_verdict.checker_id not in g3k_owned_frame.discharge_mechanism_ids
+            ):
+                raise InvalidCommandError(
+                    "frame observation checker is not authorized by the exact owned frame"
+                )
+            checked, reason = resolve_check_reference(
+                g3k_frame_observation.check,
+                evidence_by_id=evidence_index(state.evidence_records),
+                checker_verdict_by_id=checker_verdict_index(state.checker_verdicts),
+                proposition_id=f"observe-frame:{g3k_frame_observation.id}",
+                proposition_kind=PropositionKind.RELATION,
+                scope_fingerprint=state.context.scope_fingerprint,
+                authorized_checker_ids=state.context.discharge_mechanism_ids,
+            )
+            if not checked:
+                raise InvalidCommandError(reason)
+            g3k_accepted_position = state.record_position(
+                "accepted_decode", g3k_frame_observation.decode_outcome_id
+            )
+            g3k_observation_evidence_position = state.record_position(
+                "evidence", g3k_frame_observation.check.evidence_id
+            )
+            g3k_observation_checker_position = state.record_position(
+                "checker_verdict", g3k_frame_observation.check.checker_verdict_id
+            )
+            if (
+                g3k_accepted_position is None
+                or g3k_observation_evidence_position is None
+                or g3k_observation_checker_position is None
+                or not (
+                    g3k_accepted_position
+                    < g3k_observation_evidence_position
+                    < g3k_observation_checker_position
+                )
+            ):
+                raise InvalidCommandError("frame check must follow the exact accepted decode")
+            g3k_accepted_decode = next(
+                (
+                    item
+                    for item in request_state.decode_outcomes
+                    if item.id == g3k_frame_observation.decode_outcome_id
+                ),
+                None,
+            )
+            g3k_observation_evidence = state.evidence_by_id(g3k_frame_observation.check.evidence_id)
+            if (
+                not isinstance(g3k_accepted_decode, Decoded)
+                or g3k_observation_evidence is None
+                or g3k_observation_evidence.artifact != g3k_accepted_decode.result.semantic_artifact
+            ):
+                raise InvalidCommandError(
+                    "frame check must bind the exact decoded semantic artifact"
+                )
+        return (
+            InteractionFrameObservationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                observation=g3k_owned_observation,
+            ),
+        )
+
+    if isinstance(command, SelectInteractionContinuation):
+        g3k_continuation = command.continuation
+        g3k_continuation_existing = next(
+            (item for item in state.interaction_continuations if item.id == g3k_continuation.id),
+            None,
+        )
+        if g3k_continuation_existing is not None:
+            if g3k_continuation_existing == g3k_continuation:
+                return ()
+            raise IdentityConflictError("interaction-continuation identity was reused")
+        g3k_continuation_occurrence = next(
+            (
+                item
+                for item in state.interaction_occurrences
+                if item.id == g3k_continuation.occurrence_id
+            ),
+            None,
+        )
+        g3k_continuation_observation = next(
+            (
+                item
+                for item in state.interaction_frame_observations
+                if item.id == g3k_continuation.observation_id
+            ),
+            None,
+        )
+        if (
+            g3k_continuation_occurrence is None
+            or g3k_continuation_observation is None
+            or g3k_continuation_observation.occurrence_id != g3k_continuation_occurrence.id
+        ):
+            raise InvalidCommandError(
+                "continuation requires one exact owned occurrence observation"
+            )
+        if g3k_continuation_observation.observation.kind is not FrameObservationKind.COMPLETE:
+            raise InvalidCommandError("only a checked complete answer selects a continuation")
+        if (
+            g3k_continuation.selected_answer_cell_id
+            != g3k_continuation_observation.observation.live_answer_cell_ids[0]
+        ):
+            raise InvalidCommandError("continuation answer cell does not match checked observation")
+        g3k_continuation_program = next(
+            (
+                item
+                for item in state.arrangement_programs
+                if item.id == g3k_continuation_occurrence.program_id
+            ),
+            None,
+        )
+        if g3k_continuation_program is None:
+            raise InvalidCommandError("continuation program is not owned")
+        selected = select_continuation(
+            g3k_continuation_program,
+            node_id=g3k_continuation_occurrence.node_id,
+            observation=g3k_continuation_observation.observation,
+        )
+        if selected != g3k_continuation.successor_node_id:
+            raise InvalidCommandError("continuation successor is not determined by the program")
+        if any(
+            item.occurrence_id == g3k_continuation_occurrence.id
+            for item in state.interaction_continuations
+        ):
+            raise InvalidCommandError("interaction occurrence already selected a continuation")
+        return (
+            InteractionContinuationSelected(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                continuation=g3k_continuation,
+            ),
+        )
+
     raise InvalidCommandError(f"unsupported command type: {type(command).__name__}")
 
 
@@ -3821,6 +4243,27 @@ def _advance_domain_state(
     return InquiryState.model_validate(payload, strict=True)
 
 
+def _advance_with_position(
+    state: InquiryState,
+    *,
+    record_kind: str,
+    record_id: str,
+    **updates: object,
+) -> InquiryState:
+    return _advance_domain_state(
+        state,
+        authority_positions=(
+            *state.authority_positions,
+            LedgerRecordPosition(
+                record_kind=record_kind,
+                record_id=record_id,
+                sequence=state.sequence + 1,
+            ),
+        ),
+        **updates,
+    )
+
+
 def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
     """Apply one event as a deterministic, effect-free reducer."""
 
@@ -3838,8 +4281,6 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
 
     if state.status != "active" or state.inquiry_id != event.inquiry_id:
         raise InvalidTransitionError("event inquiry id does not match an active aggregate")
-
-    next_sequence = state.sequence + 1
 
     if isinstance(event, BacklogEffectRecorded):
         _require_matching_decision(
@@ -3878,9 +4319,10 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             raise InvalidTransitionError("duplicate effect request event")
         if state.step_plan_by_id(event.request.step_plan_id) is None:
             raise InvalidTransitionError("effect request references an unknown step plan")
-        return InquiryState(
-            **state.model_dump(exclude={"sequence", "effect_requests"}),
-            sequence=next_sequence,
+        return _advance_with_position(
+            state,
+            record_kind="effect_request",
+            record_id=event.request.id,
             effect_requests=(*state.effect_requests, EffectRequestState(request=event.request)),
         )
 
@@ -3903,9 +4345,8 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             decode_outcomes=request.decode_outcomes,
             accepted_decoded_outcome_id=request.accepted_decoded_outcome_id,
         )
-        return InquiryState(
-            **state.model_dump(exclude={"sequence", "effect_requests"}),
-            sequence=next_sequence,
+        return _advance_domain_state(
+            state,
             effect_requests=_replace_request(state, replacement),
         )
 
@@ -3945,9 +4386,8 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             decode_outcomes=containing_request.decode_outcomes,
             accepted_decoded_outcome_id=containing_request.accepted_decoded_outcome_id,
         )
-        return InquiryState(
-            **state.model_dump(exclude={"sequence", "effect_requests"}),
-            sequence=next_sequence,
+        return _advance_domain_state(
+            state,
             effect_requests=_replace_request(state, replacement),
         )
 
@@ -3974,9 +4414,8 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             decode_outcomes=request.decode_outcomes,
             accepted_decoded_outcome_id=request.accepted_decoded_outcome_id,
         )
-        return InquiryState(
-            **state.model_dump(exclude={"sequence", "effect_requests"}),
-            sequence=next_sequence,
+        return _advance_domain_state(
+            state,
             effect_requests=_replace_request(state, replacement),
         )
 
@@ -4015,9 +4454,8 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             decode_outcomes=request.decode_outcomes,
             accepted_decoded_outcome_id=request.accepted_decoded_outcome_id,
         )
-        return InquiryState(
-            **state.model_dump(exclude={"sequence", "effect_requests"}),
-            sequence=next_sequence,
+        return _advance_domain_state(
+            state,
             effect_requests=_replace_request(state, replacement),
         )
 
@@ -4045,9 +4483,10 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             decode_outcomes=(*request.decode_outcomes, event.outcome),
             accepted_decoded_outcome_id=request.accepted_decoded_outcome_id,
         )
-        return InquiryState(
-            **state.model_dump(exclude={"sequence", "effect_requests"}),
-            sequence=next_sequence,
+        return _advance_with_position(
+            state,
+            record_kind="decode_outcome",
+            record_id=event.outcome.id,
             effect_requests=_replace_request(state, replacement),
         )
 
@@ -4074,9 +4513,10 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             decode_outcomes=request.decode_outcomes,
             accepted_decoded_outcome_id=event.decoded_outcome_id,
         )
-        return InquiryState(
-            **state.model_dump(exclude={"sequence", "effect_requests"}),
-            sequence=next_sequence,
+        return _advance_with_position(
+            state,
+            record_kind="accepted_decode",
+            record_id=event.decoded_outcome_id,
             effect_requests=_replace_request(state, replacement),
         )
 
@@ -4256,8 +4696,10 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
                 evidence=event.evidence,
             ),
         )
-        return _advance_domain_state(
+        return _advance_with_position(
             state,
+            record_kind="evidence",
+            record_id=event.evidence.id,
             evidence_records=(*state.evidence_records, event.evidence),
         )
 
@@ -4272,8 +4714,10 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
                 checker_verdict=event.checker_verdict,
             ),
         )
-        return _advance_domain_state(
+        return _advance_with_position(
             state,
+            record_kind="checker_verdict",
+            record_id=event.checker_verdict.id,
             checker_verdicts=(*state.checker_verdicts, event.checker_verdict),
         )
 
@@ -5171,6 +5615,105 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
             recursive_stop_dispositions=(
                 *state.recursive_stop_dispositions,
                 event.disposition,
+            ),
+        )
+
+    if isinstance(event, ArrangementProgramCandidateRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordArrangementProgramCandidate(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                program=event.program,
+            ),
+        )
+        return _advance_with_position(
+            state,
+            record_kind="arrangement_program",
+            record_id=event.program.id,
+            arrangement_programs=(*state.arrangement_programs, event.program),
+        )
+
+    if isinstance(event, ArrangementProgramAdmissionDecided):
+        _require_matching_decision(
+            state,
+            event,
+            DecideArrangementProgramAdmission(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                decision=event.decision,
+            ),
+        )
+        return _advance_with_position(
+            state,
+            record_kind="arrangement_program_admission",
+            record_id=event.decision.id,
+            arrangement_program_admissions=(
+                *state.arrangement_program_admissions,
+                event.decision,
+            ),
+        )
+
+    if isinstance(event, InteractionOccurrenceOpened):
+        _require_matching_decision(
+            state,
+            event,
+            OpenInteractionOccurrence(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                occurrence=event.occurrence,
+            ),
+        )
+        return _advance_with_position(
+            state,
+            record_kind="interaction_occurrence",
+            record_id=event.occurrence.id,
+            interaction_occurrences=(*state.interaction_occurrences, event.occurrence),
+        )
+
+    if isinstance(event, InteractionFrameObservationRecorded):
+        _require_matching_decision(
+            state,
+            event,
+            RecordInteractionFrameObservation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                observation=event.observation,
+            ),
+        )
+        return _advance_with_position(
+            state,
+            record_kind="interaction_frame_observation",
+            record_id=event.observation.id,
+            interaction_frame_observations=(
+                *state.interaction_frame_observations,
+                event.observation,
+            ),
+        )
+
+    if isinstance(event, InteractionContinuationSelected):
+        _require_matching_decision(
+            state,
+            event,
+            SelectInteractionContinuation(
+                event_id=event.event_id,
+                inquiry_id=event.inquiry_id,
+                occurred_at=event.occurred_at,
+                continuation=event.continuation,
+            ),
+        )
+        return _advance_with_position(
+            state,
+            record_kind="interaction_continuation",
+            record_id=event.continuation.id,
+            interaction_continuations=(
+                *state.interaction_continuations,
+                event.continuation,
             ),
         )
 

@@ -159,13 +159,13 @@ Status vocabulary:
 | RCI-077 | Candidate actualization, evidence, review, successor decision, and promotion remain separate | verified G3R | `CandidateEnvironmentManifest`, exact-head evidence, different-context review, exact reviewed-evidence successor and promotion stages, complete SDK/CLI recording surface, protected merge, and absence of runtime source/Git ports |
 | RCI-078 | Recursive project inquiry has append-only continuity and typed stopping | verified G3R | `RecursiveCycleCheckpoint`, predecessor/phase monotonicity, `RecursiveStopDisposition`, `Unknown` paths, durable cycle handoff/report, and bounded blocker rule |
 | RCI-079 | Bounded mechanical review is exact-profile-relative and never substitutes for fresh semantic review | unverified; stopped G3V candidate | ADR-0015 and candidate `a425f4b0dfa5b2c52a67df87d460f25e4e825518`; its closed profile and hosted CI passed, but fresh semantic review was unavailable, so no implementation, successor decision, or promotion entered protected main |
-| RCI-080 | Typed effects, dependent returns, and linear realized succession | accepted G3K-S semantics; executable G3K-E deferred | ADR-0018 and the v0.6 succession/ledger/effect no-collapse contract |
-| RCI-081 | Typed arrangement algebra, crossing/re-entry, and Boolean specialization | accepted G3K-S semantics; executable G3K-E deferred | ADR-0018; identity/composition/crossing tests assigned to G3K-E |
-| RCI-082 | Typed relational lowering, composition, hiding, and open ports | accepted G3K-S semantics; executable G3K-E deferred | static finite language and conservative question-lowering contract; implementation deferred |
-| RCI-083 | Typed questions, answer frames, applicability exterior, and checked narrowing | accepted G3K-S semantics; executable G3K-E deferred | first owned failure shows incumbent generated continuation rejection; second shows partial multi-cell collapse |
-| RCI-084 | Answer-conditioned continuation and guarded cyclic programs | accepted G3K-S semantics; executable G3K-E deferred | G3K-S incumbent failure fixture; finite guarded graph/no-epsilon-cycle implementation assigned to G3K-E |
-| RCI-085 | Piecewise recognition, persistence, fold, and reopening | accepted G3K-S semantics; executable G3K-E deferred | candidate-only recognition and checked transport contract; fragment/fold attacks assigned to G3K-E |
-| RCI-086 | Authority separation, conservative compatibility, and deterministic replay | accepted G3K-S semantics; executable G3K-E deferred | ADR-0018 preserves RCI-001--079 and assigns additive events/v7 replay/core-v1 projection to G3K-E |
+| RCI-080 | Typed effects, dependent returns, and linear realized succession | active G3K-E implementation | `rci.calculus` strict effect/return/succession records and focused no-collapse fixture |
+| RCI-081 | Typed arrangement algebra, crossing/re-entry, and Boolean specialization | active G3K-E implementation | typed composition and finite involutive crossing checks |
+| RCI-082 | Typed relational lowering, composition, hiding, and open ports | active G3K-E implementation | finite data-only terms, relation signatures, open partitions, and explicit hiding provenance |
+| RCI-083 | Typed questions, answer frames, applicability exterior, and checked narrowing | active G3K-E implementation | strict answer cells, partial/exterior/indeterminate outcomes, owned decode/check linkage |
+| RCI-084 | Answer-conditioned continuation and guarded cyclic programs | active G3K-E implementation | typed finite graph, full effect-cell coverage, inert interpreter, checked continuation selection |
+| RCI-085 | Piecewise recognition, persistence, fold, and reopening | active G3K-E implementation | inert arrangement candidates, fragment witnesses, checked commutation or explicit residue |
+| RCI-086 | Authority separation, conservative compatibility, and deterministic replay | active G3K-E implementation | additive v1 events, v7 rebuild, core-v1 adapters, and no execution/warrant/review/promotion ports |
 
 ### RCI-068 staged capability evidence
 
@@ -181,8 +181,8 @@ Status vocabulary:
 | G3V | Stopped-indeterminate bounded review candidate preserved at `a425f4b0dfa5b2c52a67df87d460f25e4e825518` | No standing implementation, fresh semantic-review substitution, successor warrant, or promotion authority |
 | G3FO | Stopped-indeterminate failure-observation candidate preserved at `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` | No standing evaluator/handoff, model adapter, source/Git authority, review substitution, or promotion authority |
 | G3Q-F | Earlier finite-frame decomposition absorbed into G3K after ADR-0016's two failure conditions were reproduced | No standalone G3Q-F implementation or standing capability |
-| G3K-S | Active succession-arrangement semantic normalization from protected anchor `7aa670482af85a9fd554a31924dbce6a26984af4` | No executable calculus, event, snapshot, dependency, or G3K-E conformance |
-| G3K-E | Future executable finite guarded calculus and compatibility projection | Opens only after independently reviewed protected G3K-S promotion |
+| G3K-S | Verified semantic normalization promoted at `d6e101bb01271179f3416c3ecc61082bcdb6b873` | No executable calculus or event was claimed by the semantic Goal |
+| G3K-E | Active executable finite guarded calculus and compatibility projection | Candidate implementation remains unverified until its complete gate, exact-head review, and protected promotion |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

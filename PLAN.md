@@ -511,17 +511,27 @@ the new event needed to repair that boundary, so PR #19 was closed without merge
 candidate branch was retained. RCI-051--RCI-053 and the linear part of RCI-054 remain
 deferred. Reopening requires a newly sealed event-authorizing Goal.
 
-G3K-S is selected from protected anchor `7aa670482af85a9fd554a31924dbce6a26984af4`.
+G3K-S was promoted from protected anchor `7aa670482af85a9fd554a31924dbce6a26984af4`
+through protected main at `d6e101bb01271179f3416c3ecc61082bcdb6b873`.
 It normalizes v0.6 around perpendicular realized succession, typed arrangement, and
 piecewise recognition after two incumbent expressivity failures pass the focused gate.
-It adds no executable kernel or event. G3K-E follows only after protected G3K-S
-promotion and implements the finite typed graph, frames, recognition, compatibility
-projections, additive events, and folded-state v7.
+It adds no executable kernel or event. G3K-E is now the active no-budget Goal from that
+protected anchor. It implements strict finite typed effects, arrangements, frames,
+guarded answer-conditioned programs, candidate-only recognition, compatibility
+projections, additive version-1 events, and folded-state v7. Program interpretation
+returns inert actions and can actualize an effect only by linking to the existing
+persisted effect lifecycle.
 
 Focused G3K-S command:
 
 ```text
 uv run pytest -q tests/acceptance/test_g3k_semantic_normalization.py
+```
+
+Focused G3K-E command:
+
+```text
+uv run pytest -q tests/acceptance/test_effect_distinction_question_grammar.py
 ```
 
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression

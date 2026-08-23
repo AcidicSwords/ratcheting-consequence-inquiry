@@ -23,9 +23,12 @@ optional static lowerings; closed exhaustive binary cases realize Boolean distin
 Recognition from partial fragments grants neither actuality nor warrant. Persistence is
 a checked protected transport relation, and a breaking fragment reopens a fold.
 
-G3K-S establishes these semantics only. G3K-E later owns executable finite guarded
-graphs and additive persistence; legacy `QuestionContract` remains readable through a
-lossless compatibility projection or explicit projection failure.
+G3K-S established these semantics. Active G3K-E owns the additive executable finite
+guarded kernel: `rci.calculus` represents syntax and inert actions; existing persisted
+`EffectRequest`/attempt/return/decode/check records actualize it; new interaction events
+own only the exact links, checked branch observation, and selected successor. Legacy
+`QuestionContract` remains readable through a lossless compatibility projection or
+explicit projection failure. Folded state v7 is rebuildable from the unchanged ledger.
 
 ## System shape
 

@@ -8,6 +8,13 @@ from typing import Literal, Protocol
 from pydantic import Field, model_validator
 
 from rci.backlog.models import BacklogEffect
+from rci.calculus.models import (
+    ArrangementProgramAdmission,
+    InteractionContinuation,
+    InteractionFrameObservation,
+    InteractionOccurrence,
+    InteractionProgram,
+)
 from rci.claims.models import (
     Candidate,
     Claim,
@@ -142,6 +149,14 @@ class _PinnedRetentionRecord(Protocol):
     def protected_horizon_id(self) -> str: ...
 
 
+class LedgerRecordPosition(FrozenModel):
+    """Rebuildable ledger-order index; never interpreted as realized succession."""
+
+    record_kind: Identifier
+    record_id: Identifier
+    sequence: int = Field(ge=1)
+
+
 class InquiryState(FrozenModel):
     status: Literal["not_started", "active"] = "not_started"
     inquiry_id: Identifier | None = None
@@ -149,6 +164,7 @@ class InquiryState(FrozenModel):
     manifest_artifact: ArtifactRef | None = None
     policy_version: Identifier | None = None
     context: InquiryContext | None = None
+    authority_positions: tuple[LedgerRecordPosition, ...] = ()
     backlog_effects: tuple[BacklogEffect, ...] = ()
     step_plans: tuple[StepPlan, ...] = ()
     effect_requests: tuple[EffectRequestState, ...] = ()
@@ -228,6 +244,11 @@ class InquiryState(FrozenModel):
     promotion_decisions: tuple[PromotionDecision, ...] = ()
     recursive_cycle_checkpoints: tuple[RecursiveCycleCheckpoint, ...] = ()
     recursive_stop_dispositions: tuple[RecursiveStopDisposition, ...] = ()
+    arrangement_programs: tuple[InteractionProgram, ...] = ()
+    arrangement_program_admissions: tuple[ArrangementProgramAdmission, ...] = ()
+    interaction_occurrences: tuple[InteractionOccurrence, ...] = ()
+    interaction_frame_observations: tuple[InteractionFrameObservation, ...] = ()
+    interaction_continuations: tuple[InteractionContinuation, ...] = ()
 
     @property
     def retained_state_views(self) -> tuple[RetainedStateView, ...]:
@@ -424,6 +445,8 @@ class InquiryState(FrozenModel):
                 raise ValueError(
                     "an unstarted inquiry cannot contain backlog effects, plans, or requests"
                 )
+            if self.authority_positions:
+                raise ValueError("an unstarted inquiry cannot contain authority positions")
             if any(
                 (
                     self.claims,
@@ -500,6 +523,11 @@ class InquiryState(FrozenModel):
                     self.promotion_decisions,
                     self.recursive_cycle_checkpoints,
                     self.recursive_stop_dispositions,
+                    self.arrangement_programs,
+                    self.arrangement_program_admissions,
+                    self.interaction_occurrences,
+                    self.interaction_frame_observations,
+                    self.interaction_continuations,
                 )
             ):
                 raise ValueError("an unstarted inquiry cannot contain domain records")
@@ -509,6 +537,13 @@ class InquiryState(FrozenModel):
         request_ids = [item.request.id for item in self.effect_requests]
         if len(request_ids) != len(set(request_ids)):
             raise ValueError("effect request ids must be unique")
+        position_keys = tuple(
+            (item.record_kind, item.record_id) for item in self.authority_positions
+        )
+        if len(position_keys) != len(set(position_keys)):
+            raise ValueError("authority positions must be unique by kind and identity")
+        if any(item.sequence > self.sequence for item in self.authority_positions):
+            raise ValueError("authority positions cannot exceed aggregate sequence")
 
         backlog_effect_ids = [effect.id for effect in self.backlog_effects]
         if len(backlog_effect_ids) != len(set(backlog_effect_ids)):
@@ -1546,7 +1581,62 @@ class InquiryState(FrozenModel):
             for item in self.recursive_stop_dispositions
         ):
             raise ValueError("recursive stops require an owned cycle and limitation residue")
+
+        calculus_collections = (
+            self.arrangement_programs,
+            self.arrangement_program_admissions,
+            self.interaction_occurrences,
+            self.interaction_frame_observations,
+            self.interaction_continuations,
+        )
+        for calculus_collection in calculus_collections:
+            calculus_ids = tuple(item.id for item in calculus_collection)
+            if len(calculus_ids) != len(set(calculus_ids)):
+                raise ValueError("G3K record identities must be unique within their owner")
+        calculus_programs = {item.id: item for item in self.arrangement_programs}
+        calculus_admitted_program_ids = {
+            item.program_id
+            for item in self.arrangement_program_admissions
+            if item.outcome == "admit"
+        }
+        if len({item.program_id for item in self.arrangement_program_admissions}) != len(
+            self.arrangement_program_admissions
+        ):
+            raise ValueError("each arrangement program permits one total admission decision")
+        if any(
+            item.program_id not in calculus_programs for item in self.arrangement_program_admissions
+        ):
+            raise ValueError("arrangement admissions require owned program candidates")
+        request_id_set = set(request_ids)
+        if any(
+            item.program_id not in calculus_admitted_program_ids
+            or item.effect_request_id not in request_id_set
+            for item in self.interaction_occurrences
+        ):
+            raise ValueError("interaction occurrences require admitted programs and owned requests")
+        occurrence_ids = {item.id for item in self.interaction_occurrences}
+        observation_ids = {item.id for item in self.interaction_frame_observations}
+        if any(
+            item.occurrence_id not in occurrence_ids for item in self.interaction_frame_observations
+        ):
+            raise ValueError("frame observations require owned interaction occurrences")
+        if any(
+            item.occurrence_id not in occurrence_ids or item.observation_id not in observation_ids
+            for item in self.interaction_continuations
+        ):
+            raise ValueError("interaction continuations require owned occurrence observations")
         return self
+
+    def record_position(self, record_kind: str, record_id: str) -> int | None:
+        match = next(
+            (
+                item
+                for item in self.authority_positions
+                if item.record_kind == record_kind and item.record_id == record_id
+            ),
+            None,
+        )
+        return match.sequence if match is not None else None
 
     def request_by_id(self, request_id: str) -> EffectRequestState | None:
         return next(

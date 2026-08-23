@@ -285,10 +285,13 @@ review found that the generic validation event could not replay the binding-spec
 proof, while the sealed Goal prohibited the new event required to repair it. PR #19 is
 closed, unmerged, and retained. RCI-051--RCI-053 and the linear part of RCI-054 remain
 deferred; reopening requires a newly sealed event-authorizing Goal.
-G3K-S is the active no-budget semantic-normalization Goal from protected anchor
-`7aa670482af85a9fd554a31924dbce6a26984af4`. It may establish v0.6 semantics and the two
-ADR-0016 incumbent failure witnesses only. It adds no executable calculus, event,
-snapshot, dependency, model adapter, or authority. G3K-E remains a separate later Goal.
+G3K-S was independently reviewed and promoted through protected main at
+`d6e101bb01271179f3416c3ecc61082bcdb6b873`. G3K-E is the active no-budget Goal from that
+exact anchor. It may add only the dependency-free finite typed calculus, conservative
+legacy projections, additive version-1 interaction events, and rebuildable folded-state
+v7 fixed by its Goal. Represented effects remain distinct from persisted requests,
+attempts, returns, decodes, and checked observations. Syntax, programs, recognition,
+and continuation selections grant no execution, warrant, review, or promotion authority.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
@@ -412,11 +415,18 @@ and verification evidence:
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
 ```
 
-The active G3K-S gate adds this focused command identically to `PLAN.md`, its Goal, CI,
+The sealed G3K-S gate retains this focused command identically to `PLAN.md`, its Goal, CI,
 and verification evidence:
 
 ```text
 uv run pytest -q tests/acceptance/test_g3k_semantic_normalization.py
+```
+
+The active G3K-E gate adds this focused command identically to `PLAN.md`, its Goal, CI,
+and verification evidence:
+
+```text
+uv run pytest -q tests/acceptance/test_effect_distinction_question_grammar.py
 ```
 
 Dependency sync is bootstrap and may fetch locked packages. Test execution is

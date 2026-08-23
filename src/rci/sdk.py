@@ -17,6 +17,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from rci.backlog.models import G1_APPLICABLE_EFFECT_KINDS, BacklogEffect
+from rci.calculus.models import (
+    ArrangementProgramAdmission,
+    InteractionContinuation,
+    InteractionFrameObservation,
+    InteractionOccurrence,
+    InteractionProgram,
+)
 from rci.claims.models import (
     BoundArgument,
     Claim,
@@ -43,6 +50,7 @@ from rci.compression import (
 from rci.core.commands import (
     AcceptEffectResult,
     AdmitClaim,
+    DecideArrangementProgramAdmission,
     DecideGoalAdmission,
     DecideMethodAdmission,
     DecideProjectSuccessor,
@@ -53,8 +61,10 @@ from rci.core.commands import (
     GrantRecoveryLicense,
     LinkReacquisitionInquiry,
     LinkRetentionCapability,
+    OpenInteractionOccurrence,
     OpenObligation,
     PlanEffectAttempt,
+    RecordArrangementProgramCandidate,
     RecordAttemptOutcome,
     RecordBacklogEffect,
     RecordCandidateEnvironment,
@@ -69,6 +79,7 @@ from rci.core.commands import (
     RecordDevelopmentEvidence,
     RecordImplementationGoalCandidate,
     RecordIndependentReview,
+    RecordInteractionFrameObservation,
     RecordLearnedProbeCandidate,
     RecordMemoryPatchCandidate,
     RecordMethodBindingCandidate,
@@ -95,6 +106,7 @@ from rci.core.commands import (
     RequestReacquisition,
     RunRetrieval,
     SealImplementationGoal,
+    SelectInteractionContinuation,
     StartEffectAttempt,
     StartInquiry,
 )
@@ -1848,6 +1860,66 @@ class RCI:
                 inquiry_id=inquiry_id,
                 occurred_at=self.clock(),
                 anchor=anchor,
+            )
+        )
+
+    def record_arrangement_program_candidate(
+        self, inquiry_id: str, program: InteractionProgram
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordArrangementProgramCandidate(
+                event_id=_stable_id("evt", inquiry_id, program.id, "arrangement-program"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                program=program,
+            )
+        )
+
+    def decide_arrangement_program_admission(
+        self, inquiry_id: str, decision: ArrangementProgramAdmission
+    ) -> InquiryState:
+        return self.dispatch(
+            DecideArrangementProgramAdmission(
+                event_id=_stable_id("evt", inquiry_id, decision.id, "arrangement-admission"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                decision=decision,
+            )
+        )
+
+    def open_interaction_occurrence(
+        self, inquiry_id: str, occurrence: InteractionOccurrence
+    ) -> InquiryState:
+        return self.dispatch(
+            OpenInteractionOccurrence(
+                event_id=_stable_id("evt", inquiry_id, occurrence.id, "interaction-occurrence"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                occurrence=occurrence,
+            )
+        )
+
+    def record_interaction_frame_observation(
+        self, inquiry_id: str, observation: InteractionFrameObservation
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordInteractionFrameObservation(
+                event_id=_stable_id("evt", inquiry_id, observation.id, "frame-observation"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                observation=observation,
+            )
+        )
+
+    def select_interaction_continuation(
+        self, inquiry_id: str, continuation: InteractionContinuation
+    ) -> InquiryState:
+        return self.dispatch(
+            SelectInteractionContinuation(
+                event_id=_stable_id("evt", inquiry_id, continuation.id, "continuation"),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                continuation=continuation,
             )
         )
 

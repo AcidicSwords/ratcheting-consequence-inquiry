@@ -8,6 +8,13 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 
 from rci.backlog.models import BacklogEffect
+from rci.calculus.models import (
+    ArrangementProgramAdmission,
+    InteractionContinuation,
+    InteractionFrameObservation,
+    InteractionOccurrence,
+    InteractionProgram,
+)
 from rci.claims.models import (
     Candidate,
     Claim,
@@ -503,6 +510,35 @@ class RecursiveStopDispositionRecorded(EventBase):
     disposition: RecursiveStopDisposition
 
 
+class ArrangementProgramCandidateRecorded(EventBase):
+    kind: Literal["arrangement_program_candidate_recorded"] = (
+        "arrangement_program_candidate_recorded"
+    )
+    program: InteractionProgram
+
+
+class ArrangementProgramAdmissionDecided(EventBase):
+    kind: Literal["arrangement_program_admission_decided"] = "arrangement_program_admission_decided"
+    decision: ArrangementProgramAdmission
+
+
+class InteractionOccurrenceOpened(EventBase):
+    kind: Literal["interaction_occurrence_opened"] = "interaction_occurrence_opened"
+    occurrence: InteractionOccurrence
+
+
+class InteractionFrameObservationRecorded(EventBase):
+    kind: Literal["interaction_frame_observation_recorded"] = (
+        "interaction_frame_observation_recorded"
+    )
+    observation: InteractionFrameObservation
+
+
+class InteractionContinuationSelected(EventBase):
+    kind: Literal["interaction_continuation_selected"] = "interaction_continuation_selected"
+    continuation: InteractionContinuation
+
+
 DomainEvent = Annotated[
     InquiryStarted
     | BacklogEffectRecorded
@@ -577,6 +613,11 @@ DomainEvent = Annotated[
     | ProjectSuccessorDecided
     | PromotionDecisionRecorded
     | RecursiveCycleCheckpointRecorded
-    | RecursiveStopDispositionRecorded,
+    | RecursiveStopDispositionRecorded
+    | ArrangementProgramCandidateRecorded
+    | ArrangementProgramAdmissionDecided
+    | InteractionOccurrenceOpened
+    | InteractionFrameObservationRecorded
+    | InteractionContinuationSelected,
     Field(discriminator="kind"),
 ]

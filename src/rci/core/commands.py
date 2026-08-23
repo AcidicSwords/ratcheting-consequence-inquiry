@@ -8,6 +8,13 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 
 from rci.backlog.models import BacklogEffect
+from rci.calculus.models import (
+    ArrangementProgramAdmission,
+    InteractionContinuation,
+    InteractionFrameObservation,
+    InteractionOccurrence,
+    InteractionProgram,
+)
 from rci.claims.models import (
     Candidate,
     Claim,
@@ -503,6 +510,31 @@ class RecordRecursiveStopDisposition(CommandBase):
     disposition: RecursiveStopDisposition
 
 
+class RecordArrangementProgramCandidate(CommandBase):
+    kind: Literal["record_arrangement_program_candidate"] = "record_arrangement_program_candidate"
+    program: InteractionProgram
+
+
+class DecideArrangementProgramAdmission(CommandBase):
+    kind: Literal["decide_arrangement_program_admission"] = "decide_arrangement_program_admission"
+    decision: ArrangementProgramAdmission
+
+
+class OpenInteractionOccurrence(CommandBase):
+    kind: Literal["open_interaction_occurrence"] = "open_interaction_occurrence"
+    occurrence: InteractionOccurrence
+
+
+class RecordInteractionFrameObservation(CommandBase):
+    kind: Literal["record_interaction_frame_observation"] = "record_interaction_frame_observation"
+    observation: InteractionFrameObservation
+
+
+class SelectInteractionContinuation(CommandBase):
+    kind: Literal["select_interaction_continuation"] = "select_interaction_continuation"
+    continuation: InteractionContinuation
+
+
 DomainCommand = Annotated[
     StartInquiry
     | RecordBacklogEffect
@@ -577,6 +609,11 @@ DomainCommand = Annotated[
     | DecideProjectSuccessor
     | RecordPromotionDecision
     | RecordRecursiveCycleCheckpoint
-    | RecordRecursiveStopDisposition,
+    | RecordRecursiveStopDisposition
+    | RecordArrangementProgramCandidate
+    | DecideArrangementProgramAdmission
+    | OpenInteractionOccurrence
+    | RecordInteractionFrameObservation
+    | SelectInteractionContinuation,
     Field(discriminator="kind"),
 ]

@@ -4,7 +4,39 @@ This is an append-oriented evidence log. Record commands, environment, exit
 status, and material returns. A planned, skipped, unavailable, or failed check is
 not passing evidence.
 
-## Active G3K-S semantic-normalization evidence — 2026-08-23
+## Active G3K-E executable-kernel evidence — 2026-08-23
+
+Anchor: protected G3K-S promotion `d6e101bb01271179f3416c3ecc61082bcdb6b873`.
+`docs/goals/G3K-E.md` seals a dependency-free additive finite kernel and lifecycle.
+
+Focused command:
+
+```text
+uv run pytest -q tests/acceptance/test_effect_distinction_question_grammar.py
+```
+
+Initial return: exit `0`, `9 passed`. This covers typed arrangement composition versus
+realized succession, involutive binary crossing, answer-conditioned guarded programs,
+partial/exterior/indeterminate separation, all eight `core-v1` compatibility adapters,
+candidate-only recognition with breaking residue, and an owned independently checked
+program/occurrence/observation/continuation replay path. The acceptance attack also
+rejects a checker recorded before the accepted return it purported to check.
+
+Complete local candidate gate:
+
+- `uv lock --check`, base sync, and all-extras sync: passed with the existing lock;
+- base import including `rci.calculus`: passed;
+- non-optional gate: `206 passed, 1 skipped, 4 deselected`;
+- full suite: `210 passed, 1 skipped`;
+- acceptance: `46 passed`;
+- focused predecessor/G3K-S/G3K-E counts: `3`, `1`, `2`, `7`, `7`, `3`, `2`, `9`;
+- Ruff format/check: `179` files formatted, passed;
+- mypy: `124` source files passed;
+- CLI help and build: passed; version `0.6.0` sdist and wheel produced.
+
+Hosted CI, fresh exact-head review, and protected promotion remain pending.
+
+## G3K-S semantic-normalization promotion — 2026-08-23
 
 Anchor: `7aa670482af85a9fd554a31924dbce6a26984af4`. ADR-0018 and
 `docs/goals/G3K-S.md` seal semantic normalization only; no executable kernel is claimed.
@@ -20,9 +52,14 @@ the incumbent boundaries required by ADR-0016: general answer-conditioned succes
 rules are rejected by the admitted G3Q compiler, while a partial two-class answer is
 collapsed to one unclassified residual rather than preserving multiple live cells.
 
-Complete local gate, hosted CI, exact-head fresh semantic review, protected promotion,
-and post-merge verification remain pending. RCI-080--RCI-086 are accepted semantic
-targets but have no executable standing until their assigned G3K-E evidence exists.
+The complete local gate passed: `200 passed, 1 skipped`; acceptance `37 passed`; focused
+G3K-S `2 passed`; Ruff, mypy over 119 source files, import, CLI, source integrity,
+requirement parity 86/86, and build all passed. All hosted Linux, Windows, extras,
+Docker, predecessor, and G3K-S jobs passed at exact head
+`e18ee1a45b01dd9c3aea36a25def039869a4f45d`. Fresh distinct-context Codex review of
+that exact head reported no findings. PR #21 was squash-promoted as protected-main
+commit `d6e101bb01271179f3416c3ecc61082bcdb6b873`. G3K-S claims semantics only; executable
+standing remains assigned to G3K-E.
 
 ## G3A-L stopped-indeterminate disposition — 2026-08-23
 
