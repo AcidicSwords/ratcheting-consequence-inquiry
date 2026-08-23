@@ -16,8 +16,12 @@ RCI-079 remains unverified. G3FO candidate
 `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` likewise stopped indeterminate after its
 final fresh distinct-context review was unavailable; it is unmerged and supplies no
 standing failure-observation capability. ADR-0016 preserves the compositional grammar as
-a candidate only; G3Q-F is not selected. G3A-L and later
-phases remain outside the completed implementation boundary.
+a candidate only; G3Q-F is not selected. G3A-L candidate
+`a732a79b88327831345bf2f97fa333679c526d93` passed local and hosted gates but stopped
+indeterminate after fresh review found that its generic validation event could not
+replay the binding-specific proof; PR #19 was closed unmerged and its requirement rows
+remain deferred. G3A-L and later phases remain outside the completed implementation
+boundary.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
 

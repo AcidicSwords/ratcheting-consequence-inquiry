@@ -502,6 +502,15 @@ The present post-G3FO frontier returns `Unknown`: the candidate review findings 
 authority, lifecycle, continuity, and implementation defects, not two independently
 verified question/frame-blindness failures. No successor Goal is active.
 
+G3A-L was subsequently attempted from exact protected anchor
+`71d32346c71a26cf82a36df7e50376759bc1873b` and stopped indeterminate at candidate
+`a732a79b88327831345bf2f97fa333679c526d93`. Its complete local and hosted gates passed,
+but fresh exact-head review found that the generic compression-validation event could
+not replay the binding-specific family/analysis/check proof. The sealed Goal prohibited
+the new event needed to repair that boundary, so PR #19 was closed without merge and the
+candidate branch was retained. RCI-051--RCI-053 and the linear part of RCI-054 remain
+deferred. Reopening requires a newly sealed event-authorizing Goal.
+
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
 - G3A-H (verified): explicit carrier roles; binding-derived realized history; exact consequence
@@ -509,8 +518,8 @@ verified question/frame-blindness failures. No successor Goal is active.
   path residue; exact compression and recovery licenses; representation succession;
   generic reopening; unary-parity and order-sensitive history fixtures. It uses current
   dependencies only.
-- G3A-L: SymPy exact rational linear binding; universal/distributional/vector forms;
-  positive-weight probes; linear-only minimum dimension; exact kernel reopening.
+- G3A-L (stopped indeterminate): the retained SymPy/Fraction candidate is not standing
+  capability. A later event-authorizing Goal may reopen exact linear validation.
 - G3B: approximate loss licenses, budgets/risk/confidence/debt composition, NumPy
   numerical candidates, and a deterministic toy quantizer/reference oracle.
 - G3C: isolated native adapters. QJL is the first candidate; EDEN/DRIVE remain blocked
