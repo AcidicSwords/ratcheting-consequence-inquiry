@@ -757,7 +757,7 @@ def build_linear_validation_properties(
     check: ExactLinearCheck,
     *,
     compression_contract_id: str,
-    check_reference: CheckReference,
+    property_check_references: tuple[tuple[ValidationProperty, CheckReference], ...],
     invalid_witness_artifact: ArtifactRef | None = None,
 ) -> tuple[ExactPropertyValidation, ...]:
     """Bridge checked binding evidence into the existing G3A-H property stages.
@@ -785,6 +785,19 @@ def build_linear_validation_properties(
         raise ValueError("linear validation requires an intact candidate check record")
     if check.verdict is LinearCheckVerdict.INVALID and invalid_witness_artifact is None:
         raise ValueError("invalid linear validation requires an exact counterexample artifact")
+    referenced_properties = tuple(item[0] for item in property_check_references)
+    if referenced_properties != tuple(
+        sorted(referenced_properties, key=lambda item: item.value)
+    ) or len(set(referenced_properties)) != len(referenced_properties):
+        raise ValueError("linear property check references must be unique and canonical")
+    claimed_properties = {
+        property_kind
+        for property_kind, outcome in check.property_outcomes
+        if outcome is not ValidationOutcome.NOT_CLAIMED
+    }
+    if set(referenced_properties) != claimed_properties:
+        raise ValueError("each claimed linear property requires its own exact check reference")
+    checks_by_property = dict(property_check_references)
     properties: list[ExactPropertyValidation] = []
     for property_kind, outcome in check.property_outcomes:
         if outcome is ValidationOutcome.NOT_CLAIMED:
@@ -797,7 +810,7 @@ def build_linear_validation_properties(
                 proposition_id=(
                     f"compression-property:{compression_contract_id}:{property_kind.value}"
                 ),
-                check=check_reference,
+                check=checks_by_property[property_kind],
                 witness_artifact=(
                     invalid_witness_artifact if outcome is ValidationOutcome.INVALID else None
                 ),

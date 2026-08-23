@@ -262,11 +262,26 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         ValidationOutcome.VALID
     )
 
-    check_ref = CheckReference(evidence_id="linear-evidence", checker_verdict_id="fraction-check")
+    check_refs = (
+        (
+            ValidationProperty.CONSEQUENCE_FACTORIZATION,
+            CheckReference(
+                evidence_id="linear-factorization-evidence",
+                checker_verdict_id="fraction-factorization-check",
+            ),
+        ),
+        (
+            ValidationProperty.EXACT_EQUIVALENCE,
+            CheckReference(
+                evidence_id="linear-equivalence-evidence",
+                checker_verdict_id="fraction-equivalence-check",
+            ),
+        ),
+    )
     properties = build_linear_validation_properties(
         check,
         compression_contract_id="compression-contract",
-        check_reference=check_ref,
+        property_check_references=check_refs,
     )
     validation = CompressionValidation(
         id="linear-validation",
@@ -279,6 +294,11 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
     )
     assert validation.valid
     assert len(validation.properties) == len(ValidationProperty)
+    claimed_checks = tuple(
+        item.check for item in validation.properties if item.outcome is ValidationOutcome.VALID
+    )
+    assert len(claimed_checks) == 2
+    assert len(set(claimed_checks)) == 2
     assert (
         next(
             item
@@ -328,13 +348,19 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         build_linear_validation_properties(
             check.model_copy(update={"id": "lck_substituted"}),
             compression_contract_id="compression-contract",
-            check_reference=check_ref,
+            property_check_references=check_refs,
+        )
+    with pytest.raises(ValueError, match="each claimed"):
+        build_linear_validation_properties(
+            check,
+            compression_contract_id="compression-contract",
+            property_check_references=check_refs[:1],
         )
     with pytest.raises(ValueError, match="counterexample"):
         build_linear_validation_properties(
             invalid,
             compression_contract_id="compression-contract",
-            check_reference=check_ref,
+            property_check_references=check_refs,
         )
 
 
