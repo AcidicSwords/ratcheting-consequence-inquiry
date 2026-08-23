@@ -277,7 +277,7 @@ RCI-079 remains deferred and unverified. G3FO was then attempted from protected 
 three invalid semantic reviews were repaired, but a fresh final distinct-context review
 was unavailable. It is unmerged and unpromoted. The compositional-question sources are
 archived candidates under ADR-0016. At the G3FO stop boundary they had not replaced v0.5
-or activated G3Q-F; later selection is governed by ADR-0018 and the active G3K-S Goal.
+or activated G3Q-F; their later semantic reconciliation is governed by accepted ADR-0018.
 G3A-L was attempted next from exact protected anchor
 `71d32346c71a26cf82a36df7e50376759bc1873b` and stopped indeterminate at candidate
 `a732a79b88327831345bf2f97fa333679c526d93`: all local and hosted gates passed, but fresh
@@ -285,10 +285,14 @@ review found that the generic validation event could not replay the binding-spec
 proof, while the sealed Goal prohibited the new event required to repair it. PR #19 is
 closed, unmerged, and retained. RCI-051--RCI-053 and the linear part of RCI-054 remain
 deferred; reopening requires a newly sealed event-authorizing Goal.
-G3K-S is the active no-budget semantic-normalization Goal from protected anchor
-`7aa670482af85a9fd554a31924dbce6a26984af4`. It may establish v0.6 semantics and the two
-ADR-0016 incumbent failure witnesses only. It adds no executable calculus, event,
-snapshot, dependency, model adapter, or authority. G3K-E remains a separate later Goal.
+G3K-S was promoted through protected main at
+`d6e101bb01271179f3416c3ecc61082bcdb6b873`; it establishes v0.6 semantics and the two
+ADR-0016 incumbent failure witnesses without an executable kernel. G3K-E was attempted
+from that anchor and stopped indeterminate at candidate
+`a4a769872832cbd46c7e10400e4f71195d2fb1e5`: all local and hosted gates passed and the
+first exact-head invalid review was repaired, but fresh review of the repair head was
+unavailable. PR #22 is closed, unmerged, and retained. RCI-080--RCI-086 remain accepted
+semantic requirements without executable standing. No successor Goal is active.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
@@ -412,7 +416,7 @@ and verification evidence:
 uv run pytest -q tests/acceptance/test_goal_synthesis.py
 ```
 
-The active G3K-S gate adds this focused command identically to `PLAN.md`, its Goal, CI,
+The sealed G3K-S gate retains this focused command identically to `PLAN.md`, its Goal, CI,
 and verification evidence:
 
 ```text

@@ -4,7 +4,35 @@ This is an append-oriented evidence log. Record commands, environment, exit
 status, and material returns. A planned, skipped, unavailable, or failed check is
 not passing evidence.
 
-## Active G3K-S semantic-normalization evidence — 2026-08-23
+## G3K-E stopped-indeterminate disposition — 2026-08-23
+
+Protected selection anchor: `d6e101bb01271179f3416c3ecc61082bcdb6b873`.
+Final candidate: `a4a769872832cbd46c7e10400e4f71195d2fb1e5` on retained branch
+`codex/g3k-e-executable-kernel`. PR #22 was closed without merge.
+
+The candidate's final local gate passed: focused G3K-E `9 passed`; full suite `210
+passed, 1 skipped`; acceptance `46 passed`; non-optional `206 passed, 1 skipped, 4
+deselected`; Ruff, mypy over 124 source files, predecessor gates, import, CLI, and build
+passed. Every hosted Linux, Windows, extras, Docker, predecessor, G3K-S, and G3K-E job
+passed at the exact repair head.
+
+Fresh review of intermediate head `cd69cfeffddcec8f59255321c44687912cfd48b1`
+returned `INVALID`, reproducing unchecked answer/exterior classification, direct entry
+into a later program node, accepted-request reuse through a guarded cycle, operation-only
+request matching, and incomplete answer-cell comparison. Repair head `a4a7698...`
+binds the exact frame/decode/kind/cell digest into the checker proposition, requires
+complete cell equality, exact request input, entry/predecessor execution ownership, and
+a fresh post-selection request used by one occurrence. Focused, full, acceptance, static,
+and hosted checks passed after repair.
+
+Two fresh exact-head review requests for the repair head remained unavailable. Under the
+sealed promotion rule, green tests cannot replace that non-self semantic return. G3K-E
+is therefore stopped indeterminate; its events, folded-state v7, calculus package, and
+compatibility projection have no standing implementation. Reopening requires a fresh
+exact-head semantic review of the retained candidate or a newly sealed successor Goal.
+RCI-080--RCI-086 remain accepted semantic requirements only.
+
+## G3K-S semantic-normalization promotion — 2026-08-23
 
 Anchor: `7aa670482af85a9fd554a31924dbce6a26984af4`. ADR-0018 and
 `docs/goals/G3K-S.md` seal semantic normalization only; no executable kernel is claimed.
@@ -20,9 +48,14 @@ the incumbent boundaries required by ADR-0016: general answer-conditioned succes
 rules are rejected by the admitted G3Q compiler, while a partial two-class answer is
 collapsed to one unclassified residual rather than preserving multiple live cells.
 
-Complete local gate, hosted CI, exact-head fresh semantic review, protected promotion,
-and post-merge verification remain pending. RCI-080--RCI-086 are accepted semantic
-targets but have no executable standing until their assigned G3K-E evidence exists.
+The complete local gate passed: `200 passed, 1 skipped`; acceptance `37 passed`; focused
+G3K-S `2 passed`; Ruff, mypy over 119 source files, import, CLI, source integrity,
+requirement parity 86/86, and build all passed. Hosted Linux, Windows, extras, Docker,
+predecessor, and G3K-S jobs passed at exact head
+`e18ee1a45b01dd9c3aea36a25def039869a4f45d`. Fresh distinct-context review reported no
+findings. PR #21 was squash-promoted at protected-main commit
+`d6e101bb01271179f3416c3ecc61082bcdb6b873`. RCI-080--RCI-086 are accepted semantic
+targets but have no executable standing after the stopped G3K-E attempt.
 
 ## G3A-L stopped-indeterminate disposition — 2026-08-23
 

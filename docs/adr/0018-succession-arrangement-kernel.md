@@ -1,6 +1,6 @@
 # ADR-0018: Succession-arrangement compositional inquiry kernel
 
-- Status: accepted for active G3K-S semantic normalization
+- Status: accepted; G3K-S promoted, G3K-E stopped indeterminate
 - Date: 2026-08-23
 - Requirements: RCI-080--RCI-086
 - Supersedes: ADR-0016's deferral condition, not its no-collapse rules

@@ -511,12 +511,21 @@ the new event needed to repair that boundary, so PR #19 was closed without merge
 candidate branch was retained. RCI-051--RCI-053 and the linear part of RCI-054 remain
 deferred. Reopening requires a newly sealed event-authorizing Goal.
 
-G3K-S is selected from protected anchor `7aa670482af85a9fd554a31924dbce6a26984af4`.
-It normalizes v0.6 around perpendicular realized succession, typed arrangement, and
-piecewise recognition after two incumbent expressivity failures pass the focused gate.
-It adds no executable kernel or event. G3K-E follows only after protected G3K-S
-promotion and implements the finite typed graph, frames, recognition, compatibility
-projections, additive events, and folded-state v7.
+G3K-S was promoted through protected main at
+`d6e101bb01271179f3416c3ecc61082bcdb6b873`. It normalizes v0.6 around perpendicular
+realized succession, typed arrangement, and piecewise recognition after two incumbent
+expressivity failures passed the focused gate. It adds no executable kernel or event.
+
+G3K-E was attempted from that protected anchor and stopped indeterminate at candidate
+`a4a769872832cbd46c7e10400e4f71195d2fb1e5`. The candidate implemented the finite typed
+graph, frames, compatibility projection, additive events, and folded-state v7; every
+local and hosted check passed. Fresh review first returned `INVALID`, exposing unchecked
+frame classification, skippable program position, request reuse, loose input binding,
+and incomplete cell comparison. Those findings were repaired, but fresh distinct-context
+review of the repair head remained unavailable. PR #22 was closed without merge and its
+branch retained. RCI-080--RCI-086 therefore have semantic but not executable standing.
+Reopening requires a new exact-head semantic review of the retained candidate or a
+successor Goal. No successor Goal is active.
 
 Focused G3K-S command:
 
