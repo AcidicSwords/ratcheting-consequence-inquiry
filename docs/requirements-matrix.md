@@ -12,7 +12,11 @@ confined Goal synthesis as G3G; the selection is protected at exact anchor
 protected main as `5f48d397030b6a063fdca19e51b70a824096e564`. G3V candidate
 `a425f4b0dfa5b2c52a67df87d460f25e4e825518` passed its bounded executable profile but
 stopped indeterminate because fresh semantic review was unavailable; it is unmerged and
-RCI-079 remains unverified. G3A-L and later
+RCI-079 remains unverified. G3FO candidate
+`b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` likewise stopped indeterminate after its
+final fresh distinct-context review was unavailable; it is unmerged and supplies no
+standing failure-observation capability. ADR-0016 preserves the compositional grammar as
+a candidate only; G3Q-F is not selected. G3A-L and later
 phases remain outside the completed implementation boundary.
 Later-phase rows remain deliberately **deferred**, not failed and not implemented by an
 interface-shaped stub.
@@ -42,7 +46,7 @@ Status vocabulary:
 
 | Requirement | Contract | Disposition | Evidence or planned evidence |
 |---|---|---|---|
-| RCI-001 | Authority and complete traceability | accepted v0.5 | `docs/source-manifest.md`, ADR-0001, ADR-0011–0015, this matrix, and the RCI-001--RCI-079 coverage check in `docs/verification.md` |
+| RCI-001 | Authority and complete traceability | accepted v0.5 | `docs/source-manifest.md`, ADR-0001, ADR-0011–0016, this matrix, and the RCI-001--RCI-079 coverage check in `docs/verification.md` |
 | RCI-002 | Pinned binding, scope, guard, universe, policy, and explicit carrier roles | verified G3A-H | sealed `InquiryContext`/`Scope` remain unchanged; `BindingCarrierManifest` declares exact carrier roles without mutating `InquiryStarted` |
 | RCI-003 | Questions create provisional claims, not facts | verified G1 | `QuestionContract` pins role, `AnswerShape`, `answer_schema_id`, binding policy, and lawful follow-ups; `bind_answer` fails closed on an unregistered shape/schema/policy and produces only a provisional L0 claim. `test_only_core_v1_is_schedulable_and_rendering_is_literal` and the Phase 1 vertical slice cover the typed path. |
 | RCI-004 | Arbitrary payloads remain inert L0 data | verified G1 | `freeze_json`, `InertPayload`, CAS-backed bytes; `test_arbitrary_l0_payload_is_inert_and_artifacts_are_references`, `test_nested_payloads_are_snapshot_immutable`, and replay of binary L0 bytes |
@@ -164,6 +168,8 @@ Status vocabulary:
 | G3Q | Verified confined regenerative question scheduling | No arbitrary code, general planner, source authority, or automatic warrant |
 | G3G | Verified confined implementation-Goal synthesis; selection anchor `60ff25635f94fb004e6419a09293c5e0fc023074`, protected implementation `5f48d397030b6a063fdca19e51b70a824096e564` | No free-form commands/paths, general planner, actuator, or authority expansion |
 | G3V | Stopped-indeterminate bounded review candidate preserved at `a425f4b0dfa5b2c52a67df87d460f25e4e825518` | No standing implementation, fresh semantic-review substitution, successor warrant, or promotion authority |
+| G3FO | Stopped-indeterminate failure-observation candidate preserved at `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` | No standing evaluator/handoff, model adapter, source/Git authority, review substitution, or promotion authority |
+| G3Q-F | Candidate finite dependent frames and bounded compositional grammar; not selected | Requires two distinct verified question/frame-blindness bindings; no grammar, new requirement, or semantic replacement is standing |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |

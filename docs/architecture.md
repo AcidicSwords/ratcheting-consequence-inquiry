@@ -99,6 +99,32 @@ review required by G3R, so it was stopped indeterminate and never entered this s
 architecture. ADR-0015 preserves the boundary: finite seeded-fault coverage may remain
 useful evidence, but it is not an `IndependentReview` and cannot promote itself.
 
+The later G3FO candidate tested a derived, consequence-pinned failure-observation and
+handoff seam over the existing authoritative lifecycle. Its final head passed local and
+hosted executable gates, but the required fresh distinct-context semantic review was
+unavailable, so it too was stopped indeterminate and never entered the standing
+architecture. Its records remain candidate designs, not repository APIs.
+
+ADR-0016 also preserves a proposed compositional question grammar. Its lawful future
+position is additive and downstream of observed failure:
+
+```text
+owned consequential failure
+  -> typed missing relation/port candidate
+  -> bounded inert QuestionFrame candidate
+  -> independent admission
+  -> compatibility QuestionContract + ordinary obligation
+  -> effect / return / decode / check
+  -> provisional answer-cell narrowing
+  -> checked next ordinary obligation or lawful stop
+```
+
+This candidate flow does not make completions true, does not make semantic completion an
+external return, and does not collapse available observations, protected consequences,
+or attempted probes. Exhausted bounded generation yields `Unknown` unless the declared
+finite context registry is complete and independently certified. Existing catalogs,
+G2B probe admission, G3Q admission, and every authority stage remain unchanged.
+
 ## Durable authority and logical ownership
 
 The SQLite event ledger and content-addressed artifact store are the only durable

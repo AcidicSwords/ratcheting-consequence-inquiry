@@ -256,8 +256,13 @@ frontier selection is protected at exact selection anchor
 `b6069c0a58a669eed21005bada407eff1828071a` and stopped indeterminate at candidate
 `a425f4b0dfa5b2c52a67df87d460f25e4e825518`: its closed profile passed, but fresh
 distinct-context semantic review was unavailable. It is unmerged and unpromoted;
-RCI-079 remains deferred and unverified. No successor Goal is active until a new
-frontier decision and explicit activation occur.
+RCI-079 remains deferred and unverified. G3FO was then attempted from protected main
+`ed6f5922815a29b856786660e76d62b68eeae26a` and stopped indeterminate at candidate
+`b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb`: all local and hosted gates passed after
+three invalid semantic reviews were repaired, but a fresh final distinct-context review
+was unavailable. It is unmerged and unpromoted. The compositional-question sources are
+archived candidates under ADR-0016; they do not replace v0.5 or activate G3Q-F. No
+successor Goal is active until a new frontier decision and explicit activation occur.
 G3R added the recursive project-inquiry and candidate-development protocol described in
 ADR-0012 and ADR-0013 without altering predecessor event schemas. G3A-H added explicit carrier
 roles, binding-derived realized history, exact history-state factorization and
@@ -266,6 +271,14 @@ succession, and generic reopening described in `PLAN.md` and ADR-0011. G3Q adds 
 confined, independently admitted, data-only generated question scheduling. G3G adds
 deterministic inert Goal-candidate compilation plus separate admission under ADR-0014.
 G3A-L and the other nondominated successors remain deferred rather than rejected.
+
+- Candidate question completions are not truths, and semantic completion is not an
+  external return.
+- Available observations, protected consequences, and attempted probes remain distinct.
+- Failure of a bounded grammar to split a fiber returns `Unknown` unless its finite
+  context registry is complete and independently certified.
+- Generated relation/question syntax remains inert. Admission, scheduling, execution,
+  checking, warrant, review, and promotion remain separate.
 
 - `core-v1` schedules obligation characterization, same-class variation, minimal
   boundary crossing, factor proposal, necessity/sufficiency counterexamples, conflict
