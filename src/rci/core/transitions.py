@@ -4169,12 +4169,54 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             raise InvalidCommandError(
                 "continuation requires one exact owned occurrence observation"
             )
-        if g3k_continuation_observation.observation.kind is not FrameObservationKind.COMPLETE:
-            raise InvalidCommandError("only a checked complete answer selects a continuation")
-        if (
-            g3k_continuation.selected_answer_cell_id
-            != g3k_continuation_observation.observation.live_answer_cell_ids[0]
-        ):
+        g3k_selected_observation = g3k_continuation_observation.observation
+        if g3k_selected_observation.kind is FrameObservationKind.COMPLETE:
+            g3k_selected_cell_id = g3k_selected_observation.live_answer_cell_ids[0]
+        elif g3k_selected_observation.kind is FrameObservationKind.EXTERIOR:
+            g3k_selected_program = next(
+                (
+                    item
+                    for item in state.arrangement_programs
+                    if item.id == g3k_continuation_occurrence.program_id
+                ),
+                None,
+            )
+            g3k_selected_node = (
+                next(
+                    (
+                        item
+                        for item in g3k_selected_program.nodes
+                        if item.id == g3k_continuation_occurrence.node_id
+                    ),
+                    None,
+                )
+                if g3k_selected_program is not None
+                else None
+            )
+            g3k_selected_frame = (
+                next(
+                    (
+                        item
+                        for item in g3k_selected_program.question_frames
+                        if isinstance(g3k_selected_node, EffectNode)
+                        and item.id == g3k_selected_node.frame_id
+                    ),
+                    None,
+                )
+                if g3k_selected_program is not None
+                else None
+            )
+            if (
+                g3k_selected_frame is None
+                or g3k_selected_frame.applicability_exterior_cell_id is None
+            ):
+                raise InvalidCommandError("checked exterior has no program-owned continuation")
+            g3k_selected_cell_id = g3k_selected_frame.applicability_exterior_cell_id
+        else:
+            raise InvalidCommandError(
+                "partial or indeterminate observation cannot select a continuation"
+            )
+        if g3k_continuation.selected_answer_cell_id != g3k_selected_cell_id:
             raise InvalidCommandError("continuation answer cell does not match checked observation")
         g3k_continuation_program = next(
             (

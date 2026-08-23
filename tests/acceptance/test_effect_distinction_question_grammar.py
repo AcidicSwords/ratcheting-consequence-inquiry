@@ -324,6 +324,44 @@ def test_partial_exterior_and_indeterminate_are_not_complete_answer_siblings() -
     assert not exterior.live_answer_cell_ids
     assert not indeterminate.live_answer_cell_ids
 
+    program = _program()
+    exterior_program = program.model_copy(
+        update={
+            "nodes": (*program.nodes, StopNode(id="exterior-node", outcome="unknown")),
+            "continuation_edges": (
+                *program.continuation_edges,
+                ContinuationEdge(
+                    id="edge-exterior",
+                    source_node_id="ask-node",
+                    answer_cell_id="not-applicable",
+                    target_node_id="exterior-node",
+                ),
+            ),
+            "return_interfaces": tuple(
+                item.model_copy(update={"applicability_exterior_cell_id": "not-applicable"})
+                for item in program.return_interfaces
+            ),
+            "question_frames": tuple(
+                item.model_copy(
+                    update={
+                        "applicability_exterior_cell_id": "not-applicable",
+                        "exterior_continuation_node_id": "exterior-node",
+                    }
+                )
+                for item in program.question_frames
+            ),
+        }
+    )
+    checked_exterior = exterior.model_copy(update={"frame_id": "binary-frame"})
+    assert (
+        select_continuation(
+            exterior_program,
+            node_id="ask-node",
+            observation=checked_exterior,
+        )
+        == "exterior-node"
+    )
+
 
 def test_finite_relation_join_hides_exact_port_and_partition_is_permutation_stable() -> None:
     left = RelationExtension(

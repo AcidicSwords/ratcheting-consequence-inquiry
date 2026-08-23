@@ -273,12 +273,30 @@ def select_continuation(
     node_id: str,
     observation: FrameObservation,
 ) -> str | None:
-    """Select only a checked complete branch; partial/exterior/Unknown never guess."""
+    """Select one checked semantic or applicability-exterior branch; never guess."""
 
     validate_program(program)
-    if observation.kind is not FrameObservationKind.COMPLETE:
+    if observation.kind is FrameObservationKind.COMPLETE:
+        cell_id = observation.live_answer_cell_ids[0]
+    elif observation.kind is FrameObservationKind.EXTERIOR:
+        node = next((item for item in program.nodes if item.id == node_id), None)
+        frame = (
+            next(
+                (
+                    item
+                    for item in program.question_frames
+                    if isinstance(node, EffectNode) and item.id == node.frame_id
+                ),
+                None,
+            )
+            if node is not None
+            else None
+        )
+        if frame is None or frame.applicability_exterior_cell_id is None:
+            raise CalculusValidationError("checked exterior has no declared continuation")
+        cell_id = frame.applicability_exterior_cell_id
+    else:
         return None
-    cell_id = observation.live_answer_cell_ids[0]
     matches = tuple(
         edge
         for edge in program.continuation_edges
