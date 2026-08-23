@@ -107,7 +107,21 @@ from rci.core.effects import (
     RouteSnapshot,
     SuccessResult,
 )
-from rci.core.events import DomainEvent, InquiryStarted
+from rci.core.events import (
+    CheckerVerdictRecorded,
+    CognitivePlanRecorded,
+    DomainEvent,
+    EffectAttemptOutcomeRecorded,
+    EffectNoAttemptDispositionRecorded,
+    EffectRequested,
+    EvidenceRecorded,
+    ImplementationGoalSealed,
+    InquiryStarted,
+    ObligationOpened,
+    PredictionSealed,
+    ProjectAnchorRecorded,
+    StepPlanRecorded,
+)
 from rci.core.model import ArtifactRef, CapturedPayload, InquiryContext
 from rci.core.replay import replay as replay_events
 from rci.core.serialization import canonical_json_bytes, sha256_digest
@@ -117,15 +131,19 @@ from rci.evaluation import (
     CapabilityConsequenceReport,
     CapabilityEvaluationBundle,
     CapabilityEvaluationProtocol,
+    CapabilityTaskEnvelope,
     CognitiveHandoff,
+    WeakReasonerFixture,
     build_capability_evaluation_bundle,
     build_resolution_invalid_bundle,
     capability_protocol_artifact,
     capability_result_artifact,
+    capability_task_artifact,
     cognitive_handoff_artifact,
     failure_localization_frame_artifact,
 )
 from rci.evaluation.capability import CapabilityEvaluationEpisode
+from rci.evaluation.fixtures import _build_weak_reasoner_fixture
 from rci.learning import (
     ConsolidationCandidate,
     ConsolidationCheckpoint,
@@ -201,7 +219,7 @@ from rci.questions.generated import (
     generated_question_registry,
 )
 from rci.questions.models import QuestionContract
-from rci.warrant import CheckReference
+from rci.warrant import CheckerVerdict, CheckReference
 
 Clock = Callable[[], datetime]
 
@@ -2114,10 +2132,52 @@ class RCI:
             )
         )
 
+    def publish_capability_task(self, task: CapabilityTaskEnvelope) -> ArtifactRef:
+        """Publish the actor-visible task without evaluator-only expected answers."""
+
+        artifact = self.artifacts.put_bytes(
+            canonical_json_bytes(task),
+            media_type="application/vnd.rci.capability-task+json",
+            encoding="utf-8",
+        )
+        if artifact != capability_task_artifact(task):
+            raise ArtifactIntegrityError("published capability task metadata changed")
+        return artifact
+
     def publish_capability_evaluation_protocol(
         self, protocol: CapabilityEvaluationProtocol
     ) -> ArtifactRef:
         """Publish the exact pre-return protocol bytes to CAS."""
+
+        task = CapabilityTaskEnvelope.model_validate_json(
+            self.artifacts.get_bytes(protocol.actor_task_artifact), strict=True
+        )
+        self.artifacts.verify(protocol.actor_task_artifact)
+        if capability_task_artifact(task) != protocol.actor_task_artifact:
+            raise ValueError("protocol actor-task artifact does not match its exact bytes")
+        task_fields = (
+            "anchor_id",
+            "goal_id",
+            "obligation_id",
+            "competence_id",
+            "binding_revision",
+            "scope_fingerprint",
+            "protected_horizon_id",
+            "operation_id",
+            "actor_id",
+            "actor_revision",
+            "adapter_id",
+            "route_definition_id",
+            "route_definition_version",
+            "context_artifact",
+            "evidence_access_artifact",
+            "budget_artifact",
+            "timeout_seconds",
+        )
+        if any(getattr(task, field) != getattr(protocol, field) for field in task_fields) or (
+            task.protected_consequence_ids != protocol.protected_consequence_ids
+        ):
+            raise ValueError("protocol and actor-visible task pins differ")
 
         if protocol.predecessor_handoff_artifact is not None:
             predecessor = CognitiveHandoff.model_validate_json(
@@ -2139,19 +2199,98 @@ class RCI:
                 or predecessor.protected_capability_ids != protocol.protected_capability_ids
             ):
                 raise ValueError("successor protocol does not preserve its predecessor handoff")
-            reopening = bool(protocol.reopening_evidence_artifacts)
-            if (
-                protocol.route_definition_id in predecessor.forbidden_route_ids_until_reopen
-                and not reopening
+            predecessor_protocol = CapabilityEvaluationProtocol.model_validate_json(
+                self.artifacts.get_bytes(predecessor.protocol_artifact), strict=True
+            )
+            continuity_fields = (
+                "anchor_fingerprint",
+                "goal_fingerprint",
+                "competence_id",
+                "binding_revision",
+                "scope_fingerprint",
+                "protected_horizon_id",
+                "context_artifact",
+                "evidence_access_artifact",
+                "budget_artifact",
+                "timeout_seconds",
+                "comparison_policy_id",
+                "comparison_policy_version",
+                "protected_capability_ids",
+            )
+            if any(
+                getattr(predecessor_protocol, field) != getattr(protocol, field)
+                for field in continuity_fields
             ):
-                raise ValueError("successor protocol repeats a failed route without reopening")
-            if (
-                protocol.decoder_id in predecessor.forbidden_decoder_ids_until_reopen
-                and not reopening
+                raise ValueError("successor protocol changes protected predecessor task pins")
+            repeated_requirements: set[str] = set()
+            if protocol.route_definition_id in predecessor.forbidden_route_ids_until_reopen:
+                repeated_requirements.add(f"reopen-route:{protocol.route_definition_id}")
+            if protocol.decoder_id in predecessor.forbidden_decoder_ids_until_reopen:
+                repeated_requirements.add(f"reopen-decoder:{protocol.decoder_id}")
+            if protocol.reopening_evidence_artifacts and not repeated_requirements:
+                raise ValueError("reopening evidence has no failed route or decoder to reopen")
+            source_state = self.inspect(predecessor.source_inquiry_id)
+            source_stream = self.events.load_stream(predecessor.source_inquiry_id)
+            covered_requirements: set[str] = set()
+            for artifact, verdict_id in zip(
+                protocol.reopening_evidence_artifacts,
+                protocol.reopening_checker_verdict_ids,
+                strict=True,
             ):
-                raise ValueError("successor protocol repeats a failed decoder without reopening")
-            for artifact in protocol.reopening_evidence_artifacts:
                 self.artifacts.verify(artifact)
+                evidence_matches = tuple(
+                    item for item in source_state.evidence_records if item.artifact == artifact
+                )
+                verdict = source_state.checker_verdict_by_id(verdict_id)
+                if len(evidence_matches) != 1 or verdict is None:
+                    raise ValueError("reopening evidence is not uniquely owned and checked")
+                evidence = evidence_matches[0]
+                if (
+                    verdict.evidence_id != evidence.id
+                    or verdict.evidence_artifact != evidence.artifact
+                    or verdict.proposition_id != evidence.proposition_id
+                    or verdict.verdict is not CheckerVerdict.VALID
+                    or verdict.certificate_artifact is None
+                    or source_state.context is None
+                    or verdict.checker_id not in source_state.context.discharge_mechanism_ids
+                    or evidence.proposition_id not in repeated_requirements
+                ):
+                    raise ValueError("reopening evidence lacks an exact authorized valid check")
+                evidence_sequence = next(
+                    (
+                        stored.sequence
+                        for stored in source_stream.events
+                        if isinstance(stored.event, EvidenceRecorded)
+                        and stored.event.evidence.id == evidence.id
+                    ),
+                    None,
+                )
+                verdict_sequence = next(
+                    (
+                        stored.sequence
+                        for stored in source_stream.events
+                        if isinstance(stored.event, CheckerVerdictRecorded)
+                        and stored.event.checker_verdict.id == verdict.id
+                    ),
+                    None,
+                )
+                if (
+                    evidence_sequence is None
+                    or verdict_sequence is None
+                    or evidence_sequence <= predecessor.source_sequence
+                    or verdict_sequence <= predecessor.source_sequence
+                ):
+                    raise ValueError("reopening check must follow the exact predecessor handoff")
+                covered_requirements.add(evidence.proposition_id)
+            if covered_requirements != repeated_requirements:
+                raise ValueError(
+                    "successor protocol repeats a failed route without checked reopening"
+                )
+            if (
+                protocol.route_definition_id not in predecessor.forbidden_route_ids_until_reopen
+                and protocol.route_definition_id != predecessor.next_discriminator_route_id
+            ):
+                raise ValueError("successor protocol does not follow the sealed next discriminator")
         artifact = self.artifacts.put_bytes(
             canonical_json_bytes(protocol),
             media_type="application/vnd.rci.capability-evaluation+json",
@@ -2194,34 +2333,15 @@ class RCI:
     ) -> CapabilityEvaluationBundle:
         """Resolve one owned ledger lifecycle, verify CAS, then invoke the pure projector."""
 
-        if through_sequence is None:
-            state = self.inspect(inquiry_id)
-        else:
-            stream = self.events.load_stream(inquiry_id)
-            if through_sequence < 1 or through_sequence > stream.version:
-                raise ValueError("capability evaluation prefix is outside the owned stream")
-            state = replay_events(item.event for item in stream.events[:through_sequence])
+        stream = self.events.load_stream(inquiry_id)
+        selected_sequence = stream.version if through_sequence is None else through_sequence
+        if selected_sequence < 1 or selected_sequence > stream.version:
+            raise ValueError("capability evaluation prefix is outside the owned stream")
+        selected_events = stream.events[:selected_sequence]
+        state = replay_events(item.event for item in selected_events)
         request_state = state.request_by_id(request_id)
         if request_state is None:
             raise ValueError("capability evaluation request is not owned by the inquiry")
-        protocol_artifact = request_state.request.input_artifact
-        try:
-            protocol = CapabilityEvaluationProtocol.model_validate_json(
-                self.artifacts.get_bytes(protocol_artifact), strict=True
-            )
-            if protocol_artifact != capability_protocol_artifact(protocol):
-                raise ValueError("request protocol artifact metadata does not match its bytes")
-        except (ArtifactIntegrityError, ValidationError, ValueError) as exc:
-            raise ValueError("request does not contain a valid capability protocol") from exc
-
-        anchor = next(
-            (item for item in state.project_anchors if item.id == protocol.anchor_id), None
-        )
-        goal = next(
-            (item for item in state.implementation_goals if item.id == protocol.goal_id), None
-        )
-        obligation = state.obligation_by_id(protocol.obligation_id)
-        step_plan = state.step_plan_by_id(protocol.step_plan_id)
         cognitive_plans = tuple(
             item for item in state.cognitive_plans if item.effect_request_id == request_id
         )
@@ -2232,14 +2352,44 @@ class RCI:
             if cognitive_plan is not None and item.cognitive_plan_id == cognitive_plan.id
         )
         prediction = predictions[0] if len(predictions) == 1 else None
+        if cognitive_plan is None or prediction is None:
+            raise ValueError("capability request lacks one exact owned prediction commitment")
+        try:
+            actor_task_artifact = request_state.request.input_artifact
+            actor_task = CapabilityTaskEnvelope.model_validate_json(
+                self.artifacts.get_bytes(actor_task_artifact), strict=True
+            )
+            if actor_task_artifact != capability_task_artifact(actor_task):
+                raise ValueError("request task artifact metadata does not match its bytes")
+            predicted = prediction.predicted_consequence
+            if not isinstance(predicted, dict):
+                raise ValueError("prediction does not contain a protocol commitment")
+            protocol_material = predicted.get("protocol_artifact")
+            protocol_artifact = ArtifactRef.model_validate(protocol_material, strict=True)
+            protocol = CapabilityEvaluationProtocol.model_validate_json(
+                self.artifacts.get_bytes(protocol_artifact), strict=True
+            )
+            if protocol_artifact != capability_protocol_artifact(protocol):
+                raise ValueError("prediction protocol artifact metadata does not match its bytes")
+            if predicted.get("protocol_id") != protocol.id:
+                raise ValueError("prediction protocol identity does not match its artifact")
+        except (ArtifactIntegrityError, ValidationError, ValueError) as exc:
+            raise ValueError("request does not have a valid sealed capability protocol") from exc
+
+        anchor = next(
+            (item for item in state.project_anchors if item.id == protocol.anchor_id), None
+        )
+        goal = next(
+            (item for item in state.implementation_goals if item.id == protocol.goal_id), None
+        )
+        obligation = state.obligation_by_id(protocol.obligation_id)
+        step_plan = state.step_plan_by_id(protocol.step_plan_id)
         resolution_issues: list[str] = []
         for value, issue in (
             (anchor, "anchor_not_owned"),
             (goal, "goal_not_owned"),
             (obligation, "obligation_not_owned"),
             (step_plan, "step_plan_not_owned"),
-            (cognitive_plan, "cognitive_plan_not_owned_or_ambiguous"),
-            (prediction, "prediction_not_owned_or_ambiguous"),
         ):
             if value is None:
                 resolution_issues.append(issue)
@@ -2262,6 +2412,269 @@ class RCI:
         assert prediction is not None
         assert state.context is not None
 
+        anchor_sequence = next(
+            (
+                stored.sequence
+                for stored in selected_events
+                if isinstance(stored.event, ProjectAnchorRecorded)
+                and stored.event.anchor.id == anchor.id
+            ),
+            None,
+        )
+        goal_sequence = next(
+            (
+                stored.sequence
+                for stored in selected_events
+                if isinstance(stored.event, ImplementationGoalSealed)
+                and stored.event.goal.id == goal.id
+            ),
+            None,
+        )
+        obligation_sequence = next(
+            (
+                stored.sequence
+                for stored in selected_events
+                if isinstance(stored.event, ObligationOpened)
+                and stored.event.obligation.id == obligation.id
+            ),
+            None,
+        )
+        step_sequence = next(
+            (
+                stored.sequence
+                for stored in selected_events
+                if isinstance(stored.event, StepPlanRecorded)
+                and stored.event.plan.id == step_plan.id
+            ),
+            None,
+        )
+        request_sequence = next(
+            (
+                stored.sequence
+                for stored in selected_events
+                if isinstance(stored.event, EffectRequested)
+                and stored.event.request.id == request_id
+            ),
+            None,
+        )
+        cognitive_sequence = next(
+            (
+                stored.sequence
+                for stored in selected_events
+                if isinstance(stored.event, CognitivePlanRecorded)
+                and stored.event.plan.id == cognitive_plan.id
+            ),
+            None,
+        )
+        prediction_sequence = next(
+            (
+                stored.sequence
+                for stored in selected_events
+                if isinstance(stored.event, PredictionSealed)
+                and stored.event.prediction.id == prediction.id
+            ),
+            None,
+        )
+        terminal_sequences = tuple(
+            stored.sequence
+            for stored in selected_events
+            if (
+                isinstance(stored.event, EffectAttemptOutcomeRecorded)
+                and stored.event.request_id == request_id
+            )
+            or (
+                isinstance(stored.event, EffectNoAttemptDispositionRecorded)
+                and stored.event.disposition.request_id == request_id
+            )
+        )
+        required_sequences = (
+            anchor_sequence,
+            goal_sequence,
+            obligation_sequence,
+            step_sequence,
+            request_sequence,
+            cognitive_sequence,
+            prediction_sequence,
+        )
+        if any(sequence is None for sequence in required_sequences):
+            resolution_issues.append("antecedence_record_missing")
+        else:
+            assert anchor_sequence is not None
+            assert goal_sequence is not None
+            assert obligation_sequence is not None
+            assert step_sequence is not None
+            assert request_sequence is not None
+            assert cognitive_sequence is not None
+            assert prediction_sequence is not None
+            if not (
+                anchor_sequence < request_sequence
+                and goal_sequence < request_sequence
+                and obligation_sequence < step_sequence < request_sequence
+            ):
+                resolution_issues.append("authority_not_antecedent_to_request")
+            if not request_sequence < cognitive_sequence < prediction_sequence:
+                resolution_issues.append("prediction_plan_order_invalid")
+            if terminal_sequences and prediction_sequence >= min(terminal_sequences):
+                resolution_issues.append("prediction_not_antecedent_to_return")
+
+            prior_protocols: list[tuple[int, str, CapabilityEvaluationProtocol]] = []
+            for prior_plan in state.cognitive_plans:
+                if prior_plan.effect_request_id == request_id:
+                    continue
+                prior_prediction = next(
+                    (item for item in state.predictions if item.cognitive_plan_id == prior_plan.id),
+                    None,
+                )
+                if prior_prediction is None:
+                    continue
+                prior_sequence = next(
+                    (
+                        stored.sequence
+                        for stored in selected_events
+                        if isinstance(stored.event, PredictionSealed)
+                        and stored.event.prediction.id == prior_prediction.id
+                    ),
+                    None,
+                )
+                if prior_sequence is None or prior_sequence >= request_sequence:
+                    continue
+                try:
+                    prior_material = prior_prediction.predicted_consequence
+                    if not isinstance(prior_material, dict):
+                        continue
+                    prior_ref = ArtifactRef.model_validate(
+                        prior_material.get("protocol_artifact"), strict=True
+                    )
+                    prior_protocol = CapabilityEvaluationProtocol.model_validate_json(
+                        self.artifacts.get_bytes(prior_ref), strict=True
+                    )
+                except (ArtifactIntegrityError, ValidationError, ValueError):
+                    continue
+                if (
+                    prior_protocol.anchor_id == protocol.anchor_id
+                    and prior_protocol.goal_id == protocol.goal_id
+                    and prior_protocol.competence_id == protocol.competence_id
+                    and prior_protocol.binding_revision == protocol.binding_revision
+                    and prior_protocol.scope_fingerprint == protocol.scope_fingerprint
+                    and prior_protocol.protected_horizon_id == protocol.protected_horizon_id
+                ):
+                    prior_protocols.append(
+                        (prior_sequence, prior_plan.effect_request_id, prior_protocol)
+                    )
+            latest_prior = max(prior_protocols, default=None, key=lambda item: item[0])
+            if latest_prior is None:
+                if protocol.continuity_kind != "new_episode":
+                    resolution_issues.append("continuity_predecessor_missing")
+            elif protocol.continuity_kind != "continue":
+                resolution_issues.append("continuity_predecessor_omitted")
+            else:
+                try:
+                    assert protocol.predecessor_handoff_artifact is not None
+                    predecessor = CognitiveHandoff.model_validate_json(
+                        self.artifacts.get_bytes(protocol.predecessor_handoff_artifact),
+                        strict=True,
+                    )
+                    if (
+                        predecessor.source_inquiry_id != inquiry_id
+                        or predecessor.effect_request_id != latest_prior[1]
+                        or predecessor.source_sequence >= request_sequence
+                    ):
+                        raise ValueError("foreign predecessor")
+                    resolved_predecessor = self._evaluate_capability_request(
+                        inquiry_id,
+                        predecessor.effect_request_id,
+                        through_sequence=predecessor.source_sequence,
+                    ).handoff
+                    if predecessor != resolved_predecessor:
+                        raise ValueError("stale predecessor")
+                    prior_protocol = latest_prior[2]
+                    continuity_fields = (
+                        "anchor_fingerprint",
+                        "goal_fingerprint",
+                        "competence_id",
+                        "binding_revision",
+                        "scope_fingerprint",
+                        "protected_horizon_id",
+                        "context_artifact",
+                        "evidence_access_artifact",
+                        "budget_artifact",
+                        "timeout_seconds",
+                        "comparison_policy_id",
+                        "comparison_policy_version",
+                        "protected_capability_ids",
+                    )
+                    if any(
+                        getattr(prior_protocol, field) != getattr(protocol, field)
+                        for field in continuity_fields
+                    ):
+                        raise ValueError("changed predecessor pins")
+                    repeated_requirements: set[str] = set()
+                    if protocol.route_definition_id in predecessor.forbidden_route_ids_until_reopen:
+                        repeated_requirements.add(f"reopen-route:{protocol.route_definition_id}")
+                    if protocol.decoder_id in predecessor.forbidden_decoder_ids_until_reopen:
+                        repeated_requirements.add(f"reopen-decoder:{protocol.decoder_id}")
+                    if (
+                        protocol.route_definition_id
+                        not in predecessor.forbidden_route_ids_until_reopen
+                        and protocol.route_definition_id != predecessor.next_discriminator_route_id
+                    ):
+                        raise ValueError("wrong discriminator")
+                    if protocol.reopening_evidence_artifacts and not repeated_requirements:
+                        raise ValueError("irrelevant reopening evidence")
+                    covered: set[str] = set()
+                    for artifact, verdict_id in zip(
+                        protocol.reopening_evidence_artifacts,
+                        protocol.reopening_checker_verdict_ids,
+                        strict=True,
+                    ):
+                        evidence_matches = tuple(
+                            item for item in state.evidence_records if item.artifact == artifact
+                        )
+                        verdict = state.checker_verdict_by_id(verdict_id)
+                        if len(evidence_matches) != 1 or verdict is None:
+                            raise ValueError("unowned reopening evidence")
+                        evidence = evidence_matches[0]
+                        evidence_sequence = next(
+                            (
+                                stored.sequence
+                                for stored in selected_events
+                                if isinstance(stored.event, EvidenceRecorded)
+                                and stored.event.evidence.id == evidence.id
+                            ),
+                            None,
+                        )
+                        verdict_sequence = next(
+                            (
+                                stored.sequence
+                                for stored in selected_events
+                                if isinstance(stored.event, CheckerVerdictRecorded)
+                                and stored.event.checker_verdict.id == verdict.id
+                            ),
+                            None,
+                        )
+                        if (
+                            evidence_sequence is None
+                            or verdict_sequence is None
+                            or not predecessor.source_sequence
+                            < evidence_sequence
+                            <= verdict_sequence
+                            < request_sequence
+                            or verdict.evidence_id != evidence.id
+                            or verdict.evidence_artifact != evidence.artifact
+                            or verdict.proposition_id != evidence.proposition_id
+                            or verdict.verdict is not CheckerVerdict.VALID
+                            or verdict.certificate_artifact is None
+                            or state.context is None
+                            or verdict.checker_id not in state.context.discharge_mechanism_ids
+                            or evidence.proposition_id not in repeated_requirements
+                        ):
+                            raise ValueError("invalid reopening evidence")
+                        covered.add(evidence.proposition_id)
+                    if covered != repeated_requirements:
+                        raise ValueError("reopening coverage mismatch")
+                except (ArtifactIntegrityError, ValidationError, ValueError):
+                    resolution_issues.append("continuity_invalid")
+
         accepted_id = request_state.accepted_decoded_outcome_id
         accepted = next(
             (item for item in request_state.decode_outcomes if item.id == accepted_id), None
@@ -2270,7 +2683,13 @@ class RCI:
         checker_evidence = None
         checker_verdict = None
         try:
-            all_refs = [*tuple(_artifact_refs(protocol)), *tuple(_artifact_refs(request_state))]
+            all_refs = [
+                *tuple(_artifact_refs(protocol)),
+                *tuple(_artifact_refs(actor_task)),
+                *tuple(_artifact_refs(request_state)),
+                protocol_artifact,
+                actor_task_artifact,
+            ]
             sizes_by_digest: dict[str, set[int]] = {}
             for artifact in all_refs:
                 sizes_by_digest.setdefault(artifact.digest, set()).add(artifact.size)
@@ -2400,6 +2819,8 @@ class RCI:
                 source_sequence=state.sequence,
                 protocol=protocol,
                 protocol_artifact=protocol_artifact,
+                actor_task=actor_task,
+                actor_task_artifact=actor_task_artifact,
                 inquiry_context=state.context,
                 project_anchor=anchor,
                 implementation_goal=goal,
@@ -2440,6 +2861,47 @@ class RCI:
         """Return only the canonical context-reset handoff for one exact episode."""
 
         return self.evaluate_capability_request(inquiry_id, request_id).handoff
+
+    def evaluate_weak_reasoner_fixture(
+        self,
+        *,
+        baseline_sources: tuple[tuple[str, str], ...],
+        assisted_sources: tuple[tuple[str, str], ...],
+    ) -> WeakReasonerFixture:
+        """Compare only canonical stream/request sources resolved by this SDK."""
+
+        def resolve(
+            sources: tuple[tuple[str, str], ...],
+        ) -> tuple[
+            tuple[InquiryState, ...],
+            tuple[CapabilityEvaluationProtocol, ...],
+            tuple[CapabilityEvaluationBundle, ...],
+        ]:
+            if len(set(sources)) != len(sources):
+                raise ValueError("weak-reasoner sources must be unique")
+            states: list[InquiryState] = []
+            protocols: list[CapabilityEvaluationProtocol] = []
+            bundles: list[CapabilityEvaluationBundle] = []
+            for inquiry_id, request_id in sources:
+                bundle = self.evaluate_capability_request(inquiry_id, request_id)
+                protocol = CapabilityEvaluationProtocol.model_validate_json(
+                    self.artifacts.get_bytes(bundle.handoff.protocol_artifact), strict=True
+                )
+                states.append(self.inspect(inquiry_id))
+                protocols.append(protocol)
+                bundles.append(bundle)
+            return tuple(states), tuple(protocols), tuple(bundles)
+
+        baseline_states, baseline_protocols, baseline_bundles = resolve(baseline_sources)
+        assisted_states, assisted_protocols, assisted_bundles = resolve(assisted_sources)
+        return _build_weak_reasoner_fixture(
+            baseline_states=baseline_states,
+            assisted_states=assisted_states,
+            baseline_protocols=baseline_protocols,
+            assisted_protocols=assisted_protocols,
+            baseline_bundles=baseline_bundles,
+            assisted_bundles=assisted_bundles,
+        )
 
     def append_local_effects(
         self,

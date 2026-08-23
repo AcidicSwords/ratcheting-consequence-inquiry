@@ -49,6 +49,8 @@ from rci.core.serialization import canonical_json_bytes, sha256_digest
 from rci.evaluation import (
     CapabilityEvaluationBundle,
     CapabilityEvaluationProtocol,
+    CapabilityTaskEnvelope,
+    CheckIndeterminateObserved,
     ConsequenceObservation,
     DecodeIndeterminateObserved,
     EvaluationPassed,
@@ -60,9 +62,10 @@ from rci.evaluation import (
     ProtectedMismatchObserved,
     build_capability_consequence_report,
     build_capability_evaluation_protocol,
+    build_capability_task_envelope,
+    capability_protocol_artifact,
     capability_report_artifact,
     cognitive_handoff_artifact,
-    run_weak_reasoner_fixture,
 )
 from rci.orchestration import AttemptKey, ObligationEntry, plan_next
 from rci.probes import CognitiveAttemptPlan, Mismatch, PredictionSeal
@@ -100,7 +103,9 @@ def _stored(sdk: RCI, value: bytes, media_type: str = "application/octet-stream"
     return sdk.artifacts.put_bytes(value, media_type=media_type, encoding="utf-8")
 
 
-def _project_setup(sdk: RCI, inquiry_id: str) -> tuple[ProjectAnchor, ImplementationGoalContract]:
+def _project_setup(
+    sdk: RCI, inquiry_id: str, *, record: bool = True
+) -> tuple[ProjectAnchor, ImplementationGoalContract]:
     sdk.start(inquiry_id)
     anchor = ProjectAnchor(
         id=f"anchor-{inquiry_id}",
@@ -112,7 +117,8 @@ def _project_setup(sdk: RCI, inquiry_id: str) -> tuple[ProjectAnchor, Implementa
         gate_digest=INCUMBENT_GATE,
         clean=True,
     )
-    sdk.record_project_anchor(inquiry_id, anchor)
+    if record:
+        sdk.record_project_anchor(inquiry_id, anchor)
     limitation = CapabilityLimitation(
         id=f"limitation-{inquiry_id}",
         anchor_id=anchor.id,
@@ -125,7 +131,8 @@ def _project_setup(sdk: RCI, inquiry_id: str) -> tuple[ProjectAnchor, Implementa
         protected_consequence_ids=("failure-classification",),
         observed_evidence=(_stored(sdk, b"manual observation-to-limitation join"),),
     )
-    sdk.record_capability_limitation(inquiry_id, limitation)
+    if record:
+        sdk.record_capability_limitation(inquiry_id, limitation)
     successor = CapabilitySuccessorCandidate(
         id=f"successor-{inquiry_id}",
         anchor_id=anchor.id,
@@ -140,11 +147,13 @@ def _project_setup(sdk: RCI, inquiry_id: str) -> tuple[ProjectAnchor, Implementa
         estimated_costs=(ProjectCost(axis="implementation_steps", value=1),),
         reversible=True,
     )
-    sdk.record_capability_successor_candidate(inquiry_id, successor)
+    if record:
+        sdk.record_capability_successor_candidate(inquiry_id, successor)
     frontier = derive_capability_frontier(
         frontier_id=f"frontier-{inquiry_id}", candidates=(successor,)
     )
-    sdk.record_capability_frontier(inquiry_id, frontier)
+    if record:
+        sdk.record_capability_frontier(inquiry_id, frontier)
     goal = ImplementationGoalContract(
         id=f"goal-{inquiry_id}",
         cycle_id=f"cycle-{inquiry_id}",
@@ -168,7 +177,8 @@ def _project_setup(sdk: RCI, inquiry_id: str) -> tuple[ProjectAnchor, Implementa
         rollback_condition="Any predecessor gate fails.",
         reopening_condition="A new failure class is independently observed.",
     )
-    sdk.seal_implementation_goal(inquiry_id, goal)
+    if record:
+        sdk.seal_implementation_goal(inquiry_id, goal)
     return anchor, goal
 
 
@@ -234,6 +244,9 @@ def _prepare_owned_request(
     outcome: str,
     route_id: str = ROUTE,
     actor_id: str = ACTOR,
+    protocol_actor_id: str = ACTOR,
+    evidence_access_bytes: bytes = b"finite evidence universe",
+    budget_bytes: bytes = b'{"attempts":1,"checks":2}',
     checker_verdict: CheckerVerdict = CheckerVerdict.VALID,
     recorded_checker_id: str = CHECKER,
     actual_size_delta: int = 0,
@@ -242,8 +255,9 @@ def _prepare_owned_request(
     horizon_override: str | None = None,
     request_timeout_delta: int = 0,
     late_competing: bool = False,
+    authority_after_return: bool = False,
 ) -> tuple[CapabilityEvaluationProtocol, str]:
-    anchor, goal = _project_setup(sdk, inquiry_id)
+    anchor, goal = _project_setup(sdk, inquiry_id, record=not authority_after_return)
     state = sdk.inspect(inquiry_id)
     assert state.context is not None
     obligation = state.obligations[0]
@@ -259,9 +273,35 @@ def _prepare_owned_request(
         policy_version=state.context.scheduler_policy_version,
     )
     expected = _stored(sdk, f"expected:{consequence_id}".encode())
-    protocol = build_capability_evaluation_protocol(
+    context_artifact = _stored(sdk, b"bounded task context")
+    evidence_access_artifact = _stored(sdk, evidence_access_bytes)
+    budget_artifact = _stored(sdk, budget_bytes)
+    task = build_capability_task_envelope(
         anchor_id=anchor.id,
         goal_id=goal.id,
+        obligation_id=obligation.id,
+        competence_id="competence-reason-over-finite-relations",
+        binding_revision=binding_override or state.context.binding_revision,
+        scope_fingerprint=scope_override or state.context.scope_fingerprint,
+        protected_horizon_id=horizon_override or state.context.protected_horizon_id,
+        operation_id="answer-finite-relation-task",
+        actor_id=protocol_actor_id,
+        actor_revision=ACTOR_REVISION,
+        adapter_id="scripted-reasoner-adapter",
+        route_definition_id=ROUTE,
+        route_definition_version="1",
+        context_artifact=context_artifact,
+        evidence_access_artifact=evidence_access_artifact,
+        budget_artifact=budget_artifact,
+        timeout_seconds=30,
+        protected_consequence_ids=(consequence_id,),
+    )
+    task_artifact = sdk.publish_capability_task(task)
+    protocol = build_capability_evaluation_protocol(
+        anchor_id=anchor.id,
+        anchor_fingerprint=sha256_digest(canonical_json_bytes(anchor)),
+        goal_id=goal.id,
+        goal_fingerprint=sha256_digest(canonical_json_bytes(goal)),
         obligation_id=obligation.id,
         step_plan_id=step_plan.id,
         competence_id="competence-reason-over-finite-relations",
@@ -272,14 +312,15 @@ def _prepare_owned_request(
         protected_horizon_id=horizon_override or state.context.protected_horizon_id,
         operation_id="answer-finite-relation-task",
         effect_kind="capability-evaluation",
-        actor_id=ACTOR,
+        actor_id=protocol_actor_id,
         actor_revision=ACTOR_REVISION,
         adapter_id="scripted-reasoner-adapter",
         route_definition_id=ROUTE,
         route_definition_version="1",
-        context_artifact=_stored(sdk, b"bounded task context"),
-        evidence_access_artifact=_stored(sdk, b"finite evidence universe"),
-        budget_artifact=_stored(sdk, b'{"attempts":1,"checks":2}'),
+        actor_task_artifact=task_artifact,
+        context_artifact=context_artifact,
+        evidence_access_artifact=evidence_access_artifact,
+        budget_artifact=budget_artifact,
         timeout_seconds=30,
         comparison_policy_id="exact-artifact-equality",
         comparison_policy_version="1",
@@ -306,7 +347,7 @@ def _prepare_owned_request(
         step_plan_id=step_plan.id,
         effect_kind=protocol.effect_kind,
         adapter_id=protocol.adapter_id,
-        input_artifact=protocol_artifact,
+        input_artifact=task_artifact,
         timeout_seconds=protocol.timeout_seconds + request_timeout_delta,
     )
     attempt = EffectAttemptPlan(
@@ -402,6 +443,7 @@ def _prepare_owned_request(
                 }
             ],
             "protocol_id": protocol.id,
+            "protocol_artifact": protocol_artifact.model_dump(mode="json"),
         },
         acceptable_variation={
             "comparison_policy_id": protocol.comparison_policy_id,
@@ -651,6 +693,10 @@ def _prepare_owned_request(
                 ),
             )
         )
+    if authority_after_return:
+        recorded_anchor, recorded_goal = _project_setup(sdk, inquiry_id)
+        assert recorded_anchor == anchor
+        assert recorded_goal == goal
     return protocol, request.id
 
 
@@ -713,6 +759,7 @@ def test_unattempted_request_and_checker_outcomes_do_not_collapse(tmp_path: Path
     pending = sdk.evaluate_capability_request("pending", pending_request)
     assert isinstance(pending.result, OperationalUnknownObserved)
     assert pending.result.reason_kind is OperationalUnknownReason.PENDING
+    assert pending.handoff.failed_route_ids == ()
 
     for verdict in (
         CheckerVerdict.INVALID,
@@ -730,9 +777,10 @@ def test_unattempted_request_and_checker_outcomes_do_not_collapse(tmp_path: Path
             checker_verdict=verdict,
         )
         observed = sdk.evaluate_capability_request(inquiry, request_id)
-        assert isinstance(observed.result, DecodeIndeterminateObserved)
-        assert observed.result.reason_kind == f"checker_{verdict.value}"
+        assert isinstance(observed.result, CheckIndeterminateObserved)
+        assert observed.result.reason_kind == verdict.value
         assert observed.limitation_candidate is None
+        assert observed.handoff.failed_decoder_ids == ()
 
 
 def test_comparison_policy_is_closed_and_duplicate_mismatch_fails_closed(tmp_path: Path) -> None:
@@ -850,6 +898,22 @@ def test_context_budget_checker_and_post_return_expectation_fail_closed(tmp_path
     assert canonical_json_bytes(first) == canonical_json_bytes(second)
 
 
+def test_actor_task_never_contains_evaluator_only_expected_material(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    protocol, request_id = _prepare_owned_request(
+        sdk, "answer-key-isolation", "answer-valid", outcome="pass"
+    )
+    request = sdk.inspect("answer-key-isolation").request_by_id(request_id)
+    assert request is not None
+    task_bytes = sdk.artifacts.get_bytes(request.request.input_artifact)
+    expected = protocol.expectations[0].expected_artifact
+    assert request.request.input_artifact == protocol.actor_task_artifact
+    assert task_bytes != sdk.artifacts.get_bytes(capability_protocol_artifact(protocol))
+    assert expected.digest.encode() not in task_bytes
+    assert b"expected_artifact" not in task_bytes
+    assert b"comparison_policy" not in task_bytes
+
+
 def test_conflicting_cas_sizes_fail_at_the_owned_projection(tmp_path: Path) -> None:
     sdk = RCI(tmp_path, clock=lambda: NOW)
     _, request_id = _prepare_owned_request(
@@ -881,10 +945,24 @@ def test_late_competing_return_and_unaccepted_decode_never_replace_acceptance(
     assert len(request.attempts) == len(request.decode_outcomes) == 2
     assert request.accepted_decoded_outcome_id == "decode-late-competing"
     observed = sdk.evaluate_capability_request("late-competing", request_id)
-    assert isinstance(observed.result, EvaluationProtocolInvalid)
-    assert {"late_or_competing_return", "unaccepted_decode_present"} <= set(
-        observed.result.issue_codes
+    assert isinstance(observed.result, EvaluationPassed)
+    assert observed.result.decode_outcome_id == "decode-late-competing"
+
+
+def test_project_authority_appended_after_return_cannot_validate_retroactively(
+    tmp_path: Path,
+) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    _, request_id = _prepare_owned_request(
+        sdk,
+        "retroactive-authority",
+        "answer-valid",
+        outcome="pass",
+        authority_after_return=True,
     )
+    observed = sdk.evaluate_capability_request("retroactive-authority", request_id)
+    assert isinstance(observed.result, EvaluationProtocolInvalid)
+    assert observed.result.issue_codes == ("authority_not_antecedent_to_request",)
 
 
 def test_handoff_is_resolvable_and_enforces_route_reopening(tmp_path: Path) -> None:
@@ -906,13 +984,157 @@ def test_handoff_is_resolvable_and_enforces_route_reopening(tmp_path: Path) -> N
 
     fields = protocol.model_dump(mode="python", exclude={"id", "schema_version", "policy_version"})
     fields["predecessor_handoff_artifact"] = cognitive_handoff_artifact(handoff)
+    fields["continuity_kind"] = "continue"
     repeated = build_capability_evaluation_protocol(**fields)
-    with pytest.raises(ValueError, match="repeats a failed route"):
+    with pytest.raises(ValueError, match="without checked reopening"):
         sdk.publish_capability_evaluation_protocol(repeated)
+
+    arbitrary = _stored(sdk, b"self-authored reopening assertion")
+    fields["reopening_evidence_artifacts"] = (arbitrary,)
+    fields["reopening_checker_verdict_ids"] = ("missing-check",)
+    unchecked = build_capability_evaluation_protocol(**fields)
+    with pytest.raises(ValueError, match="not uniquely owned and checked"):
+        sdk.publish_capability_evaluation_protocol(unchecked)
+
+    reopening_artifact = _stored(sdk, b"independent route reopening evidence")
+    reopening_check = _record_check(
+        sdk,
+        "handoff",
+        suffix="route-reopening",
+        proposition_id=f"reopen-route:{ROUTE}",
+        artifact=reopening_artifact,
+        checker_id="finite-exhaustive-v1",
+    )
+    fields["reopening_evidence_artifacts"] = (reopening_artifact,)
+    fields["reopening_checker_verdict_ids"] = (reopening_check.id,)
+    checked_reopening = build_capability_evaluation_protocol(**fields)
+    sdk.publish_capability_evaluation_protocol(checked_reopening)
+
+    fields["reopening_evidence_artifacts"] = ()
+    fields["reopening_checker_verdict_ids"] = ()
     fields["route_definition_id"] = "counterexample-check-route"
     fields["discriminator_route_ids"] = ("alternate-independent-route",)
+    original_task = CapabilityTaskEnvelope.model_validate_json(
+        sdk.artifacts.get_bytes(protocol.actor_task_artifact), strict=True
+    )
+    task_fields = original_task.model_dump(mode="python", exclude={"id", "schema_version"})
+    task_fields["route_definition_id"] = "counterexample-check-route"
+    successor_task = build_capability_task_envelope(**task_fields)
+    fields["actor_task_artifact"] = sdk.publish_capability_task(successor_task)
     lawful = build_capability_evaluation_protocol(**fields)
     sdk.publish_capability_evaluation_protocol(lawful)
+
+
+def test_direct_cas_dispatch_cannot_omit_or_self_authorize_continuity(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+
+    def append_pending(
+        inquiry_id: str,
+        protocol: CapabilityEvaluationProtocol,
+        suffix: str,
+    ) -> str:
+        protocol_ref = sdk.artifacts.put_bytes(
+            canonical_json_bytes(protocol),
+            media_type="application/vnd.rci.capability-evaluation+json",
+            encoding="utf-8",
+        )
+        request = EffectRequest(
+            id=f"request-{suffix}",
+            step_plan_id=protocol.step_plan_id,
+            effect_kind=protocol.effect_kind,
+            adapter_id=protocol.adapter_id,
+            input_artifact=protocol.actor_task_artifact,
+            timeout_seconds=protocol.timeout_seconds,
+        )
+        sdk.dispatch(
+            RequestEffect(
+                event_id=f"event-request-{suffix}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                request=request,
+            )
+        )
+        state = sdk.inspect(inquiry_id)
+        plan = CognitiveAttemptPlan(
+            id=f"cognitive-{suffix}",
+            obligation_id=protocol.obligation_id,
+            probe_or_action_id=protocol.operation_id,
+            effect_request_id=request.id,
+            effect_attempt_plan_id=None,
+            source_state_revision=state.sequence,
+            scope_fingerprint=protocol.scope_fingerprint,
+            planned_sequence=state.sequence + 1,
+        )
+        sdk.dispatch(
+            RecordCognitivePlan(
+                event_id=f"event-cognitive-{suffix}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                plan=plan,
+            )
+        )
+        state = sdk.inspect(inquiry_id)
+        sdk.dispatch(
+            SealPrediction(
+                event_id=f"event-prediction-{suffix}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                prediction=PredictionSeal(
+                    id=f"prediction-{suffix}",
+                    cognitive_plan_id=plan.id,
+                    probe_or_action_id=protocol.operation_id,
+                    predicted_return_class="capability-consequence-report",
+                    predicted_consequence={
+                        "comparison_policy_id": protocol.comparison_policy_id,
+                        "comparison_policy_version": protocol.comparison_policy_version,
+                        "expectations": [
+                            {
+                                "consequence_id": item.consequence_id,
+                                "expected_artifact_digest": item.expected_artifact.digest,
+                            }
+                            for item in protocol.expectations
+                        ],
+                        "protocol_id": protocol.id,
+                        "protocol_artifact": protocol_ref.model_dump(mode="json"),
+                    },
+                    acceptable_variation={
+                        "comparison_policy_id": protocol.comparison_policy_id,
+                        "comparison_policy_version": protocol.comparison_policy_version,
+                    },
+                    scope_fingerprint=protocol.scope_fingerprint,
+                    basis_claim_ids=(),
+                    sealed_sequence=state.sequence + 1,
+                ),
+            )
+        )
+        return request.id
+
+    original, first_request = _prepare_owned_request(
+        sdk, "continuity-omitted", "false-necessity", outcome="mismatch"
+    )
+    sdk.evaluate_capability_request("continuity-omitted", first_request)
+    omitted_request = append_pending("continuity-omitted", original, "omitted")
+    omitted = sdk.evaluate_capability_request("continuity-omitted", omitted_request)
+    assert isinstance(omitted.result, EvaluationProtocolInvalid)
+    assert "continuity_predecessor_omitted" in omitted.result.issue_codes
+
+    original, first_request = _prepare_owned_request(
+        sdk, "continuity-unchecked", "false-necessity", outcome="mismatch"
+    )
+    first = sdk.evaluate_capability_request("continuity-unchecked", first_request)
+    arbitrary = _stored(sdk, b"self-authored reopening assertion")
+    fields = original.model_dump(mode="python", exclude={"id", "schema_version", "policy_version"})
+    fields.update(
+        continuity_kind="continue",
+        predecessor_handoff_artifact=cognitive_handoff_artifact(first.handoff),
+        reopening_evidence_artifacts=(arbitrary,),
+        reopening_checker_verdict_ids=("missing-check",),
+    )
+    unchecked = build_capability_evaluation_protocol(**fields)
+    unchecked_request = append_pending("continuity-unchecked", unchecked, "unchecked")
+    observed = sdk.evaluate_capability_request("continuity-unchecked", unchecked_request)
+    assert isinstance(observed.result, EvaluationProtocolInvalid)
+    assert "continuity_invalid" in observed.result.issue_codes
 
 
 def test_replay_cli_sdk_and_model_prose_are_inert(tmp_path: Path) -> None:
@@ -970,10 +1192,8 @@ def test_public_boundary_requires_an_owned_stream_request(tmp_path: Path) -> Non
 def test_weak_reasoner_fixture_is_derived_from_two_owned_branches(tmp_path: Path) -> None:
     sdk = RCI(tmp_path, clock=lambda: NOW)
     tasks = ("main-power-not-necessary", "may-reach-does-not-imply-must-reach")
-    baseline_protocols: list[CapabilityEvaluationProtocol] = []
-    baseline_bundles: list[CapabilityEvaluationBundle] = []
-    assisted_protocols: list[CapabilityEvaluationProtocol] = []
-    assisted_bundles: list[CapabilityEvaluationBundle] = []
+    baseline_sources: list[tuple[str, str]] = []
+    assisted_sources: list[tuple[str, str]] = []
     circuit = circuit_demonstration()
     routes = route_demonstration()
     assert circuit.expected_findings_hold
@@ -989,14 +1209,14 @@ def test_weak_reasoner_fixture_is_derived_from_two_owned_branches(tmp_path: Path
             return "pass" if routes.expected_findings_hold else "mismatch"
         raise ValueError("scripted weak reasoner received an unknown task")
 
-    for branch, protocols, bundles in (
-        ("baseline", baseline_protocols, baseline_bundles),
-        ("assisted", assisted_protocols, assisted_bundles),
+    for branch, sources in (
+        ("baseline", baseline_sources),
+        ("assisted", assisted_sources),
     ):
         for index, task in enumerate(tasks):
             inquiry = f"{branch}-{index}"
             outcome = scripted_actor(task, assisted=branch == "assisted")
-            protocol, request_id = _prepare_owned_request(sdk, inquiry, task, outcome=outcome)
+            _, request_id = _prepare_owned_request(sdk, inquiry, task, outcome=outcome)
             if branch == "assisted":
                 _record_check(
                     sdk,
@@ -1006,32 +1226,32 @@ def test_weak_reasoner_fixture_is_derived_from_two_owned_branches(tmp_path: Path
                     artifact=_stored(sdk, f"checked:{task}".encode()),
                     checker_id="finite-exhaustive-v1",
                 )
-            protocols.append(protocol)
-            bundles.append(sdk.evaluate_capability_request(inquiry, request_id))
+            sources.append((inquiry, request_id))
 
-    fixture = run_weak_reasoner_fixture(
-        baseline_states=(sdk.inspect("baseline-0"), sdk.inspect("baseline-1")),
-        assisted_states=(sdk.inspect("assisted-0"), sdk.inspect("assisted-1")),
-        baseline_protocols=tuple(baseline_protocols),
-        assisted_protocols=tuple(assisted_protocols),
-        baseline_bundles=tuple(baseline_bundles),
-        assisted_bundles=tuple(assisted_bundles),
-        actor_manifest_digest="5" * 64,
-        evidence_universe_digest="6" * 64,
-        budget_digest="7" * 64,
+    fixture = sdk.evaluate_weak_reasoner_fixture(
+        baseline_sources=tuple(baseline_sources),
+        assisted_sources=tuple(assisted_sources),
     )
-    permuted = run_weak_reasoner_fixture(
-        baseline_states=(sdk.inspect("baseline-1"), sdk.inspect("baseline-0")),
-        assisted_states=(sdk.inspect("assisted-1"), sdk.inspect("assisted-0")),
-        baseline_protocols=tuple(reversed(baseline_protocols)),
-        assisted_protocols=tuple(reversed(assisted_protocols)),
-        baseline_bundles=tuple(reversed(baseline_bundles)),
-        assisted_bundles=tuple(reversed(assisted_bundles)),
-        actor_manifest_digest="5" * 64,
-        evidence_universe_digest="6" * 64,
-        budget_digest="7" * 64,
+    permuted = sdk.evaluate_weak_reasoner_fixture(
+        baseline_sources=tuple(reversed(baseline_sources)),
+        assisted_sources=tuple(reversed(assisted_sources)),
     )
     assert canonical_json_bytes(fixture) == canonical_json_bytes(permuted)
+    _, forged_request = _prepare_owned_request(
+        sdk,
+        "assisted-forged",
+        tasks[0],
+        outcome="pass",
+        protocol_actor_id="different-actor",
+        actor_id="different-actor",
+        evidence_access_bytes=b"different evidence universe",
+        budget_bytes=b"different budget",
+    )
+    with pytest.raises(ValueError, match="actor/context/evidence/budget"):
+        sdk.evaluate_weak_reasoner_fixture(
+            baseline_sources=tuple(baseline_sources),
+            assisted_sources=(("assisted-forged", forged_request), assisted_sources[1]),
+        )
     assert [item.correct for item in fixture.baseline.conclusions] == [False, False]
     assert [item.correct for item in fixture.assisted.conclusions] == [True, True]
     assert fixture.baseline.cost.attempts == fixture.assisted.cost.attempts == 2

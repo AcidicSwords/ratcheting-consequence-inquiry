@@ -44,6 +44,7 @@ EVALUATION_POLICY_VERSION = "capability-evaluation-v1"
 LOCALIZATION_POLICY_VERSION = "failure-localization-v1"
 HANDOFF_POLICY_VERSION = "cognitive-handoff-v1"
 PROTOCOL_MEDIA_TYPE = "application/vnd.rci.capability-evaluation+json"
+TASK_MEDIA_TYPE = "application/vnd.rci.capability-task+json"
 REPORT_MEDIA_TYPE = "application/vnd.rci.capability-consequence-report+json"
 RESULT_MEDIA_TYPE = "application/vnd.rci.capability-evaluation-result+json"
 FRAME_MEDIA_TYPE = "application/vnd.rci.failure-localization-frame+json"
@@ -97,6 +98,59 @@ class ProtectedExpectation(FrozenModel):
     downstream_question_id: Identifier
 
 
+class CapabilityTaskEnvelope(FrozenModel):
+    """Actor-visible task pins with no evaluator-only expected answer material."""
+
+    schema_version: Literal[1] = 1
+    id: Identifier
+    anchor_id: Identifier
+    goal_id: Identifier
+    obligation_id: Identifier
+    competence_id: Identifier
+    binding_revision: Identifier
+    scope_fingerprint: Sha256Digest
+    protected_horizon_id: Identifier
+    operation_id: Identifier
+    actor_id: Identifier
+    actor_revision: NonEmptyText
+    adapter_id: Identifier
+    route_definition_id: Identifier
+    route_definition_version: NonEmptyText
+    context_artifact: ArtifactRef
+    evidence_access_artifact: ArtifactRef
+    budget_artifact: ArtifactRef
+    timeout_seconds: Annotated[int, Field(ge=1, le=86_400)]
+    protected_consequence_ids: tuple[Identifier, ...]
+
+    @model_validator(mode="after")
+    def validate_task(self) -> CapabilityTaskEnvelope:
+        _canonical(self.protected_consequence_ids, "task protected consequences", nonempty=True)
+        expected_id = _content_id("cap_task", self.model_dump(mode="json", exclude={"id"}))
+        if self.id != expected_id:
+            raise ValueError("capability task identity must be content-derived")
+        return self
+
+
+def build_capability_task_envelope(**fields: object) -> CapabilityTaskEnvelope:
+    reserved = {"id", "schema_version"} & set(fields)
+    if reserved:
+        raise ValueError("task builder fields cannot override identity or version")
+    material = {"schema_version": 1, **fields}
+    return CapabilityTaskEnvelope.model_validate(
+        {"id": _content_id("cap_task", material), **material}, strict=True
+    )
+
+
+def capability_task_artifact(task: CapabilityTaskEnvelope) -> ArtifactRef:
+    return _artifact_for(canonical_json_bytes(task), TASK_MEDIA_TYPE)
+
+
+def authority_record_fingerprint(record: ProjectAnchor | ImplementationGoalContract) -> str:
+    """Commit to the exact authority record, not its caller-chosen identifier."""
+
+    return sha256_digest(canonical_json_bytes(record))
+
+
 class CapabilityEvaluationProtocol(FrozenModel):
     """A content-addressed pre-return task and consequence commitment."""
 
@@ -104,7 +158,9 @@ class CapabilityEvaluationProtocol(FrozenModel):
     policy_version: Literal["capability-evaluation-v1"] = "capability-evaluation-v1"
     id: Identifier
     anchor_id: Identifier
+    anchor_fingerprint: Sha256Digest
     goal_id: Identifier
+    goal_fingerprint: Sha256Digest
     obligation_id: Identifier
     step_plan_id: Identifier
     competence_id: Identifier
@@ -120,6 +176,7 @@ class CapabilityEvaluationProtocol(FrozenModel):
     adapter_id: Identifier
     route_definition_id: Identifier
     route_definition_version: NonEmptyText
+    actor_task_artifact: ArtifactRef
     context_artifact: ArtifactRef
     evidence_access_artifact: ArtifactRef
     budget_artifact: ArtifactRef
@@ -135,8 +192,10 @@ class CapabilityEvaluationProtocol(FrozenModel):
     protected_capability_ids: tuple[Identifier, ...]
     stopping_condition_ids: tuple[Identifier, ...]
     reopening_condition_ids: tuple[Identifier, ...]
+    continuity_kind: Literal["new_episode", "continue"] = "new_episode"
     predecessor_handoff_artifact: ArtifactRef | None = None
     reopening_evidence_artifacts: tuple[ArtifactRef, ...] = ()
+    reopening_checker_verdict_ids: tuple[Identifier, ...] = ()
 
     @model_validator(mode="after")
     def validate_protocol(self) -> CapabilityEvaluationProtocol:
@@ -155,8 +214,17 @@ class CapabilityEvaluationProtocol(FrozenModel):
             raise ValueError("the candidate actor cannot independently check its own return")
         reopening_digests = tuple(item.digest for item in self.reopening_evidence_artifacts)
         _canonical(reopening_digests, "reopening evidence")
-        if self.predecessor_handoff_artifact is None and self.reopening_evidence_artifacts:
+        _canonical(self.reopening_checker_verdict_ids, "reopening checker verdicts")
+        if len(self.reopening_evidence_artifacts) != len(self.reopening_checker_verdict_ids):
+            raise ValueError("each reopening artifact requires one exact checker verdict")
+        if self.predecessor_handoff_artifact is None and (
+            self.reopening_evidence_artifacts or self.reopening_checker_verdict_ids
+        ):
             raise ValueError("reopening evidence requires an exact predecessor handoff")
+        if self.continuity_kind == "continue" and self.predecessor_handoff_artifact is None:
+            raise ValueError("a continuing protocol requires an exact predecessor handoff")
+        if self.continuity_kind == "new_episode" and self.predecessor_handoff_artifact is not None:
+            raise ValueError("a new episode cannot silently carry predecessor continuity")
         expected_id = derive_protocol_id(self.model_dump(mode="json", exclude={"id"}))
         if self.id != expected_id:
             raise ValueError("capability evaluation protocol identity must be content-derived")
@@ -182,6 +250,8 @@ def build_capability_evaluation_protocol(**fields: object) -> CapabilityEvaluati
         "policy_version": EVALUATION_POLICY_VERSION,
         "predecessor_handoff_artifact": None,
         "reopening_evidence_artifacts": (),
+        "reopening_checker_verdict_ids": (),
+        "continuity_kind": "new_episode",
         **fields,
     }
     return CapabilityEvaluationProtocol.model_validate(
@@ -247,6 +317,8 @@ class CapabilityEvaluationEpisode(FrozenModel):
     source_sequence: Annotated[int, Field(ge=1)]
     protocol: CapabilityEvaluationProtocol
     protocol_artifact: ArtifactRef
+    actor_task: CapabilityTaskEnvelope
+    actor_task_artifact: ArtifactRef
     inquiry_context: InquiryContext
     project_anchor: ProjectAnchor
     implementation_goal: ImplementationGoalContract
@@ -316,12 +388,19 @@ class DecodeIndeterminateObserved(FrozenModel):
         "unsupported",
         "failed",
         "missing",
-        "checker_invalid",
-        "checker_indeterminate",
-        "checker_timeout",
-        "checker_unsupported",
-        "checker_failed",
     ]
+    evidence_artifacts: tuple[ArtifactRef, ...]
+
+
+class CheckIndeterminateObserved(FrozenModel):
+    kind: Literal["check_indeterminate"] = "check_indeterminate"
+    schema_version: Literal[1] = 1
+    id: Identifier
+    protocol_id: Identifier
+    request_id: Identifier
+    decode_outcome_id: Identifier
+    checker_verdict_id: Identifier
+    reason_kind: Literal["invalid", "indeterminate", "timeout", "unsupported", "failed"]
     evidence_artifacts: tuple[ArtifactRef, ...]
 
 
@@ -363,6 +442,7 @@ CapabilityEvaluationResult = Annotated[
     EvaluationPassed
     | ProtectedMismatchObserved
     | DecodeIndeterminateObserved
+    | CheckIndeterminateObserved
     | OperationalUnknownObserved
     | EvaluationProtocolInvalid,
     Field(discriminator="kind"),
@@ -546,6 +626,8 @@ def _lifecycle_issues(
         issues.add("foreign_horizon")
     if episode.project_anchor.id != protocol.anchor_id:
         issues.add("foreign_anchor")
+    if authority_record_fingerprint(episode.project_anchor) != protocol.anchor_fingerprint:
+        issues.add("foreign_anchor_fingerprint")
     if (
         episode.project_anchor.commit_sha != protocol.project_head_sha
         or not episode.project_anchor.clean
@@ -553,6 +635,8 @@ def _lifecycle_issues(
         issues.add("foreign_project_head")
     if episode.implementation_goal.id != protocol.goal_id:
         issues.add("foreign_goal")
+    if authority_record_fingerprint(episode.implementation_goal) != protocol.goal_fingerprint:
+        issues.add("foreign_goal_fingerprint")
     if episode.implementation_goal.anchor_id != episode.project_anchor.id:
         issues.add("goal_anchor_mismatch")
     if episode.implementation_goal.proposed_gate_digest != protocol.gate_digest:
@@ -576,8 +660,12 @@ def _lifecycle_issues(
         issues.add("prediction_plan_mismatch")
     if episode.protocol_artifact != capability_protocol_artifact(protocol):
         issues.add("protocol_artifact_mismatch")
-    if request.input_artifact != episode.protocol_artifact:
-        issues.add("request_does_not_reference_protocol")
+    if episode.actor_task_artifact != capability_task_artifact(episode.actor_task):
+        issues.add("task_artifact_mismatch")
+    if request.input_artifact != episode.actor_task_artifact:
+        issues.add("request_does_not_reference_task")
+    if protocol.actor_task_artifact != episode.actor_task_artifact:
+        issues.add("protocol_task_mismatch")
     if request.step_plan_id != protocol.step_plan_id:
         issues.add("request_step_plan_mismatch")
     if request.effect_kind != protocol.effect_kind:
@@ -590,6 +678,30 @@ def _lifecycle_issues(
         issues.add("foreign_operation")
     if episode.prediction.scope_fingerprint != protocol.scope_fingerprint:
         issues.add("foreign_scope")
+    expected_task = {
+        "anchor_id": protocol.anchor_id,
+        "goal_id": protocol.goal_id,
+        "obligation_id": protocol.obligation_id,
+        "competence_id": protocol.competence_id,
+        "binding_revision": protocol.binding_revision,
+        "scope_fingerprint": protocol.scope_fingerprint,
+        "protected_horizon_id": protocol.protected_horizon_id,
+        "operation_id": protocol.operation_id,
+        "actor_id": protocol.actor_id,
+        "actor_revision": protocol.actor_revision,
+        "adapter_id": protocol.adapter_id,
+        "route_definition_id": protocol.route_definition_id,
+        "route_definition_version": protocol.route_definition_version,
+        "context_artifact": protocol.context_artifact,
+        "evidence_access_artifact": protocol.evidence_access_artifact,
+        "budget_artifact": protocol.budget_artifact,
+        "timeout_seconds": protocol.timeout_seconds,
+        "protected_consequence_ids": protocol.protected_consequence_ids,
+    }
+    actual_task = episode.actor_task.model_dump(mode="json", exclude={"id", "schema_version"})
+    expected_task_json = _json_material(expected_task)
+    if actual_task != expected_task_json:
+        issues.add("task_protocol_pin_mismatch")
     expected_prediction = {
         "comparison_policy_id": protocol.comparison_policy_id,
         "comparison_policy_version": protocol.comparison_policy_version,
@@ -601,6 +713,7 @@ def _lifecycle_issues(
             for item in protocol.expectations
         ],
         "protocol_id": protocol.id,
+        "protocol_artifact": episode.protocol_artifact.model_dump(mode="json"),
     }
     if episode.prediction.predicted_consequence != expected_prediction:
         issues.add("prediction_expectation_mismatch")
@@ -628,9 +741,10 @@ def _lifecycle_issues(
                 or external_return.source_revision != protocol.actor_revision
             ):
                 issues.add("foreign_actor")
-        if episode.cognitive_plan.effect_attempt_plan_id != attempt.plan.id:
-            issues.add("cognitive_attempt_mismatch")
-    if not episode.effect.attempts and episode.cognitive_plan.effect_attempt_plan_id is not None:
+    cognitive_attempt_id = episode.cognitive_plan.effect_attempt_plan_id
+    if cognitive_attempt_id is not None and not any(
+        attempt.plan.id == cognitive_attempt_id for attempt in episode.effect.attempts
+    ):
         issues.add("missing_cognitive_attempt")
     for disposition in episode.effect.no_attempt_dispositions:
         if disposition.request_id != request.id or disposition.step_plan_id != request.step_plan_id:
@@ -650,12 +764,8 @@ def _lifecycle_issues(
             for attempt in episode.effect.attempts
             if isinstance(attempt.outcome, ReturnedOutcome)
         )
-        if returned_ids != (accepted_return_id,):
-            issues.add("late_or_competing_return")
-        if tuple(item.id for item in episode.effect.decode_outcomes) != (
-            episode.effect.accepted_decoded_outcome_id,
-        ):
-            issues.add("unaccepted_decode_present")
+        if accepted_return_id not in returned_ids:
+            issues.add("accepted_return_missing")
     return issues
 
 
@@ -832,20 +942,13 @@ def evaluate_capability_episode(
                 (checker.verdict_artifact,),
             )
         checker_reason: dict[
-            CheckerVerdict,
-            Literal[
-                "checker_invalid",
-                "checker_indeterminate",
-                "checker_timeout",
-                "checker_unsupported",
-                "checker_failed",
-            ],
+            CheckerVerdict, Literal["invalid", "indeterminate", "timeout", "unsupported", "failed"]
         ] = {
-            CheckerVerdict.INVALID: "checker_invalid",
-            CheckerVerdict.INDETERMINATE: "checker_indeterminate",
-            CheckerVerdict.TIMEOUT: "checker_timeout",
-            CheckerVerdict.UNSUPPORTED: "checker_unsupported",
-            CheckerVerdict.FAILED: "checker_failed",
+            CheckerVerdict.INVALID: "invalid",
+            CheckerVerdict.INDETERMINATE: "indeterminate",
+            CheckerVerdict.TIMEOUT: "timeout",
+            CheckerVerdict.UNSUPPORTED: "unsupported",
+            CheckerVerdict.FAILED: "failed",
         }
         check_reason = checker_reason[checker.verdict]
         checker_artifacts = tuple(
@@ -865,11 +968,12 @@ def evaluate_capability_episode(
             "reason": check_reason,
             "evidence": tuple(item.digest for item in checker_artifacts),
         }
-        return DecodeIndeterminateObserved(
+        return CheckIndeterminateObserved(
             id=_content_id("cap_eval_check", check_material),
             protocol_id=protocol.id,
             request_id=episode.effect.request.id,
             decode_outcome_id=accepted.id,
+            checker_verdict_id=checker.id,
             reason_kind=check_reason,
             evidence_artifacts=checker_artifacts,
         )
@@ -1036,6 +1140,7 @@ def derive_cognitive_handoff(
     external_return_id: str | None,
     decode_outcome_id: str | None,
     checker_verdict_id: str | None,
+    attempted_route_ids: tuple[Identifier, ...],
 ) -> CognitiveHandoff:
     if isinstance(result, EvaluationPassed):
         status = HandoffStatus.COMPLETE
@@ -1059,7 +1164,7 @@ def derive_cognitive_handoff(
                 key=lambda item: item.digest,
             )
         )
-        failed = (protocol.route_definition_id,)
+        failed = tuple(sorted(set(attempted_route_ids)))
         failed_decoders = ()
         live = frame.live_limitation_kinds
         next_id = frame.next_discriminator_id
@@ -1068,8 +1173,8 @@ def derive_cognitive_handoff(
         status = HandoffStatus.STOP_UNKNOWN
         evidence = result.evidence_artifacts
         failed = (
-            (protocol.route_definition_id,)
-            if isinstance(result, OperationalUnknownObserved)
+            tuple(sorted(set(attempted_route_ids)))
+            if isinstance(result, OperationalUnknownObserved) and result.attempt_id is not None
             else ()
         )
         failed_decoders = (
@@ -1150,6 +1255,9 @@ def build_capability_evaluation_bundle(
         checker_verdict_id=(
             None if episode.checker_verdict is None else episode.checker_verdict.id
         ),
+        attempted_route_ids=tuple(
+            attempt.plan.route.definition_id for attempt in episode.effect.attempts
+        ),
     )
     return CapabilityEvaluationBundle(
         result=result,
@@ -1183,6 +1291,9 @@ def build_protocol_invalid_bundle(
             external_return_id=None,
             decode_outcome_id=None,
             checker_verdict_id=None,
+            attempted_route_ids=tuple(
+                attempt.plan.route.definition_id for attempt in episode.effect.attempts
+            ),
         ),
     )
 
@@ -1227,5 +1338,6 @@ def build_resolution_invalid_bundle(
             external_return_id=None,
             decode_outcome_id=None,
             checker_verdict_id=None,
+            attempted_route_ids=(),
         ),
     )
