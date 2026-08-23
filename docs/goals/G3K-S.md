@@ -1,6 +1,6 @@
-# Active Goal G3K-S: Succession-arrangement semantic normalization
+# Goal G3K-S: Succession-arrangement semantic normalization
 
-- Status: active
+- Status: promoted at `d6e101bb01271179f3416c3ecc61082bcdb6b873`
 - Authority: RCI v0.6 candidate normalization, PLAN, ADR-0016, ADR-0018
 - Anchor: `7aa670482af85a9fd554a31924dbce6a26984af4`
 - Token budget: none

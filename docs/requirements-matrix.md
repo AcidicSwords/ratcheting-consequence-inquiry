@@ -181,8 +181,8 @@ Status vocabulary:
 | G3V | Stopped-indeterminate bounded review candidate preserved at `a425f4b0dfa5b2c52a67df87d460f25e4e825518` | No standing implementation, fresh semantic-review substitution, successor warrant, or promotion authority |
 | G3FO | Stopped-indeterminate failure-observation candidate preserved at `b3cb06363ac5b8cd60c9bfbda5c3fbdd7dca72fb` | No standing evaluator/handoff, model adapter, source/Git authority, review substitution, or promotion authority |
 | G3Q-F | Earlier finite-frame decomposition absorbed into G3K after ADR-0016's two failure conditions were reproduced | No standalone G3Q-F implementation or standing capability |
-| G3K-S | Active succession-arrangement semantic normalization from protected anchor `7aa670482af85a9fd554a31924dbce6a26984af4` | No executable calculus, event, snapshot, dependency, or G3K-E conformance |
-| G3K-E | Future executable finite guarded calculus and compatibility projection | Opens only after independently reviewed protected G3K-S promotion |
+| G3K-S | Promoted succession-arrangement semantic normalization at protected main `d6e101bb01271179f3416c3ecc61082bcdb6b873` | No executable calculus, event, snapshot, dependency, or G3K-E conformance |
+| G3K-E | Stopped-indeterminate executable-kernel candidate retained at `a4a769872832cbd46c7e10400e4f71195d2fb1e5` | All gates passed and prior invalid findings were repaired, but fresh repair-head review was unavailable; no executable standing |
 | G3A-L/G3B/G3C | Exact linear theorem, then approximate licences, then native adapters | No raw-environment system identification |
 | G4 | Formal identification seam and future PSR/native-binding evaluation | No control certificate |
 | G5 | Checked control synthesis/actualization | No multi-backend or end-to-end claim |
