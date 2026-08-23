@@ -30,11 +30,13 @@ from rci.compression import (
     ValidationProperty,
     WeightedLinearObservation,
     analyze_linear_query_family,
+    build_linear_property_check_records,
     build_linear_query_family,
     build_linear_validation_properties,
     detect_linear_kernel_reopening,
     encode_quotient,
     independently_check_linear_analysis,
+    linear_target_carrier_schema_id,
     protected_consequences_equal,
 )
 from rci.core.model import ArtifactRef
@@ -274,7 +276,7 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         target_carrier=CarrierContract(
             id="linear-retained-carrier",
             role=CarrierRole.OTHER_DECLARED,
-            schema_id="exact-rational-coordinates-v1",
+            schema_id=linear_target_carrier_schema_id(analysis),
             binding_revision=family.binding_revision,
         ),
         binding_revision=family.binding_revision,
@@ -289,23 +291,23 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             ExactClaimKind.CONSEQUENCE_SUFFICIENT,
         ),
         representation_policy_id=family.representation_policy_id,
-        provenance_refs=(family.id,),
+        provenance_refs=tuple(sorted((family.id, analysis.id))),
     )
-    check_refs = (
+    property_check_records = tuple(
         (
+            property_kind,
+            *build_linear_property_check_records(
+                family,
+                analysis,
+                check,
+                compression_contract,
+                property_kind,
+            ),
+        )
+        for property_kind in (
             ValidationProperty.CONSEQUENCE_FACTORIZATION,
-            CheckReference(
-                evidence_id="linear-factorization-evidence",
-                checker_verdict_id="fraction-factorization-check",
-            ),
-        ),
-        (
             ValidationProperty.EXACT_EQUIVALENCE,
-            CheckReference(
-                evidence_id="linear-equivalence-evidence",
-                checker_verdict_id="fraction-equivalence-check",
-            ),
-        ),
+        )
     )
     supplemental_properties = (
         ExactPropertyValidation(
@@ -323,7 +325,7 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         family=family,
         analysis=analysis,
         compression_contract=compression_contract,
-        property_check_references=check_refs,
+        property_check_records=property_check_records,
         supplemental_properties=supplemental_properties,
     )
     validation = CompressionValidation(
@@ -356,7 +358,7 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             family=family,
             analysis=analysis,
             compression_contract=compression_contract,
-            property_check_references=check_refs,
+            property_check_records=property_check_records,
             supplemental_properties=(),
         )
 
@@ -402,7 +404,7 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             family=family,
             analysis=analysis,
             compression_contract=compression_contract,
-            property_check_references=check_refs,
+            property_check_records=property_check_records,
             supplemental_properties=supplemental_properties,
         )
     with pytest.raises(ValueError, match="intact candidate check"):
@@ -411,7 +413,7 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             family=family,
             analysis=analysis,
             compression_contract=compression_contract,
-            property_check_references=check_refs,
+            property_check_records=property_check_records,
             supplemental_properties=supplemental_properties,
             invalid_witness_artifact=ArtifactRef(digest=DIGEST, size=1),
         )
@@ -421,42 +423,46 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             family=family,
             analysis=analysis,
             compression_contract=compression_contract,
-            property_check_references=check_refs[:1],
+            property_check_records=property_check_records[:1],
             supplemental_properties=supplemental_properties,
         )
-    for shared_refs in (
+    for substituted_records in (
         (
-            check_refs[0],
-            (ValidationProperty.EXACT_EQUIVALENCE, check_refs[0][1]),
-        ),
-        (
-            check_refs[0],
+            property_check_records[0],
             (
                 ValidationProperty.EXACT_EQUIVALENCE,
-                CheckReference(
-                    evidence_id=check_refs[0][1].evidence_id,
-                    checker_verdict_id="other-verdict",
+                property_check_records[0][1],
+                property_check_records[0][2],
+            ),
+        ),
+        (
+            property_check_records[0],
+            (
+                ValidationProperty.EXACT_EQUIVALENCE,
+                property_check_records[1][1],
+                property_check_records[1][2].model_copy(
+                    update={"checker_id": "construction-backend"}
                 ),
             ),
         ),
         (
-            check_refs[0],
+            property_check_records[0],
             (
                 ValidationProperty.EXACT_EQUIVALENCE,
-                CheckReference(
-                    evidence_id="other-evidence",
-                    checker_verdict_id=check_refs[0][1].checker_verdict_id,
+                property_check_records[1][1].model_copy(
+                    update={"artifact": ArtifactRef(digest="f" * 64, size=1)}
                 ),
+                property_check_records[1][2],
             ),
         ),
     ):
-        with pytest.raises(ValueError, match="distinct evidence"):
+        with pytest.raises(ValueError, match="exact Fraction-check projection"):
             build_linear_validation_properties(
                 check,
                 family=family,
                 analysis=analysis,
                 compression_contract=compression_contract,
-                property_check_references=shared_refs,
+                property_check_records=substituted_records,
                 supplemental_properties=supplemental_properties,
             )
     foreign_target = compression_contract.target_carrier.model_copy(
@@ -475,6 +481,16 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         (
             compression_contract.model_copy(update={"source_carrier_id": "foreign-source-carrier"}),
             "source_carrier",
+        ),
+        (
+            compression_contract.model_copy(
+                update={
+                    "target_carrier": compression_contract.target_carrier.model_copy(
+                        update={"schema_id": "constant-state-v1"}
+                    )
+                }
+            ),
+            "target_carrier_schema",
         ),
         (compression_contract.model_copy(update={"scope_fingerprint": "d" * 64}), "scope"),
         (
@@ -501,6 +517,10 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             compression_contract.model_copy(update={"provenance_refs": ("foreign-family",)}),
             "family_provenance",
         ),
+        (
+            compression_contract.model_copy(update={"provenance_refs": (family.id,)}),
+            "analysis_provenance",
+        ),
     )
     for foreign_contract, mismatch in foreign_contracts:
         with pytest.raises(ValueError, match=mismatch):
@@ -509,7 +529,7 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
                 family=family,
                 analysis=analysis,
                 compression_contract=foreign_contract,
-                property_check_references=check_refs,
+                property_check_records=property_check_records,
                 supplemental_properties=supplemental_properties,
             )
     with pytest.raises(ValueError, match="exact family analysis"):
@@ -518,7 +538,7 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             family=family,
             analysis=analysis,
             compression_contract=compression_contract,
-            property_check_references=check_refs,
+            property_check_records=property_check_records,
             supplemental_properties=supplemental_properties,
         )
 

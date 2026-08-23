@@ -9,13 +9,14 @@ from __future__ import annotations
 
 from enum import StrEnum
 from fractions import Fraction
+from hashlib import sha256
 from math import gcd
 from typing import Literal
 
 from pydantic import model_validator
 from sympy import Matrix, Rational  # type: ignore[import-untyped]
 
-from rci.claims.models import content_fingerprint
+from rci.claims.models import canonical_json, content_fingerprint
 from rci.compression.models import (
     CompressionContract,
     ExactClaimKind,
@@ -25,7 +26,14 @@ from rci.compression.models import (
     ValidationProperty,
 )
 from rci.core.model import ArtifactRef, FrozenModel, Identifier, Sha256Digest
-from rci.warrant.models import CheckReference
+from rci.warrant.models import (
+    CheckerVerdict,
+    CheckerVerdictRecord,
+    CheckReference,
+    Evidence,
+    EvidenceKind,
+    PropositionKind,
+)
 
 
 class LinearEquivalenceScope(StrEnum):
@@ -352,6 +360,7 @@ class ExactLinearCheck(FrozenModel):
     property_outcomes: tuple[tuple[ValidationProperty, ValidationOutcome], ...]
     issue_ids: tuple[Identifier, ...] = ()
     checker_id: Literal["fraction-rref-v1"] = "fraction-rref-v1"
+    checker_version: Literal["1"] = "1"
     standing: Literal["candidate_check_evidence"] = "candidate_check_evidence"
 
     @model_validator(mode="after")
@@ -380,6 +389,7 @@ class ExactLinearCheck(FrozenModel):
             property_outcomes=self.property_outcomes,
             issue_ids=self.issue_ids,
             checker_id=self.checker_id,
+            checker_version=self.checker_version,
             standing=self.standing,
         ):
             raise ValueError("exact linear check identity must be content-derived")
@@ -647,6 +657,7 @@ def _linear_check_id(
     property_outcomes: tuple[tuple[ValidationProperty, ValidationOutcome], ...],
     issue_ids: tuple[str, ...],
     checker_id: str,
+    checker_version: str,
     standing: str,
 ) -> str:
     material = {
@@ -659,6 +670,7 @@ def _linear_check_id(
         "properties": property_outcomes,
         "issues": issue_ids,
         "checker": checker_id,
+        "checker_version": checker_version,
         "standing": standing,
     }
     return f"lck_{content_fingerprint('rci.exact-linear-check.v1', material)[:24]}"
@@ -767,6 +779,7 @@ def independently_check_linear_analysis(
         property_outcomes=property_outcomes,
         issue_ids=issue_ids,
         checker_id="fraction-rref-v1",
+        checker_version="1",
         standing="candidate_check_evidence",
     )
     return ExactLinearCheck(
@@ -781,22 +794,48 @@ def independently_check_linear_analysis(
     )
 
 
-def build_linear_validation_properties(
-    check: ExactLinearCheck,
-    *,
+def linear_target_carrier_schema_id(analysis: ExactLinearAnalysis) -> str:
+    """Identify the exact row-space coordinate carrier proved by one analysis."""
+
+    _require_intact_analysis(analysis)
+    return f"rci.exact-linear-row-space-coordinates.v1:{analysis.id}"
+
+
+def _linear_contract_issues(
     family: LinearQueryFamily,
     analysis: ExactLinearAnalysis,
     compression_contract: CompressionContract,
-    property_check_references: tuple[tuple[ValidationProperty, CheckReference], ...],
-    supplemental_properties: tuple[ExactPropertyValidation, ...],
-    invalid_witness_artifact: ArtifactRef | None = None,
-) -> tuple[ExactPropertyValidation, ...]:
-    """Bridge checked binding evidence into the existing G3A-H property stages.
+) -> tuple[str, ...]:
+    issues: list[str] = []
+    if compression_contract.binding_revision != family.binding_revision:
+        issues.append("binding")
+    if compression_contract.source_carrier_id != family.source_carrier_id:
+        issues.append("source_carrier")
+    if compression_contract.target_carrier.schema_id != linear_target_carrier_schema_id(analysis):
+        issues.append("target_carrier_schema")
+    if compression_contract.scope_fingerprint != family.scope_fingerprint:
+        issues.append("scope")
+    if compression_contract.protected_horizon_id != family.protected_horizon_id:
+        issues.append("horizon")
+    if compression_contract.consequence_query_ids != tuple(item.id for item in family.observations):
+        issues.append("consequence_queries")
+    if compression_contract.equality_semantics_id != family.equality_semantics_id:
+        issues.append("equality_semantics")
+    if compression_contract.representation_policy_id != family.representation_policy_id:
+        issues.append("representation_policy")
+    if family.id not in compression_contract.provenance_refs:
+        issues.append("family_provenance")
+    if analysis.id not in compression_contract.provenance_refs:
+        issues.append("analysis_provenance")
+    return tuple(issues)
 
-    The aggregate must still resolve every check reference and separately record the
-    resulting ``CompressionValidation``.  This pure adapter grants no warrant or licence.
-    """
 
+def _require_linear_bridge_inputs(
+    family: LinearQueryFamily,
+    analysis: ExactLinearAnalysis,
+    check: ExactLinearCheck,
+    compression_contract: CompressionContract,
+) -> None:
     _require_intact_family(family)
     _require_intact_analysis(analysis)
     try:
@@ -817,30 +856,155 @@ def build_linear_validation_properties(
         raise ValueError("linear validation requires an intact compression contract") from exc
     if validated_contract != compression_contract:
         raise ValueError("linear validation requires an intact compression contract")
-    contract_issues: list[str] = []
-    if compression_contract.binding_revision != family.binding_revision:
-        contract_issues.append("binding")
-    if compression_contract.source_carrier_id != family.source_carrier_id:
-        contract_issues.append("source_carrier")
-    if compression_contract.scope_fingerprint != family.scope_fingerprint:
-        contract_issues.append("scope")
-    if compression_contract.protected_horizon_id != family.protected_horizon_id:
-        contract_issues.append("horizon")
-    if compression_contract.consequence_query_ids != tuple(item.id for item in family.observations):
-        contract_issues.append("consequence_queries")
-    if compression_contract.equality_semantics_id != family.equality_semantics_id:
-        contract_issues.append("equality_semantics")
-    if compression_contract.representation_policy_id != family.representation_policy_id:
-        contract_issues.append("representation_policy")
-    if family.id not in compression_contract.provenance_refs:
-        contract_issues.append("family_provenance")
+    contract_issues = _linear_contract_issues(family, analysis, compression_contract)
     if contract_issues:
         raise ValueError(
             "linear family does not match compression contract pins: " + ",".join(contract_issues)
         )
+
+
+def _artifact_ref_for_bytes(payload: bytes) -> ArtifactRef:
+    return ArtifactRef(
+        digest=sha256(payload).hexdigest(),
+        size=len(payload),
+        media_type="application/json",
+        encoding="utf-8",
+    )
+
+
+def linear_property_check_payloads(
+    family: LinearQueryFamily,
+    analysis: ExactLinearAnalysis,
+    check: ExactLinearCheck,
+    compression_contract: CompressionContract,
+    property_kind: ValidationProperty,
+) -> tuple[bytes, bytes]:
+    """Return canonical evidence and verdict bytes for one Fraction-checked property."""
+
+    _require_linear_bridge_inputs(family, analysis, check, compression_contract)
+    outcomes = dict(check.property_outcomes)
+    outcome = outcomes[property_kind]
+    if outcome is ValidationOutcome.NOT_CLAIMED:
+        raise ValueError("the Fraction checker did not claim this compression property")
+    proposition_id = f"compression-property:{compression_contract.id}:{property_kind.value}"
+    evidence_material = {
+        "schema_version": 1,
+        "kind": "exact_linear_property_check",
+        "property": property_kind,
+        "outcome": outcome,
+        "proposition_id": proposition_id,
+        "family_id": family.id,
+        "family_fingerprint": family.fingerprint,
+        "analysis_id": analysis.id,
+        "analysis_fingerprint": analysis.fingerprint,
+        "check": check.model_dump(mode="json", warnings=False),
+        "compression_contract": compression_contract.model_dump(mode="json", warnings=False),
+        "target_carrier_schema_id": linear_target_carrier_schema_id(analysis),
+    }
+    evidence_payload = canonical_json(evidence_material).encode("utf-8")
+    evidence_artifact = _artifact_ref_for_bytes(evidence_payload)
+    verdict_material = {
+        "schema_version": 1,
+        "kind": "exact_linear_property_verdict",
+        "property": property_kind,
+        "outcome": outcome,
+        "proposition_id": proposition_id,
+        "evidence_artifact": evidence_artifact.model_dump(mode="json", warnings=False),
+        "checker_id": check.checker_id,
+        "checker_version": check.checker_version,
+    }
+    return evidence_payload, canonical_json(verdict_material).encode("utf-8")
+
+
+def build_linear_property_check_records(
+    family: LinearQueryFamily,
+    analysis: ExactLinearAnalysis,
+    check: ExactLinearCheck,
+    compression_contract: CompressionContract,
+    property_kind: ValidationProperty,
+) -> tuple[Evidence, CheckerVerdictRecord]:
+    """Build the exact aggregate-owned records required by the G3A-H bridge."""
+
+    evidence_payload, verdict_payload = linear_property_check_payloads(
+        family,
+        analysis,
+        check,
+        compression_contract,
+        property_kind,
+    )
+    outcome = dict(check.property_outcomes)[property_kind]
+    proposition_id = f"compression-property:{compression_contract.id}:{property_kind.value}"
+    evidence_artifact = _artifact_ref_for_bytes(evidence_payload)
+    verdict_artifact = _artifact_ref_for_bytes(verdict_payload)
+    evidence_id = (
+        "linear-property-evidence:"
+        + content_fingerprint(
+            "rci.exact-linear-property-evidence.v1",
+            {"property": property_kind, "artifact": evidence_artifact},
+        )[:24]
+    )
+    evidence = Evidence(
+        id=evidence_id,
+        kind=EvidenceKind.INDEPENDENT_WITNESS,
+        proposition_id=proposition_id,
+        proposition_kind=PropositionKind.RELATION,
+        scope_fingerprint=compression_contract.scope_fingerprint,
+        artifact=evidence_artifact,
+    )
+    checker_verdict = (
+        CheckerVerdict.VALID if outcome is ValidationOutcome.VALID else CheckerVerdict.INVALID
+    )
+    verdict_id = (
+        "linear-property-verdict:"
+        + content_fingerprint(
+            "rci.exact-linear-property-verdict-record.v1",
+            {
+                "evidence": evidence.model_dump(mode="json", warnings=False),
+                "verdict_artifact": verdict_artifact,
+                "checker_id": check.checker_id,
+                "checker_version": check.checker_version,
+                "verdict": checker_verdict,
+            },
+        )[:24]
+    )
+    verdict = CheckerVerdictRecord(
+        id=verdict_id,
+        evidence_id=evidence.id,
+        evidence_artifact=evidence.artifact,
+        proposition_id=proposition_id,
+        proposition_kind=PropositionKind.RELATION,
+        scope_fingerprint=compression_contract.scope_fingerprint,
+        checker_id=check.checker_id,
+        checker_version=check.checker_version,
+        verdict=checker_verdict,
+        verdict_artifact=verdict_artifact,
+        certificate_artifact=(
+            evidence.artifact if checker_verdict is CheckerVerdict.VALID else None
+        ),
+    )
+    return evidence, verdict
+
+
+def build_linear_validation_properties(
+    check: ExactLinearCheck,
+    *,
+    family: LinearQueryFamily,
+    analysis: ExactLinearAnalysis,
+    compression_contract: CompressionContract,
+    property_check_records: tuple[tuple[ValidationProperty, Evidence, CheckerVerdictRecord], ...],
+    supplemental_properties: tuple[ExactPropertyValidation, ...],
+    invalid_witness_artifact: ArtifactRef | None = None,
+) -> tuple[ExactPropertyValidation, ...]:
+    """Bridge checked binding evidence into the existing G3A-H property stages.
+
+    The aggregate must still resolve every check reference and separately record the
+    resulting ``CompressionValidation``.  This pure adapter grants no warrant or licence.
+    """
+
+    _require_linear_bridge_inputs(family, analysis, check, compression_contract)
     if check.verdict is LinearCheckVerdict.INVALID and invalid_witness_artifact is None:
         raise ValueError("invalid linear validation requires an exact counterexample artifact")
-    referenced_properties = tuple(item[0] for item in property_check_references)
+    referenced_properties = tuple(item[0] for item in property_check_records)
     if referenced_properties != tuple(
         sorted(referenced_properties, key=lambda item: item.value)
     ) or len(set(referenced_properties)) != len(referenced_properties):
@@ -852,6 +1016,16 @@ def build_linear_validation_properties(
     }
     if set(referenced_properties) != claimed_properties:
         raise ValueError("each claimed linear property requires its own exact check reference")
+    for property_kind, evidence, verdict in property_check_records:
+        expected_evidence, expected_verdict = build_linear_property_check_records(
+            family,
+            analysis,
+            check,
+            compression_contract,
+            property_kind,
+        )
+        if evidence != expected_evidence or verdict != expected_verdict:
+            raise ValueError("linear property evidence must be the exact Fraction-check projection")
     supplemental_names = tuple(item.property for item in supplemental_properties)
     if supplemental_names != tuple(sorted(supplemental_names, key=lambda item: item.value)) or len(
         set(supplemental_names)
@@ -871,7 +1045,13 @@ def build_linear_validation_properties(
             raise ValueError(
                 "supplemental properties require an exact claimed contract proposition"
             )
-    checks_by_property = dict(property_check_references)
+    checks_by_property = {
+        property_kind: CheckReference(
+            evidence_id=evidence.id,
+            checker_verdict_id=verdict.id,
+        )
+        for property_kind, evidence, verdict in property_check_records
+    }
     properties: list[ExactPropertyValidation] = []
     for property_kind, outcome in check.property_outcomes:
         if outcome is ValidationOutcome.NOT_CLAIMED:
