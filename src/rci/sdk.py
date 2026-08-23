@@ -109,19 +109,23 @@ from rci.core.effects import (
 )
 from rci.core.events import DomainEvent, InquiryStarted
 from rci.core.model import ArtifactRef, CapturedPayload, InquiryContext
+from rci.core.replay import replay as replay_events
 from rci.core.serialization import canonical_json_bytes, sha256_digest
 from rci.core.state import InquiryState
 from rci.core.transitions import decide, evolve
 from rci.evaluation import (
     CapabilityConsequenceReport,
     CapabilityEvaluationBundle,
-    CapabilityEvaluationEpisode,
     CapabilityEvaluationProtocol,
     CognitiveHandoff,
     build_capability_evaluation_bundle,
-    build_protocol_invalid_bundle,
+    build_resolution_invalid_bundle,
     capability_protocol_artifact,
+    capability_result_artifact,
+    cognitive_handoff_artifact,
+    failure_localization_frame_artifact,
 )
+from rci.evaluation.capability import CapabilityEvaluationEpisode
 from rci.learning import (
     ConsolidationCandidate,
     ConsolidationCheckpoint,
@@ -2115,6 +2119,39 @@ class RCI:
     ) -> ArtifactRef:
         """Publish the exact pre-return protocol bytes to CAS."""
 
+        if protocol.predecessor_handoff_artifact is not None:
+            predecessor = CognitiveHandoff.model_validate_json(
+                self.artifacts.get_bytes(protocol.predecessor_handoff_artifact), strict=True
+            )
+            self.artifacts.verify(protocol.predecessor_handoff_artifact)
+            resolved_predecessor = self._evaluate_capability_request(
+                predecessor.source_inquiry_id,
+                predecessor.effect_request_id,
+                through_sequence=predecessor.source_sequence,
+            ).handoff
+            if predecessor != resolved_predecessor:
+                raise ValueError("predecessor handoff does not match its authoritative prefix")
+            if (
+                predecessor.anchor_id != protocol.anchor_id
+                or predecessor.goal_id != protocol.goal_id
+                or predecessor.project_head_sha != protocol.project_head_sha
+                or predecessor.gate_digest != protocol.gate_digest
+                or predecessor.protected_capability_ids != protocol.protected_capability_ids
+            ):
+                raise ValueError("successor protocol does not preserve its predecessor handoff")
+            reopening = bool(protocol.reopening_evidence_artifacts)
+            if (
+                protocol.route_definition_id in predecessor.forbidden_route_ids_until_reopen
+                and not reopening
+            ):
+                raise ValueError("successor protocol repeats a failed route without reopening")
+            if (
+                protocol.decoder_id in predecessor.forbidden_decoder_ids_until_reopen
+                and not reopening
+            ):
+                raise ValueError("successor protocol repeats a failed decoder without reopening")
+            for artifact in protocol.reopening_evidence_artifacts:
+                self.artifacts.verify(artifact)
         artifact = self.artifacts.put_bytes(
             canonical_json_bytes(protocol),
             media_type="application/vnd.rci.capability-evaluation+json",
@@ -2124,33 +2161,125 @@ class RCI:
             raise ArtifactIntegrityError("published capability protocol metadata changed")
         return artifact
 
-    def evaluate_capability_episode(
-        self, episode: CapabilityEvaluationEpisode
-    ) -> CapabilityEvaluationBundle:
-        """Load and verify exact CAS bytes, then invoke the effect-free projector."""
-
-        protocol = episode.protocol
-        try:
-            stored_protocol = CapabilityEvaluationProtocol.model_validate_json(
-                self.artifacts.get_bytes(episode.protocol_artifact), strict=True
+    def _publish_capability_bundle(self, bundle: CapabilityEvaluationBundle) -> None:
+        result_ref = self.artifacts.put_bytes(
+            canonical_json_bytes(bundle.result),
+            media_type="application/vnd.rci.capability-evaluation-result+json",
+            encoding="utf-8",
+        )
+        if result_ref != capability_result_artifact(bundle.result):
+            raise ArtifactIntegrityError("published capability result metadata changed")
+        if bundle.localization_frame is not None:
+            frame_ref = self.artifacts.put_bytes(
+                canonical_json_bytes(bundle.localization_frame),
+                media_type="application/vnd.rci.failure-localization-frame+json",
+                encoding="utf-8",
             )
-            if stored_protocol != protocol:
-                raise ValueError("protocol object differs from its CAS bytes")
-            unique_refs = {
-                item.digest: item
-                for item in (*tuple(_artifact_refs(protocol)), *tuple(_artifact_refs(episode)))
-            }
-            for digest in sorted(unique_refs):
-                self.artifacts.verify(unique_refs[digest])
+            if frame_ref != failure_localization_frame_artifact(bundle.localization_frame):
+                raise ArtifactIntegrityError("published localization frame metadata changed")
+        handoff_ref = self.artifacts.put_bytes(
+            canonical_json_bytes(bundle.handoff),
+            media_type="application/vnd.rci.cognitive-handoff+json",
+            encoding="utf-8",
+        )
+        if handoff_ref != cognitive_handoff_artifact(bundle.handoff):
+            raise ArtifactIntegrityError("published cognitive handoff metadata changed")
 
-            accepted_id = episode.effect.accepted_decoded_outcome_id
+    def _evaluate_capability_request(
+        self,
+        inquiry_id: str,
+        request_id: str,
+        *,
+        through_sequence: int | None = None,
+    ) -> CapabilityEvaluationBundle:
+        """Resolve one owned ledger lifecycle, verify CAS, then invoke the pure projector."""
+
+        if through_sequence is None:
+            state = self.inspect(inquiry_id)
+        else:
+            stream = self.events.load_stream(inquiry_id)
+            if through_sequence < 1 or through_sequence > stream.version:
+                raise ValueError("capability evaluation prefix is outside the owned stream")
+            state = replay_events(item.event for item in stream.events[:through_sequence])
+        request_state = state.request_by_id(request_id)
+        if request_state is None:
+            raise ValueError("capability evaluation request is not owned by the inquiry")
+        protocol_artifact = request_state.request.input_artifact
+        try:
+            protocol = CapabilityEvaluationProtocol.model_validate_json(
+                self.artifacts.get_bytes(protocol_artifact), strict=True
+            )
+            if protocol_artifact != capability_protocol_artifact(protocol):
+                raise ValueError("request protocol artifact metadata does not match its bytes")
+        except (ArtifactIntegrityError, ValidationError, ValueError) as exc:
+            raise ValueError("request does not contain a valid capability protocol") from exc
+
+        anchor = next(
+            (item for item in state.project_anchors if item.id == protocol.anchor_id), None
+        )
+        goal = next(
+            (item for item in state.implementation_goals if item.id == protocol.goal_id), None
+        )
+        obligation = state.obligation_by_id(protocol.obligation_id)
+        step_plan = state.step_plan_by_id(protocol.step_plan_id)
+        cognitive_plans = tuple(
+            item for item in state.cognitive_plans if item.effect_request_id == request_id
+        )
+        cognitive_plan = cognitive_plans[0] if len(cognitive_plans) == 1 else None
+        predictions = tuple(
+            item
+            for item in state.predictions
+            if cognitive_plan is not None and item.cognitive_plan_id == cognitive_plan.id
+        )
+        prediction = predictions[0] if len(predictions) == 1 else None
+        resolution_issues: list[str] = []
+        for value, issue in (
+            (anchor, "anchor_not_owned"),
+            (goal, "goal_not_owned"),
+            (obligation, "obligation_not_owned"),
+            (step_plan, "step_plan_not_owned"),
+            (cognitive_plan, "cognitive_plan_not_owned_or_ambiguous"),
+            (prediction, "prediction_not_owned_or_ambiguous"),
+        ):
+            if value is None:
+                resolution_issues.append(issue)
+        if resolution_issues:
+            bundle = build_resolution_invalid_bundle(
+                protocol=protocol,
+                protocol_artifact=protocol_artifact,
+                source_inquiry_id=inquiry_id,
+                source_sequence=state.sequence,
+                request_id=request_id,
+                issue_codes=tuple(resolution_issues),
+            )
+            self._publish_capability_bundle(bundle)
+            return bundle
+        assert anchor is not None
+        assert goal is not None
+        assert obligation is not None
+        assert step_plan is not None
+        assert cognitive_plan is not None
+        assert prediction is not None
+        assert state.context is not None
+
+        accepted_id = request_state.accepted_decoded_outcome_id
+        accepted = next(
+            (item for item in request_state.decode_outcomes if item.id == accepted_id), None
+        )
+        report: CapabilityConsequenceReport | None = None
+        checker_evidence = None
+        checker_verdict = None
+        try:
+            all_refs = [*tuple(_artifact_refs(protocol)), *tuple(_artifact_refs(request_state))]
+            sizes_by_digest: dict[str, set[int]] = {}
+            for artifact in all_refs:
+                sizes_by_digest.setdefault(artifact.digest, set()).add(artifact.size)
+            if any(len(sizes) != 1 for sizes in sizes_by_digest.values()):
+                raise ValueError("conflicting artifact sizes share one digest")
+            for artifact in all_refs:
+                self.artifacts.verify(artifact)
             accepted = next(
-                (
-                    outcome
-                    for outcome in episode.effect.decode_outcomes
-                    if outcome.id == accepted_id
-                ),
-                None,
+                (item for item in request_state.decode_outcomes if item.id == accepted_id), None
             )
             report = (
                 CapabilityConsequenceReport.model_validate_json(
@@ -2160,25 +2289,157 @@ class RCI:
                 else None
             )
             if report is not None:
-                report_refs = {item.digest: item for item in _artifact_refs(report)}
-                for digest in sorted(report_refs):
-                    self.artifacts.verify(report_refs[digest])
+                report_refs = tuple(_artifact_refs(report))
+                report_sizes: dict[str, set[int]] = {}
+                for artifact in report_refs:
+                    report_sizes.setdefault(artifact.digest, set()).add(artifact.size)
+                if any(len(sizes) != 1 for sizes in report_sizes.values()):
+                    raise ValueError("report contains conflicting artifact sizes")
+                for artifact in report_refs:
+                    self.artifacts.verify(artifact)
         except (ArtifactIntegrityError, ValidationError, ValueError):
-            return build_protocol_invalid_bundle(
+            bundle = build_resolution_invalid_bundle(
                 protocol=protocol,
-                episode=episode,
+                protocol_artifact=protocol_artifact,
+                source_inquiry_id=inquiry_id,
+                source_sequence=state.sequence,
+                request_id=request_id,
                 issue_codes=("artifact_missing_tampered_or_malformed",),
             )
-        return build_capability_evaluation_bundle(
-            protocol=protocol,
-            episode=episode,
-            report=report,
-        )
+            self._publish_capability_bundle(bundle)
+            return bundle
 
-    def capability_handoff(self, episode: CapabilityEvaluationEpisode) -> CognitiveHandoff:
+        if isinstance(accepted, Decoded) and report is not None:
+            evidence_candidates = tuple(
+                item
+                for item in state.evidence_records
+                if item.artifact == accepted.result.semantic_artifact
+                and item.proposition_id == f"capability-report:{report.id}"
+                and item.proposition_kind.value == "relation"
+                and item.scope_fingerprint == protocol.scope_fingerprint
+            )
+            if len(evidence_candidates) == 1:
+                checker_evidence = evidence_candidates[0]
+                verdict_candidates = tuple(
+                    item
+                    for item in state.checker_verdicts
+                    if item.evidence_id == checker_evidence.id
+                    and item.checker_id == protocol.checker_id
+                    and item.checker_version == protocol.checker_version
+                )
+                if len(verdict_candidates) == 1:
+                    checker_verdict = verdict_candidates[0]
+                elif verdict_candidates:
+                    resolution_issues.append("checker_verdict_ambiguous")
+            elif evidence_candidates:
+                resolution_issues.append("checker_evidence_ambiguous")
+
+        if resolution_issues:
+            bundle = build_resolution_invalid_bundle(
+                protocol=protocol,
+                protocol_artifact=protocol_artifact,
+                source_inquiry_id=inquiry_id,
+                source_sequence=state.sequence,
+                request_id=request_id,
+                issue_codes=tuple(resolution_issues),
+            )
+            self._publish_capability_bundle(bundle)
+            return bundle
+
+        owned_mismatches = tuple(
+            item for item in state.mismatches if item.prediction_id == prediction.id
+        )
+        classifications = tuple(item.classification for item in owned_mismatches)
+        if len(set(classifications)) != len(classifications):
+            bundle = build_resolution_invalid_bundle(
+                protocol=protocol,
+                protocol_artifact=protocol_artifact,
+                source_inquiry_id=inquiry_id,
+                source_sequence=state.sequence,
+                request_id=request_id,
+                issue_codes=("duplicate_mismatch_classification",),
+            )
+            self._publish_capability_bundle(bundle)
+            return bundle
+
+        owned_refs = tuple(
+            _artifact_refs(
+                (
+                    anchor,
+                    state.context,
+                    goal,
+                    obligation,
+                    step_plan,
+                    cognitive_plan,
+                    prediction,
+                    checker_evidence,
+                    checker_verdict,
+                    owned_mismatches,
+                )
+            )
+        )
+        owned_sizes: dict[str, set[int]] = {}
+        for artifact in owned_refs:
+            owned_sizes.setdefault(artifact.digest, set()).add(artifact.size)
+        if any(len(sizes) != 1 for sizes in owned_sizes.values()):
+            bundle = build_resolution_invalid_bundle(
+                protocol=protocol,
+                protocol_artifact=protocol_artifact,
+                source_inquiry_id=inquiry_id,
+                source_sequence=state.sequence,
+                request_id=request_id,
+                issue_codes=("conflicting_owned_artifact_sizes",),
+            )
+            self._publish_capability_bundle(bundle)
+            return bundle
+        try:
+            for artifact in owned_refs:
+                self.artifacts.verify(artifact)
+            episode = CapabilityEvaluationEpisode(
+                source_inquiry_id=inquiry_id,
+                source_sequence=state.sequence,
+                protocol=protocol,
+                protocol_artifact=protocol_artifact,
+                inquiry_context=state.context,
+                project_anchor=anchor,
+                implementation_goal=goal,
+                obligation=obligation,
+                step_plan=step_plan,
+                cognitive_plan=cognitive_plan,
+                effect=request_state,
+                prediction=prediction,
+                checker_evidence=checker_evidence,
+                checker_verdict=checker_verdict,
+                mismatches=owned_mismatches,
+            )
+        except (ArtifactIntegrityError, ValidationError, ValueError):
+            bundle = build_resolution_invalid_bundle(
+                protocol=protocol,
+                protocol_artifact=protocol_artifact,
+                source_inquiry_id=inquiry_id,
+                source_sequence=state.sequence,
+                request_id=request_id,
+                issue_codes=("owned_projection_invalid",),
+            )
+            self._publish_capability_bundle(bundle)
+            return bundle
+        bundle = build_capability_evaluation_bundle(
+            protocol=protocol, episode=episode, report=report
+        )
+        self._publish_capability_bundle(bundle)
+        return bundle
+
+    def evaluate_capability_request(
+        self, inquiry_id: str, request_id: str
+    ) -> CapabilityEvaluationBundle:
+        """Evaluate one request only from the inquiry's current authoritative ledger."""
+
+        return self._evaluate_capability_request(inquiry_id, request_id)
+
+    def capability_handoff(self, inquiry_id: str, request_id: str) -> CognitiveHandoff:
         """Return only the canonical context-reset handoff for one exact episode."""
 
-        return self.evaluate_capability_episode(episode).handoff
+        return self.evaluate_capability_request(inquiry_id, request_id).handoff
 
     def append_local_effects(
         self,

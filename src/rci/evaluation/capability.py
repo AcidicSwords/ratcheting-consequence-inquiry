@@ -11,6 +11,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
+from rci.claims import Obligation
 from rci.core.effects import (
     CancelledOutcome,
     CaptureFailedOutcome,
@@ -23,11 +24,19 @@ from rci.core.effects import (
     ReturnedOutcome,
     UnsupportedDecode,
 )
-from rci.core.model import ArtifactRef, FrozenModel, Identifier, NonEmptyText, Sha256Digest
+from rci.core.model import (
+    ArtifactRef,
+    FrozenModel,
+    Identifier,
+    InquiryContext,
+    NonEmptyText,
+    Sha256Digest,
+)
+from rci.core.planning import StepPlan
 from rci.core.serialization import canonical_json_bytes, sha256_digest
-from rci.probes import Mismatch, PredictionSeal
-from rci.project import LimitationKind
-from rci.warrant import CheckerVerdict, CheckerVerdictRecord, PropositionKind
+from rci.probes import CognitiveAttemptPlan, Mismatch, PredictionSeal
+from rci.project import ImplementationGoalContract, LimitationKind, ProjectAnchor
+from rci.warrant import CheckerVerdict, CheckerVerdictRecord, Evidence, PropositionKind
 
 GitCommitSha = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{40}$")]
 
@@ -36,6 +45,9 @@ LOCALIZATION_POLICY_VERSION = "failure-localization-v1"
 HANDOFF_POLICY_VERSION = "cognitive-handoff-v1"
 PROTOCOL_MEDIA_TYPE = "application/vnd.rci.capability-evaluation+json"
 REPORT_MEDIA_TYPE = "application/vnd.rci.capability-consequence-report+json"
+RESULT_MEDIA_TYPE = "application/vnd.rci.capability-evaluation-result+json"
+FRAME_MEDIA_TYPE = "application/vnd.rci.failure-localization-frame+json"
+HANDOFF_MEDIA_TYPE = "application/vnd.rci.cognitive-handoff+json"
 
 
 def _canonical(values: tuple[str, ...], label: str, *, nonempty: bool = False) -> None:
@@ -112,8 +124,8 @@ class CapabilityEvaluationProtocol(FrozenModel):
     evidence_access_artifact: ArtifactRef
     budget_artifact: ArtifactRef
     timeout_seconds: Annotated[int, Field(ge=1, le=86_400)]
-    comparison_policy_id: Identifier
-    comparison_policy_version: Identifier
+    comparison_policy_id: Literal["exact-artifact-equality"]
+    comparison_policy_version: Literal["1"]
     decoder_id: Identifier
     decoder_version: NonEmptyText
     checker_id: Identifier
@@ -123,6 +135,8 @@ class CapabilityEvaluationProtocol(FrozenModel):
     protected_capability_ids: tuple[Identifier, ...]
     stopping_condition_ids: tuple[Identifier, ...]
     reopening_condition_ids: tuple[Identifier, ...]
+    predecessor_handoff_artifact: ArtifactRef | None = None
+    reopening_evidence_artifacts: tuple[ArtifactRef, ...] = ()
 
     @model_validator(mode="after")
     def validate_protocol(self) -> CapabilityEvaluationProtocol:
@@ -139,6 +153,10 @@ class CapabilityEvaluationProtocol(FrozenModel):
             raise ValueError("a failed evaluation route cannot be its own next discriminator")
         if self.actor_id == self.checker_id:
             raise ValueError("the candidate actor cannot independently check its own return")
+        reopening_digests = tuple(item.digest for item in self.reopening_evidence_artifacts)
+        _canonical(reopening_digests, "reopening evidence")
+        if self.predecessor_handoff_artifact is None and self.reopening_evidence_artifacts:
+            raise ValueError("reopening evidence requires an exact predecessor handoff")
         expected_id = derive_protocol_id(self.model_dump(mode="json", exclude={"id"}))
         if self.id != expected_id:
             raise ValueError("capability evaluation protocol identity must be content-derived")
@@ -162,6 +180,8 @@ def build_capability_evaluation_protocol(**fields: object) -> CapabilityEvaluati
     material = {
         "schema_version": 1,
         "policy_version": EVALUATION_POLICY_VERSION,
+        "predecessor_handoff_artifact": None,
+        "reopening_evidence_artifacts": (),
         **fields,
     }
     return CapabilityEvaluationProtocol.model_validate(
@@ -223,10 +243,19 @@ def capability_report_artifact(report: CapabilityConsequenceReport) -> ArtifactR
 class CapabilityEvaluationEpisode(FrozenModel):
     """Exact authoritative lifecycle projection supplied to the pure evaluator."""
 
+    source_inquiry_id: Identifier
+    source_sequence: Annotated[int, Field(ge=1)]
     protocol: CapabilityEvaluationProtocol
     protocol_artifact: ArtifactRef
+    inquiry_context: InquiryContext
+    project_anchor: ProjectAnchor
+    implementation_goal: ImplementationGoalContract
+    obligation: Obligation
+    step_plan: StepPlan
+    cognitive_plan: CognitiveAttemptPlan
     effect: EffectRequestState
     prediction: PredictionSeal
+    checker_evidence: Evidence | None = None
     checker_verdict: CheckerVerdictRecord | None = None
     mismatches: tuple[Mismatch, ...] = ()
 
@@ -235,6 +264,9 @@ class CapabilityEvaluationEpisode(FrozenModel):
         ids = tuple(item.id for item in self.mismatches)
         if len(set(ids)) != len(ids):
             raise ValueError("episode mismatch identities must be unique")
+        classifications = tuple(item.classification for item in self.mismatches)
+        if len(set(classifications)) != len(classifications):
+            raise ValueError("episode mismatch classifications must be unique")
         return self
 
 
@@ -279,11 +311,22 @@ class DecodeIndeterminateObserved(FrozenModel):
     protocol_id: Identifier
     request_id: Identifier
     decode_outcome_id: Identifier | None
-    reason_kind: Literal["malformed", "unsupported", "failed", "missing"]
+    reason_kind: Literal[
+        "malformed",
+        "unsupported",
+        "failed",
+        "missing",
+        "checker_invalid",
+        "checker_indeterminate",
+        "checker_timeout",
+        "checker_unsupported",
+        "checker_failed",
+    ]
     evidence_artifacts: tuple[ArtifactRef, ...]
 
 
 class OperationalUnknownReason(StrEnum):
+    PENDING = "pending"
     NO_ATTEMPT_UNSUPPORTED = "no_attempt_unsupported"
     NO_ATTEMPT_POLICY = "no_attempt_policy"
     NO_ATTEMPT_BUDGET = "no_attempt_budget"
@@ -381,16 +424,27 @@ class CognitiveHandoff(FrozenModel):
     schema_version: Literal[1] = 1
     policy_version: Literal["cognitive-handoff-v1"] = "cognitive-handoff-v1"
     id: Identifier
+    source_inquiry_id: Identifier
+    source_sequence: Annotated[int, Field(ge=1)]
     anchor_id: Identifier
     goal_id: Identifier
     project_head_sha: GitCommitSha
     gate_digest: Sha256Digest
     protocol_id: Identifier
+    protocol_artifact: ArtifactRef
     evaluation_result_id: Identifier
+    evaluation_result_artifact: ArtifactRef
+    localization_frame_artifact: ArtifactRef | None
+    effect_request_id: Identifier
+    external_return_id: Identifier | None
+    decode_outcome_id: Identifier | None
+    checker_verdict_id: Identifier | None
     protected_capability_ids: tuple[Identifier, ...]
     accepted_evidence: tuple[ArtifactRef, ...]
     failed_route_ids: tuple[Identifier, ...]
     forbidden_route_ids_until_reopen: tuple[Identifier, ...]
+    failed_decoder_ids: tuple[Identifier, ...]
+    forbidden_decoder_ids_until_reopen: tuple[Identifier, ...]
     live_localization_kinds: tuple[LimitationKind, ...]
     next_discriminator_id: Identifier | None
     next_discriminator_route_id: Identifier | None
@@ -405,6 +459,8 @@ class CognitiveHandoff(FrozenModel):
             (tuple(item.digest for item in self.accepted_evidence), "handoff evidence"),
             (self.failed_route_ids, "handoff failed routes"),
             (self.forbidden_route_ids_until_reopen, "handoff forbidden routes"),
+            (self.failed_decoder_ids, "handoff failed decoders"),
+            (self.forbidden_decoder_ids_until_reopen, "handoff forbidden decoders"),
             (tuple(item.value for item in self.live_localization_kinds), "handoff live cells"),
             (self.stopping_condition_ids, "handoff stopping conditions"),
             (self.reopening_condition_ids, "handoff reopening conditions"),
@@ -420,7 +476,22 @@ class CognitiveHandoff(FrozenModel):
                 raise ValueError("a continuing handoff requires an exact next discriminator")
         elif self.next_discriminator_id is not None or self.next_discriminator_route_id is not None:
             raise ValueError("a non-continuing handoff cannot name a next discriminator")
+        expected_id = _content_id("cognitive_handoff", self.model_dump(mode="json", exclude={"id"}))
+        if self.id != expected_id:
+            raise ValueError("cognitive handoff identity must commit to every field")
         return self
+
+
+def capability_result_artifact(result: CapabilityEvaluationResult) -> ArtifactRef:
+    return _artifact_for(canonical_json_bytes(result), RESULT_MEDIA_TYPE)
+
+
+def failure_localization_frame_artifact(frame: FailureLocalizationFrame) -> ArtifactRef:
+    return _artifact_for(canonical_json_bytes(frame), FRAME_MEDIA_TYPE)
+
+
+def cognitive_handoff_artifact(handoff: CognitiveHandoff) -> ArtifactRef:
+    return _artifact_for(canonical_json_bytes(handoff), HANDOFF_MEDIA_TYPE)
 
 
 class CapabilityEvaluationBundle(FrozenModel):
@@ -467,20 +538,54 @@ def _lifecycle_issues(
 ) -> set[str]:
     request = episode.effect.request
     issues: set[str] = set()
+    if episode.inquiry_context.binding_revision != protocol.binding_revision:
+        issues.add("foreign_binding")
+    if episode.inquiry_context.scope_fingerprint != protocol.scope_fingerprint:
+        issues.add("foreign_scope")
+    if episode.inquiry_context.protected_horizon_id != protocol.protected_horizon_id:
+        issues.add("foreign_horizon")
+    if episode.project_anchor.id != protocol.anchor_id:
+        issues.add("foreign_anchor")
+    if (
+        episode.project_anchor.commit_sha != protocol.project_head_sha
+        or not episode.project_anchor.clean
+    ):
+        issues.add("foreign_project_head")
+    if episode.implementation_goal.id != protocol.goal_id:
+        issues.add("foreign_goal")
+    if episode.implementation_goal.anchor_id != episode.project_anchor.id:
+        issues.add("goal_anchor_mismatch")
+    if episode.implementation_goal.proposed_gate_digest != protocol.gate_digest:
+        issues.add("foreign_gate")
+    if episode.obligation.id != protocol.obligation_id:
+        issues.add("foreign_obligation")
+    if episode.obligation.scope.fingerprint != protocol.scope_fingerprint:
+        issues.add("obligation_scope_mismatch")
+    if episode.step_plan.id != protocol.step_plan_id:
+        issues.add("foreign_step_plan")
+    if episode.step_plan.selected_obligation_id != episode.obligation.id:
+        issues.add("step_plan_obligation_mismatch")
+    if (
+        episode.cognitive_plan.effect_request_id != request.id
+        or episode.cognitive_plan.obligation_id != episode.obligation.id
+        or episode.cognitive_plan.probe_or_action_id != protocol.operation_id
+        or episode.cognitive_plan.scope_fingerprint != protocol.scope_fingerprint
+    ):
+        issues.add("foreign_cognitive_plan")
+    if episode.prediction.cognitive_plan_id != episode.cognitive_plan.id:
+        issues.add("prediction_plan_mismatch")
     if episode.protocol_artifact != capability_protocol_artifact(protocol):
         issues.add("protocol_artifact_mismatch")
     if request.input_artifact != episode.protocol_artifact:
         issues.add("request_does_not_reference_protocol")
     if request.step_plan_id != protocol.step_plan_id:
-        issues.add("foreign_step_plan")
+        issues.add("request_step_plan_mismatch")
     if request.effect_kind != protocol.effect_kind:
         issues.add("foreign_effect_kind")
     if request.adapter_id != protocol.adapter_id:
         issues.add("foreign_adapter")
     if request.timeout_seconds != protocol.timeout_seconds:
         issues.add("foreign_budget")
-    if episode.prediction.id == "" or episode.prediction.cognitive_plan_id != protocol.step_plan_id:
-        issues.add("foreign_prediction")
     if episode.prediction.probe_or_action_id != protocol.operation_id:
         issues.add("foreign_operation")
     if episode.prediction.scope_fingerprint != protocol.scope_fingerprint:
@@ -523,6 +628,10 @@ def _lifecycle_issues(
                 or external_return.source_revision != protocol.actor_revision
             ):
                 issues.add("foreign_actor")
+        if episode.cognitive_plan.effect_attempt_plan_id != attempt.plan.id:
+            issues.add("cognitive_attempt_mismatch")
+    if not episode.effect.attempts and episode.cognitive_plan.effect_attempt_plan_id is not None:
+        issues.add("missing_cognitive_attempt")
     for disposition in episode.effect.no_attempt_dispositions:
         if disposition.request_id != request.id or disposition.step_plan_id != request.step_plan_id:
             issues.add("foreign_no_attempt_disposition")
@@ -589,7 +698,8 @@ def _operational_result(
         else:  # pragma: no cover - closed union defense
             return None
     else:
-        return None
+        reason = OperationalUnknownReason.PENDING
+        attempt_id = None
     ordered = tuple(sorted(evidence, key=lambda item: item.digest))
     material: dict[str, object] = {
         "protocol_id": protocol.id,
@@ -675,30 +785,94 @@ def evaluate_capability_episode(
     if report.protocol_id != protocol.id:
         issues.add("foreign_report")
     checker = episode.checker_verdict
-    if checker is None:
+    checker_evidence = episode.checker_evidence
+    if checker is None or checker_evidence is None:
         issues.add("checker_missing")
     else:
-        if checker.evidence_artifact != accepted.result.semantic_artifact:
+        if (
+            checker.evidence_id != checker_evidence.id
+            or checker.evidence_artifact != checker_evidence.artifact
+            or checker_evidence.artifact != accepted.result.semantic_artifact
+        ):
             issues.add("checker_evidence_mismatch")
-        if checker.proposition_id != f"capability-report:{report.id}":
+        if (
+            checker.proposition_id != f"capability-report:{report.id}"
+            or checker_evidence.proposition_id != checker.proposition_id
+        ):
             issues.add("checker_proposition_mismatch")
-        if checker.proposition_kind is not PropositionKind.RELATION:
+        if (
+            checker.proposition_kind is not PropositionKind.RELATION
+            or checker_evidence.proposition_kind is not PropositionKind.RELATION
+        ):
             issues.add("checker_proposition_kind_mismatch")
-        if checker.scope_fingerprint != protocol.scope_fingerprint:
+        if (
+            checker.scope_fingerprint != protocol.scope_fingerprint
+            or checker_evidence.scope_fingerprint != protocol.scope_fingerprint
+        ):
             issues.add("checker_scope_mismatch")
         if (
             checker.checker_id != protocol.checker_id
             or checker.checker_version != protocol.checker_version
         ):
             issues.add("foreign_checker")
-        if checker.verdict is not CheckerVerdict.VALID:
-            issues.add("checker_not_valid")
     expected_by_id = {item.consequence_id: item for item in protocol.expectations}
     observed_by_id = {item.consequence_id: item for item in report.observations}
     if set(expected_by_id) != set(observed_by_id):
         issues.add("consequence_coverage_mismatch")
     if issues:
         return _invalid(protocol, episode, issues, (accepted.result.semantic_artifact,))
+
+    assert checker is not None
+    if checker.verdict is not CheckerVerdict.VALID:
+        if episode.mismatches:
+            return _invalid(
+                protocol,
+                episode,
+                {"semantic_mismatch_without_valid_check"},
+                (checker.verdict_artifact,),
+            )
+        checker_reason: dict[
+            CheckerVerdict,
+            Literal[
+                "checker_invalid",
+                "checker_indeterminate",
+                "checker_timeout",
+                "checker_unsupported",
+                "checker_failed",
+            ],
+        ] = {
+            CheckerVerdict.INVALID: "checker_invalid",
+            CheckerVerdict.INDETERMINATE: "checker_indeterminate",
+            CheckerVerdict.TIMEOUT: "checker_timeout",
+            CheckerVerdict.UNSUPPORTED: "checker_unsupported",
+            CheckerVerdict.FAILED: "checker_failed",
+        }
+        check_reason = checker_reason[checker.verdict]
+        checker_artifacts = tuple(
+            sorted(
+                (
+                    (checker.verdict_artifact,)
+                    if checker.certificate_artifact is None
+                    else (checker.verdict_artifact, checker.certificate_artifact)
+                ),
+                key=lambda item: item.digest,
+            )
+        )
+        check_material: dict[str, object] = {
+            "protocol_id": protocol.id,
+            "request_id": episode.effect.request.id,
+            "decode_id": accepted.id,
+            "reason": check_reason,
+            "evidence": tuple(item.digest for item in checker_artifacts),
+        }
+        return DecodeIndeterminateObserved(
+            id=_content_id("cap_eval_check", check_material),
+            protocol_id=protocol.id,
+            request_id=episode.effect.request.id,
+            decode_outcome_id=accepted.id,
+            reason_kind=check_reason,
+            evidence_artifacts=checker_artifacts,
+        )
 
     mismatches_by_class = {item.classification: item for item in episode.mismatches}
     violations: list[ConsequenceViolation] = []
@@ -741,7 +915,6 @@ def evaluate_capability_episode(
         issues.add("extra_or_stale_mismatch")
     if issues:
         return _invalid(protocol, episode, issues, tuple(all_evidence.values()))
-    assert checker is not None
     checker_id = checker.id
     if violations:
         ordered = tuple(sorted(violations, key=lambda item: item.consequence_id))
@@ -855,11 +1028,20 @@ def derive_cognitive_handoff(
     protocol: CapabilityEvaluationProtocol,
     result: CapabilityEvaluationResult,
     frame: FailureLocalizationFrame | None,
+    *,
+    source_inquiry_id: str,
+    source_sequence: int,
+    protocol_artifact: ArtifactRef,
+    effect_request_id: str,
+    external_return_id: str | None,
+    decode_outcome_id: str | None,
+    checker_verdict_id: str | None,
 ) -> CognitiveHandoff:
     if isinstance(result, EvaluationPassed):
         status = HandoffStatus.COMPLETE
         evidence = result.evidence_artifacts
         failed: tuple[str, ...] = ()
+        failed_decoders: tuple[str, ...] = ()
         live: tuple[LimitationKind, ...] = ()
         next_id = None
         next_route = None
@@ -878,6 +1060,7 @@ def derive_cognitive_handoff(
             )
         )
         failed = (protocol.route_definition_id,)
+        failed_decoders = ()
         live = frame.live_limitation_kinds
         next_id = frame.next_discriminator_id
         next_route = frame.next_discriminator_route_id
@@ -889,36 +1072,47 @@ def derive_cognitive_handoff(
             if isinstance(result, OperationalUnknownObserved)
             else ()
         )
+        failed_decoders = (
+            (protocol.decoder_id,) if isinstance(result, DecodeIndeterminateObserved) else ()
+        )
         live = ()
         next_id = None
         next_route = None
-    material: dict[str, object] = {
+    fields: dict[str, object] = {
+        "schema_version": 1,
+        "policy_version": HANDOFF_POLICY_VERSION,
+        "source_inquiry_id": source_inquiry_id,
+        "source_sequence": source_sequence,
+        "anchor_id": protocol.anchor_id,
+        "goal_id": protocol.goal_id,
+        "project_head_sha": protocol.project_head_sha,
+        "gate_digest": protocol.gate_digest,
         "protocol_id": protocol.id,
-        "result_id": result.id,
-        "status": status.value,
-        "failed": failed,
-        "live": tuple(item.value for item in live),
-        "next": next_id,
-        "route": next_route,
+        "protocol_artifact": protocol_artifact,
+        "evaluation_result_id": result.id,
+        "evaluation_result_artifact": capability_result_artifact(result),
+        "localization_frame_artifact": (
+            None if frame is None else failure_localization_frame_artifact(frame)
+        ),
+        "effect_request_id": effect_request_id,
+        "external_return_id": external_return_id,
+        "decode_outcome_id": decode_outcome_id,
+        "checker_verdict_id": checker_verdict_id,
+        "protected_capability_ids": protocol.protected_capability_ids,
+        "accepted_evidence": evidence,
+        "failed_route_ids": failed,
+        "forbidden_route_ids_until_reopen": failed,
+        "failed_decoder_ids": failed_decoders,
+        "forbidden_decoder_ids_until_reopen": failed_decoders,
+        "live_localization_kinds": live,
+        "next_discriminator_id": next_id,
+        "next_discriminator_route_id": next_route,
+        "stopping_condition_ids": protocol.stopping_condition_ids,
+        "reopening_condition_ids": protocol.reopening_condition_ids,
+        "status": status,
     }
-    return CognitiveHandoff(
-        id=_content_id("cognitive_handoff", material),
-        anchor_id=protocol.anchor_id,
-        goal_id=protocol.goal_id,
-        project_head_sha=protocol.project_head_sha,
-        gate_digest=protocol.gate_digest,
-        protocol_id=protocol.id,
-        evaluation_result_id=result.id,
-        protected_capability_ids=protocol.protected_capability_ids,
-        accepted_evidence=evidence,
-        failed_route_ids=failed,
-        forbidden_route_ids_until_reopen=failed,
-        live_localization_kinds=live,
-        next_discriminator_id=next_id,
-        next_discriminator_route_id=next_route,
-        stopping_condition_ids=protocol.stopping_condition_ids,
-        reopening_condition_ids=protocol.reopening_condition_ids,
-        status=status,
+    return CognitiveHandoff.model_validate(
+        {"id": _content_id("cognitive_handoff", fields), **fields}, strict=True
     )
 
 
@@ -939,7 +1133,24 @@ def build_capability_evaluation_bundle(
         if isinstance(result, ProtectedMismatchObserved) and frame is not None
         else None
     )
-    handoff = derive_cognitive_handoff(protocol, result, frame)
+    accepted_id = episode.effect.accepted_decoded_outcome_id
+    accepted = next(
+        (item for item in episode.effect.decode_outcomes if item.id == accepted_id), None
+    )
+    handoff = derive_cognitive_handoff(
+        protocol,
+        result,
+        frame,
+        source_inquiry_id=episode.source_inquiry_id,
+        source_sequence=episode.source_sequence,
+        protocol_artifact=episode.protocol_artifact,
+        effect_request_id=episode.effect.request.id,
+        external_return_id=(accepted.external_return_id if isinstance(accepted, Decoded) else None),
+        decode_outcome_id=(None if accepted is None else accepted.id),
+        checker_verdict_id=(
+            None if episode.checker_verdict is None else episode.checker_verdict.id
+        ),
+    )
     return CapabilityEvaluationBundle(
         result=result,
         localization_frame=frame,
@@ -961,5 +1172,60 @@ def build_protocol_invalid_bundle(
         result=result,
         localization_frame=None,
         limitation_candidate=None,
-        handoff=derive_cognitive_handoff(protocol, result, None),
+        handoff=derive_cognitive_handoff(
+            protocol,
+            result,
+            None,
+            source_inquiry_id=episode.source_inquiry_id,
+            source_sequence=episode.source_sequence,
+            protocol_artifact=episode.protocol_artifact,
+            effect_request_id=episode.effect.request.id,
+            external_return_id=None,
+            decode_outcome_id=None,
+            checker_verdict_id=None,
+        ),
+    )
+
+
+def build_resolution_invalid_bundle(
+    *,
+    protocol: CapabilityEvaluationProtocol,
+    protocol_artifact: ArtifactRef,
+    source_inquiry_id: str,
+    source_sequence: int,
+    request_id: str,
+    issue_codes: tuple[str, ...],
+) -> CapabilityEvaluationBundle:
+    """Fail closed when owned aggregate records cannot resolve one exact lifecycle."""
+
+    issues = tuple(sorted(set(issue_codes)))
+    material: dict[str, object] = {
+        "protocol_id": protocol.id,
+        "request_id": request_id,
+        "issue_codes": issues,
+        "evidence": (),
+    }
+    result = EvaluationProtocolInvalid(
+        id=_content_id("cap_eval_invalid", material),
+        protocol_id=protocol.id,
+        request_id=request_id,
+        issue_codes=issues,
+        evidence_artifacts=(),
+    )
+    return CapabilityEvaluationBundle(
+        result=result,
+        localization_frame=None,
+        limitation_candidate=None,
+        handoff=derive_cognitive_handoff(
+            protocol,
+            result,
+            None,
+            source_inquiry_id=source_inquiry_id,
+            source_sequence=source_sequence,
+            protocol_artifact=protocol_artifact,
+            effect_request_id=request_id,
+            external_return_id=None,
+            decode_outcome_id=None,
+            checker_verdict_id=None,
+        ),
     )

@@ -1,4 +1,4 @@
-"""Blocking G3FO acceptance: exact failure observation without self-diagnosis."""
+"""Blocking G3FO acceptance over ledger-owned capability-evaluation lifecycles."""
 
 from __future__ import annotations
 
@@ -6,29 +6,48 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
 from typer.testing import CliRunner
 
+from rci.bindings import circuit_demonstration, route_demonstration
+from rci.claims import Claim, ClaimRole, Provenance
+from rci.claims.models import BoundArgument
 from rci.cli import app
+from rci.core import (
+    AcceptEffectResult,
+    AdmitClaim,
+    NoAttemptDisposition,
+    NoAttemptReason,
+    PlanEffectAttempt,
+    PresentationUnknownOutcome,
+    PresentationUnknownReason,
+    RecordAttemptOutcome,
+    RecordCheckerVerdict,
+    RecordCognitivePlan,
+    RecordDecodeOutcome,
+    RecordEvidence,
+    RecordMismatch,
+    RecordNoAttemptDisposition,
+    RecordStepPlan,
+    RequestEffect,
+    ReturnedOutcome,
+    SealPrediction,
+    StartEffectAttempt,
+)
 from rci.core.effects import (
-    AttemptState,
     Decoded,
     EffectAttemptPlan,
     EffectRequest,
-    EffectRequestState,
     ExternalReturn,
     MalformedDecode,
-    NoAttemptDisposition,
-    NoAttemptReason,
-    PresentationUnknownOutcome,
-    PresentationUnknownReason,
-    ReturnedOutcome,
     RouteSnapshot,
     SuccessResult,
 )
 from rci.core.model import ArtifactRef, CapturedPayload
 from rci.core.serialization import canonical_json_bytes, sha256_digest
 from rci.evaluation import (
-    CapabilityEvaluationEpisode,
+    CapabilityEvaluationBundle,
     CapabilityEvaluationProtocol,
     ConsequenceObservation,
     DecodeIndeterminateObserved,
@@ -42,48 +61,215 @@ from rci.evaluation import (
     build_capability_consequence_report,
     build_capability_evaluation_protocol,
     capability_report_artifact,
+    cognitive_handoff_artifact,
     run_weak_reasoner_fixture,
 )
-from rci.probes import Mismatch, PredictionSeal
+from rci.orchestration import AttemptKey, ObligationEntry, plan_next
+from rci.probes import CognitiveAttemptPlan, Mismatch, PredictionSeal
+from rci.project import (
+    CapabilityLimitation,
+    CapabilitySuccessorCandidate,
+    ImplementationGoalContract,
+    LimitationKind,
+    ProjectAnchor,
+    ProjectCost,
+    ProjectGainKind,
+    SuccessorKind,
+    derive_capability_frontier,
+)
 from rci.sdk import RCI
-from rci.warrant import CheckerVerdict, CheckerVerdictRecord, PropositionKind
+from rci.warrant import (
+    CheckerVerdict,
+    CheckerVerdictRecord,
+    Evidence,
+    EvidenceKind,
+    PropositionKind,
+)
 
 NOW = datetime(2026, 8, 22, tzinfo=UTC)
-SCOPE = "1" * 64
-GATE = "2" * 64
 HEAD = "a" * 40
+INCUMBENT_GATE = "1" * 64
+GATE = "2" * 64
 ACTOR = "scripted-weak-reasoner"
 ACTOR_REVISION = "1"
 ROUTE = "weak-reasoner-route"
+CHECKER = "deterministic-report-checker"
 
 
 def _stored(sdk: RCI, value: bytes, media_type: str = "application/octet-stream") -> ArtifactRef:
     return sdk.artifacts.put_bytes(value, media_type=media_type, encoding="utf-8")
 
 
-def _protocol(
-    sdk: RCI, consequence_ids: tuple[str, ...]
-) -> tuple[CapabilityEvaluationProtocol, ArtifactRef]:
-    expectations = tuple(
-        ProtectedExpectation(
-            consequence_id=consequence_id,
-            expected_artifact=_stored(sdk, f"expected:{consequence_id}".encode()),
-            attack_id=f"attack-{consequence_id}",
-            downstream_question_id=f"question-{consequence_id}",
-        )
-        for consequence_id in sorted(consequence_ids)
+def _project_setup(sdk: RCI, inquiry_id: str) -> tuple[ProjectAnchor, ImplementationGoalContract]:
+    sdk.start(inquiry_id)
+    anchor = ProjectAnchor(
+        id=f"anchor-{inquiry_id}",
+        repository="AcidicSwords/ratcheting-consequence-inquiry",
+        protected_branch="main",
+        commit_sha=HEAD,
+        tree_digest="3" * 64,
+        authority_digest="4" * 64,
+        gate_digest=INCUMBENT_GATE,
+        clean=True,
     )
+    sdk.record_project_anchor(inquiry_id, anchor)
+    limitation = CapabilityLimitation(
+        id=f"limitation-{inquiry_id}",
+        anchor_id=anchor.id,
+        kind=LimitationKind.EVIDENCE,
+        current_capability="Preserve operational returns without typed task evaluation.",
+        missing_capability="Derive exact protected-consequence failure from owned evidence.",
+        consequential_boundary=(
+            "Wrong semantic answers and unavailable execution route differently."
+        ),
+        protected_consequence_ids=("failure-classification",),
+        observed_evidence=(_stored(sdk, b"manual observation-to-limitation join"),),
+    )
+    sdk.record_capability_limitation(inquiry_id, limitation)
+    successor = CapabilitySuccessorCandidate(
+        id=f"successor-{inquiry_id}",
+        anchor_id=anchor.id,
+        limitation_id=limitation.id,
+        kind=SuccessorKind.IMPLEMENTATION,
+        current_state=limitation.current_capability,
+        desired_state=limitation.missing_capability,
+        preserved_capability_ids=("g1", "g2a", "g2b", "g3ah", "g3g", "g3q", "g3r"),
+        gain_kinds=(ProjectGainKind.NEW_SEPARATOR,),
+        discriminator_id="capability-failure-observation",
+        evidence_mechanism_ids=("acceptance", "independent-check", "ledger"),
+        estimated_costs=(ProjectCost(axis="implementation_steps", value=1),),
+        reversible=True,
+    )
+    sdk.record_capability_successor_candidate(inquiry_id, successor)
+    frontier = derive_capability_frontier(
+        frontier_id=f"frontier-{inquiry_id}", candidates=(successor,)
+    )
+    sdk.record_capability_frontier(inquiry_id, frontier)
+    goal = ImplementationGoalContract(
+        id=f"goal-{inquiry_id}",
+        cycle_id=f"cycle-{inquiry_id}",
+        anchor_id=anchor.id,
+        frontier_id=frontier.id,
+        candidate_id=successor.id,
+        current=successor.current_state,
+        desired=successor.desired_state,
+        separator="Six pinned task returns produce six lawful evaluation outcomes.",
+        expected_incumbent_return="A human manually classifies the episode.",
+        expected_candidate_return="The owned lifecycle derives a typed result and handoff.",
+        preserve_capability_ids=successor.preserved_capability_ids,
+        acceptance_commands=(
+            "uv run pytest -q tests/acceptance/test_capability_failure_observation.py",
+        ),
+        allowed_mutation_roots=("src/rci/evaluation", "src/rci/sdk.py", "tests/acceptance"),
+        forbidden_authority_roots=(".git", ".github", "AGENTS.md", "PLAN.md"),
+        assumption_ids=("existing-effect-lifecycle-is-authoritative",),
+        incumbent_gate_digest=anchor.gate_digest,
+        proposed_gate_digest=GATE,
+        rollback_condition="Any predecessor gate fails.",
+        reopening_condition="A new failure class is independently observed.",
+    )
+    sdk.seal_implementation_goal(inquiry_id, goal)
+    return anchor, goal
+
+
+def _record_check(
+    sdk: RCI,
+    inquiry_id: str,
+    *,
+    suffix: str,
+    proposition_id: str,
+    artifact: ArtifactRef,
+    checker_id: str = CHECKER,
+    verdict: CheckerVerdict = CheckerVerdict.VALID,
+) -> CheckerVerdictRecord:
+    state = sdk.inspect(inquiry_id)
+    assert state.context is not None
+    evidence = Evidence(
+        id=f"evidence-{suffix}",
+        kind=EvidenceKind.OBSERVATION,
+        proposition_id=proposition_id,
+        proposition_kind=PropositionKind.RELATION,
+        scope_fingerprint=state.context.scope_fingerprint,
+        artifact=artifact,
+    )
+    verdict_artifact = _stored(sdk, f"verdict:{verdict.value}:{suffix}".encode())
+    checker = CheckerVerdictRecord(
+        id=f"checker-{suffix}",
+        evidence_id=evidence.id,
+        evidence_artifact=evidence.artifact,
+        proposition_id=evidence.proposition_id,
+        proposition_kind=evidence.proposition_kind,
+        scope_fingerprint=evidence.scope_fingerprint,
+        checker_id=checker_id,
+        checker_version="1",
+        verdict=verdict,
+        verdict_artifact=verdict_artifact,
+        certificate_artifact=(verdict_artifact if verdict is CheckerVerdict.VALID else None),
+    )
+    sdk.dispatch_batch(
+        inquiry_id,
+        (
+            RecordEvidence(
+                event_id=f"event-evidence-{suffix}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                evidence=evidence,
+            ),
+            RecordCheckerVerdict(
+                event_id=f"event-checker-{suffix}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                checker_verdict=checker,
+            ),
+        ),
+    )
+    return checker
+
+
+def _prepare_owned_request(
+    sdk: RCI,
+    inquiry_id: str,
+    consequence_id: str,
+    *,
+    outcome: str,
+    route_id: str = ROUTE,
+    actor_id: str = ACTOR,
+    checker_verdict: CheckerVerdict = CheckerVerdict.VALID,
+    recorded_checker_id: str = CHECKER,
+    actual_size_delta: int = 0,
+    binding_override: str | None = None,
+    scope_override: str | None = None,
+    horizon_override: str | None = None,
+    request_timeout_delta: int = 0,
+    late_competing: bool = False,
+) -> tuple[CapabilityEvaluationProtocol, str]:
+    anchor, goal = _project_setup(sdk, inquiry_id)
+    state = sdk.inspect(inquiry_id)
+    assert state.context is not None
+    obligation = state.obligations[0]
+    attempt_key = AttemptKey(
+        obligation_fingerprint=obligation.fingerprint,
+        contract_id="obligation-characterization",
+        contract_version="1.0.0",
+        binding_revision=obligation.binding_revision,
+    )
+    step_plan = plan_next(
+        (ObligationEntry(obligation=obligation, attempt_key=attempt_key, creation_sequence=1),),
+        steps_used=state.sequence,
+        policy_version=state.context.scheduler_policy_version,
+    )
+    expected = _stored(sdk, f"expected:{consequence_id}".encode())
     protocol = build_capability_evaluation_protocol(
-        anchor_id="anchor-g3fo",
-        goal_id="goal-g3fo",
-        obligation_id="obligation-evaluate-capability",
-        step_plan_id="step-evaluate-capability",
+        anchor_id=anchor.id,
+        goal_id=goal.id,
+        obligation_id=obligation.id,
+        step_plan_id=step_plan.id,
         competence_id="competence-reason-over-finite-relations",
-        project_head_sha=HEAD,
-        gate_digest=GATE,
-        binding_revision="capability-evaluation-binding-v1",
-        scope_fingerprint=SCOPE,
-        protected_horizon_id="g3fo-finite-horizon",
+        project_head_sha=anchor.commit_sha,
+        gate_digest=goal.proposed_gate_digest,
+        binding_revision=binding_override or state.context.binding_revision,
+        scope_fingerprint=scope_override or state.context.scope_fingerprint,
+        protected_horizon_id=horizon_override or state.context.protected_horizon_id,
         operation_id="answer-finite-relation-task",
         effect_kind="capability-evaluation",
         actor_id=ACTOR,
@@ -99,269 +285,36 @@ def _protocol(
         comparison_policy_version="1",
         decoder_id="capability-report-decoder",
         decoder_version="1",
-        checker_id="deterministic-report-checker",
+        checker_id=CHECKER,
         checker_version="1",
-        expectations=expectations,
+        expectations=(
+            ProtectedExpectation(
+                consequence_id=consequence_id,
+                expected_artifact=expected,
+                attack_id=f"attack-{consequence_id}",
+                downstream_question_id=f"question-{consequence_id}",
+            ),
+        ),
         discriminator_route_ids=("counterexample-check-route",),
         protected_capability_ids=("g1-authority", "g3r-stage-separation"),
         stopping_condition_ids=("no-lawful-discriminator", "protocol-invalid"),
         reopening_condition_ids=("new-independent-evidence",),
     )
-    return protocol, sdk.publish_capability_evaluation_protocol(protocol)
-
-
-def _prediction(protocol: CapabilityEvaluationProtocol) -> PredictionSeal:
-    return PredictionSeal(
-        id="prediction-g3fo",
-        cognitive_plan_id=protocol.step_plan_id,
-        probe_or_action_id=protocol.operation_id,
-        predicted_return_class="capability-consequence-report",
-        predicted_consequence={
-            "comparison_policy_id": protocol.comparison_policy_id,
-            "comparison_policy_version": protocol.comparison_policy_version,
-            "expectations": [
-                {
-                    "consequence_id": item.consequence_id,
-                    "expected_artifact_digest": item.expected_artifact.digest,
-                }
-                for item in protocol.expectations
-            ],
-            "protocol_id": protocol.id,
-        },
-        acceptable_variation={
-            "comparison_policy_id": protocol.comparison_policy_id,
-            "comparison_policy_version": protocol.comparison_policy_version,
-        },
-        scope_fingerprint=SCOPE,
-        basis_claim_ids=("task-contract",),
-        sealed_sequence=1,
-    )
-
-
-def _request(
-    protocol: CapabilityEvaluationProtocol, protocol_artifact: ArtifactRef
-) -> EffectRequest:
-    return EffectRequest(
-        id="request-g3fo",
-        step_plan_id=protocol.step_plan_id,
+    protocol_artifact = sdk.publish_capability_evaluation_protocol(protocol)
+    request = EffectRequest(
+        id=f"request-{inquiry_id}",
+        step_plan_id=step_plan.id,
         effect_kind=protocol.effect_kind,
         adapter_id=protocol.adapter_id,
         input_artifact=protocol_artifact,
-        timeout_seconds=protocol.timeout_seconds,
+        timeout_seconds=protocol.timeout_seconds + request_timeout_delta,
     )
-
-
-def _semantic_episode(
-    sdk: RCI,
-    consequence_ids: tuple[str, ...],
-    *,
-    mismatched_ids: frozenset[str] = frozenset(),
-    reverse_mismatches: bool = False,
-) -> CapabilityEvaluationEpisode:
-    protocol, protocol_artifact = _protocol(sdk, consequence_ids)
-    request = _request(protocol, protocol_artifact)
-    observations = []
-    for expectation in protocol.expectations:
-        actual = (
-            _stored(sdk, f"wrong:{expectation.consequence_id}".encode())
-            if expectation.consequence_id in mismatched_ids
-            else expectation.expected_artifact
-        )
-        observations.append(
-            ConsequenceObservation(
-                consequence_id=expectation.consequence_id,
-                actual_artifact=actual,
-                evidence_artifacts=(
-                    _stored(sdk, f"evidence:{expectation.consequence_id}".encode()),
-                ),
-            )
-        )
-    report = build_capability_consequence_report(
-        protocol_id=protocol.id, observations=tuple(observations)
-    )
-    report_ref = sdk.artifacts.put_bytes(
-        canonical_json_bytes(report),
-        media_type="application/vnd.rci.capability-consequence-report+json",
-        encoding="utf-8",
-    )
-    assert report_ref == capability_report_artifact(report)
-    definition = _stored(sdk, b"route definition")
-    environment = _stored(sdk, b"redacted environment")
-    route = RouteSnapshot(
-        id="route-snapshot-g3fo",
-        definition_id=protocol.route_definition_id,
-        definition_version=protocol.route_definition_version,
-        definition_artifact=definition,
-        backend_id="scripted-backend",
-        adapter_id=protocol.adapter_id,
-        adapter_version="1",
-        endpoint_or_channel="in-process",
-        transport="pure",
-        execution_environment_artifact=environment,
-        request_or_action_digest=sha256_digest(canonical_json_bytes(request)),
-    )
-    raw = _stored(sdk, b"model prose including: I am certainly correct")
-    returned = ReturnedOutcome(
-        attempt_id="attempt-g3fo",
-        route_id=route.id,
-        external_return=ExternalReturn(
-            id="external-return-g3fo",
-            attempt_id="attempt-g3fo",
-            route_id=route.id,
-            source_id=ACTOR,
-            source_revision=ACTOR_REVISION,
-            capture_boundary="scripted-stdout",
-            capture_encoding="binary",
-            captured_at=NOW,
-            raw_payload=CapturedPayload(kind="bytes", artifact=raw),
-        ),
-    )
-    attempt = AttemptState(
-        plan=EffectAttemptPlan(
-            id="attempt-g3fo",
-            request_id=request.id,
-            route=route,
-        ),
-        started=True,
-        started_event_id="event-attempt-started",
-        started_at=NOW,
-        outcome=returned,
-    )
-    decoded = Decoded(
-        id="decode-g3fo",
-        external_return_id=returned.external_return.id,
-        decoder_id=protocol.decoder_id,
-        decoder_version=protocol.decoder_version,
-        result=SuccessResult(
-            id="canonical-result-g3fo",
-            semantic_artifact=report_ref,
-            operation_id=protocol.operation_id,
-        ),
-    )
-    checker = CheckerVerdictRecord(
-        id="checker-verdict-g3fo",
-        evidence_id="report-evidence-g3fo",
-        evidence_artifact=report_ref,
-        proposition_id=f"capability-report:{report.id}",
-        proposition_kind=PropositionKind.RELATION,
-        scope_fingerprint=SCOPE,
-        checker_id=protocol.checker_id,
-        checker_version=protocol.checker_version,
-        verdict=CheckerVerdict.VALID,
-        verdict_artifact=_stored(sdk, b"valid report structure and exact comparison"),
-        certificate_artifact=_stored(sdk, b"deterministic comparison certificate"),
-    )
-    prediction = _prediction(protocol)
-    mismatches = [
-        Mismatch(
-            id=f"mismatch-{consequence_id}",
-            prediction_id=prediction.id,
-            external_return_id=returned.external_return.id,
-            decode_outcome_id=decoded.id,
-            difference_claim_id=f"difference-{consequence_id}",
-            scope_fingerprint=SCOPE,
-            protected_consequence_changed=True,
-            classification=f"capability:{consequence_id}",
-        )
-        for consequence_id in sorted(mismatched_ids)
-    ]
-    if reverse_mismatches:
-        mismatches.reverse()
-    return CapabilityEvaluationEpisode(
-        protocol=protocol,
-        protocol_artifact=protocol_artifact,
-        effect=EffectRequestState(
-            request=request,
-            attempts=(attempt,),
-            decode_outcomes=(decoded,),
-            accepted_decoded_outcome_id=decoded.id,
-        ),
-        prediction=prediction,
-        checker_verdict=checker,
-        mismatches=tuple(mismatches),
-    )
-
-
-def _malformed_episode(sdk: RCI) -> CapabilityEvaluationEpisode:
-    protocol, protocol_artifact = _protocol(sdk, ("answer-valid",))
-    request = _request(protocol, protocol_artifact)
-    route = RouteSnapshot(
-        id="route-snapshot-g3fo",
-        definition_id=protocol.route_definition_id,
-        definition_version=protocol.route_definition_version,
-        definition_artifact=_stored(sdk, b"route definition"),
-        backend_id="scripted-backend",
-        adapter_id=protocol.adapter_id,
-        adapter_version="1",
-        endpoint_or_channel="in-process",
-        transport="pure",
-        execution_environment_artifact=_stored(sdk, b"redacted environment"),
-        request_or_action_digest=sha256_digest(canonical_json_bytes(request)),
-    )
-    returned = ReturnedOutcome(
-        attempt_id="attempt-g3fo",
-        route_id=route.id,
-        external_return=ExternalReturn(
-            id="external-return-g3fo",
-            attempt_id="attempt-g3fo",
-            route_id=route.id,
-            source_id=ACTOR,
-            source_revision=ACTOR_REVISION,
-            capture_boundary="scripted-stdout",
-            capture_encoding="binary",
-            captured_at=NOW,
-            raw_payload=CapturedPayload(
-                kind="bytes", artifact=_stored(sdk, b"not valid report json")
-            ),
-        ),
-    )
-    malformed = MalformedDecode(
-        id="decode-malformed",
-        external_return_id=returned.external_return.id,
-        decoder_id=protocol.decoder_id,
-        decoder_version=protocol.decoder_version,
-        diagnostics=_stored(sdk, b"json syntax error"),
-    )
-    return CapabilityEvaluationEpisode(
-        protocol=protocol,
-        protocol_artifact=protocol_artifact,
-        effect=EffectRequestState(
-            request=request,
-            attempts=(
-                AttemptState(
-                    plan=EffectAttemptPlan(id="attempt-g3fo", request_id=request.id, route=route),
-                    started=True,
-                    started_event_id="event-attempt-started",
-                    started_at=NOW,
-                    outcome=returned,
-                ),
-            ),
-            decode_outcomes=(malformed,),
-        ),
-        prediction=_prediction(protocol),
-    )
-
-
-def _operational_episode(sdk: RCI, kind: str) -> CapabilityEvaluationEpisode:
-    protocol, protocol_artifact = _protocol(sdk, ("answer-valid",))
-    request = _request(protocol, protocol_artifact)
-    if kind == "unsupported":
-        effect = EffectRequestState(
-            request=request,
-            no_attempt_dispositions=(
-                NoAttemptDisposition(
-                    id="no-attempt-unsupported",
-                    request_id=request.id,
-                    step_plan_id=request.step_plan_id,
-                    reason_kind=NoAttemptReason.UNSUPPORTED,
-                    diagnostics=_stored(sdk, b"route unsupported"),
-                ),
-            ),
-        )
-    else:
-        route = RouteSnapshot(
-            id="route-snapshot-g3fo",
-            definition_id=protocol.route_definition_id,
+    attempt = EffectAttemptPlan(
+        id=f"attempt-{inquiry_id}",
+        request_id=request.id,
+        route=RouteSnapshot(
+            id=f"route-{inquiry_id}",
+            definition_id=route_id,
             definition_version=protocol.route_definition_version,
             definition_artifact=_stored(sdk, b"route definition"),
             backend_id="scripted-backend",
@@ -371,180 +324,205 @@ def _operational_episode(sdk: RCI, kind: str) -> CapabilityEvaluationEpisode:
             transport="pure",
             execution_environment_artifact=_stored(sdk, b"redacted environment"),
             request_or_action_digest=sha256_digest(canonical_json_bytes(request)),
-        )
-        effect = EffectRequestState(
-            request=request,
-            attempts=(
-                AttemptState(
-                    plan=EffectAttemptPlan(id="attempt-g3fo", request_id=request.id, route=route),
-                    started=True,
-                    started_event_id="event-attempt-started",
-                    started_at=NOW,
-                    outcome=PresentationUnknownOutcome(
-                        attempt_id="attempt-g3fo",
-                        route_id=route.id,
-                        reason_kind=PresentationUnknownReason.TIMEOUT,
-                        diagnostics=_stored(sdk, b"deadline elapsed; presentation unknown"),
-                    ),
+        ),
+    )
+    sdk.dispatch_batch(
+        inquiry_id,
+        (
+            RecordStepPlan(
+                event_id=f"event-step-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                plan=step_plan,
+            ),
+            RequestEffect(
+                event_id=f"event-request-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                request=request,
+            ),
+        ),
+    )
+    competing_attempt = attempt.model_copy(
+        update={
+            "id": f"attempt-competing-{inquiry_id}",
+            "route": attempt.route.model_copy(update={"id": f"route-competing-{inquiry_id}"}),
+        }
+    )
+    if late_competing:
+        sdk.dispatch_batch(
+            inquiry_id,
+            (
+                PlanEffectAttempt(
+                    event_id=f"event-plan-competing-{inquiry_id}",
+                    inquiry_id=inquiry_id,
+                    occurred_at=NOW,
+                    plan=competing_attempt,
+                ),
+                StartEffectAttempt(
+                    event_id=f"event-start-competing-{inquiry_id}",
+                    inquiry_id=inquiry_id,
+                    occurred_at=NOW,
+                    attempt_id=competing_attempt.id,
                 ),
             ),
         )
-    return CapabilityEvaluationEpisode(
-        protocol=protocol,
-        protocol_artifact=protocol_artifact,
-        effect=effect,
-        prediction=_prediction(protocol),
+    state = sdk.inspect(inquiry_id)
+    cognitive_plan = CognitiveAttemptPlan(
+        id=f"cognitive-{inquiry_id}",
+        obligation_id=obligation.id,
+        probe_or_action_id=protocol.operation_id,
+        effect_request_id=request.id,
+        effect_attempt_plan_id=(None if outcome in {"pending", "unsupported"} else attempt.id),
+        source_state_revision=state.sequence,
+        scope_fingerprint=obligation.scope.fingerprint,
+        planned_sequence=state.sequence + 1,
     )
-
-
-def test_six_consequential_outcomes_remain_distinct(tmp_path: Path) -> None:
-    sdk = RCI(tmp_path)
-    passed = sdk.evaluate_capability_episode(_semantic_episode(sdk, ("answer-valid",)))
-    necessity = sdk.evaluate_capability_episode(
-        _semantic_episode(
-            sdk,
-            ("false-necessity",),
-            mismatched_ids=frozenset({"false-necessity"}),
+    sdk.dispatch(
+        RecordCognitivePlan(
+            event_id=f"event-cognitive-{inquiry_id}",
+            inquiry_id=inquiry_id,
+            occurred_at=NOW,
+            plan=cognitive_plan,
         )
     )
-    may_must = sdk.evaluate_capability_episode(
-        _semantic_episode(
-            sdk,
-            ("may-must-collapse",),
-            mismatched_ids=frozenset({"may-must-collapse"}),
+    state = sdk.inspect(inquiry_id)
+    prediction = PredictionSeal(
+        id=f"prediction-{inquiry_id}",
+        cognitive_plan_id=cognitive_plan.id,
+        probe_or_action_id=protocol.operation_id,
+        predicted_return_class="capability-consequence-report",
+        predicted_consequence={
+            "comparison_policy_id": protocol.comparison_policy_id,
+            "comparison_policy_version": protocol.comparison_policy_version,
+            "expectations": [
+                {
+                    "consequence_id": consequence_id,
+                    "expected_artifact_digest": expected.digest,
+                }
+            ],
+            "protocol_id": protocol.id,
+        },
+        acceptable_variation={
+            "comparison_policy_id": protocol.comparison_policy_id,
+            "comparison_policy_version": protocol.comparison_policy_version,
+        },
+        scope_fingerprint=obligation.scope.fingerprint,
+        basis_claim_ids=(),
+        sealed_sequence=state.sequence + 1,
+    )
+    sdk.dispatch(
+        SealPrediction(
+            event_id=f"event-prediction-{inquiry_id}",
+            inquiry_id=inquiry_id,
+            occurred_at=NOW,
+            prediction=prediction,
         )
     )
-    malformed = sdk.evaluate_capability_episode(_malformed_episode(sdk))
-    timeout = sdk.evaluate_capability_episode(_operational_episode(sdk, "timeout"))
-    unsupported = sdk.evaluate_capability_episode(_operational_episode(sdk, "unsupported"))
-
-    assert isinstance(passed.result, EvaluationPassed)
-    assert isinstance(necessity.result, ProtectedMismatchObserved)
-    assert isinstance(may_must.result, ProtectedMismatchObserved)
-    assert necessity.result.violations[0].consequence_id == "false-necessity"
-    assert may_must.result.violations[0].consequence_id == "may-must-collapse"
-    assert necessity.result.violations[0].attack_id != may_must.result.violations[0].attack_id
-    assert necessity.limitation_candidate is not None
-    assert may_must.limitation_candidate is not None
-    assert isinstance(malformed.result, DecodeIndeterminateObserved)
-    assert malformed.result.reason_kind == "malformed"
-    assert malformed.limitation_candidate is None
-    assert isinstance(timeout.result, OperationalUnknownObserved)
-    assert timeout.result.reason_kind is OperationalUnknownReason.TIMEOUT
-    assert isinstance(unsupported.result, OperationalUnknownObserved)
-    assert unsupported.result.reason_kind is OperationalUnknownReason.NO_ATTEMPT_UNSUPPORTED
-    assert timeout.limitation_candidate is unsupported.limitation_candidate is None
-
-
-def test_root_cause_stays_unresolved_and_handoff_does_not_repeat_route(tmp_path: Path) -> None:
-    sdk = RCI(tmp_path)
-    episode = _semantic_episode(
-        sdk,
-        ("false-necessity",),
-        mismatched_ids=frozenset({"false-necessity"}),
+    if outcome == "pending":
+        return protocol, request.id
+    if outcome == "unsupported":
+        sdk.dispatch(
+            RecordNoAttemptDisposition(
+                event_id=f"event-unsupported-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                disposition=NoAttemptDisposition(
+                    id=f"no-attempt-{inquiry_id}",
+                    request_id=request.id,
+                    step_plan_id=step_plan.id,
+                    reason_kind=NoAttemptReason.UNSUPPORTED,
+                    diagnostics=_stored(sdk, b"route unsupported"),
+                ),
+            )
+        )
+        return protocol, request.id
+    sdk.dispatch_batch(
+        inquiry_id,
+        (
+            PlanEffectAttempt(
+                event_id=f"event-plan-attempt-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                plan=attempt,
+            ),
+            StartEffectAttempt(
+                event_id=f"event-start-attempt-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                attempt_id=attempt.id,
+            ),
+        ),
     )
-    first = sdk.evaluate_capability_episode(episode)
-    second = sdk.evaluate_capability_episode(episode)
-    assert canonical_json_bytes(first) == canonical_json_bytes(second)
-    assert first.localization_frame is not None
-    assert first.localization_frame.selected_limitation_kind is None
-    assert len(first.localization_frame.live_limitation_kinds) == 8
-    assert first.handoff.status is HandoffStatus.CONTINUE
-    assert ROUTE in first.handoff.forbidden_route_ids_until_reopen
-    assert first.handoff.next_discriminator_route_id != ROUTE
-    assert first.handoff.project_head_sha == HEAD
-    assert first.handoff.gate_digest == GATE
-    assert sdk.events.stream_version("unrelated") == 0
-
-
-def test_protocol_mutation_foreign_budget_and_missing_artifact_fail_closed(
-    tmp_path: Path,
-) -> None:
-    sdk = RCI(tmp_path)
-    episode = _semantic_episode(sdk, ("answer-valid",))
-    changed_request = episode.effect.request.model_copy(update={"timeout_seconds": 31})
-    changed = episode.model_copy(
-        update={"effect": episode.effect.model_copy(update={"request": changed_request})}
+    if outcome == "timeout":
+        sdk.dispatch(
+            RecordAttemptOutcome(
+                event_id=f"event-timeout-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                request_id=request.id,
+                outcome=PresentationUnknownOutcome(
+                    attempt_id=attempt.id,
+                    route_id=attempt.route.id,
+                    reason_kind=PresentationUnknownReason.TIMEOUT,
+                    diagnostics=_stored(sdk, b"deadline elapsed; presentation unknown"),
+                ),
+            )
+        )
+        return protocol, request.id
+    external_return = ExternalReturn(
+        id=f"return-{inquiry_id}",
+        attempt_id=attempt.id,
+        route_id=attempt.route.id,
+        source_id=actor_id,
+        source_revision=ACTOR_REVISION,
+        capture_boundary="scripted-stdout",
+        capture_encoding="binary",
+        captured_at=NOW,
+        raw_payload=CapturedPayload(
+            kind="bytes", artifact=_stored(sdk, f"raw:{outcome}:{consequence_id}".encode())
+        ),
     )
-    invalid = sdk.evaluate_capability_episode(changed)
-    assert isinstance(invalid.result, EvaluationProtocolInvalid)
-    assert "foreign_budget" in invalid.result.issue_codes
-    assert invalid.limitation_candidate is None
-
-    sdk.artifacts.path_for(episode.protocol.context_artifact).unlink()
-    missing = sdk.evaluate_capability_episode(episode)
-    assert isinstance(missing.result, EvaluationProtocolInvalid)
-    assert missing.result.issue_codes == ("artifact_missing_tampered_or_malformed",)
-
-
-def test_late_return_and_unaccepted_decode_fail_closed(tmp_path: Path) -> None:
-    sdk = RCI(tmp_path)
-    episode = _semantic_episode(sdk, ("answer-valid",))
-    accepted = episode.effect.decode_outcomes[0]
-    extra = accepted.model_copy(update={"id": "decode-late"})
-    altered_effect = episode.effect.model_copy(update={"decode_outcomes": (accepted, extra)})
-    invalid = sdk.evaluate_capability_episode(episode.model_copy(update={"effect": altered_effect}))
-    assert isinstance(invalid.result, EvaluationProtocolInvalid)
-    assert "unaccepted_decode_present" in invalid.result.issue_codes
-
-
-def test_foreign_actor_and_route_fail_closed_without_blame(tmp_path: Path) -> None:
-    sdk = RCI(tmp_path)
-    episode = _semantic_episode(sdk, ("answer-valid",))
-    attempt = episode.effect.attempts[0]
-    assert isinstance(attempt.outcome, ReturnedOutcome)
-    foreign_return = attempt.outcome.external_return.model_copy(
-        update={"source_id": "different-actor"}
+    sdk.dispatch(
+        RecordAttemptOutcome(
+            event_id=f"event-return-{inquiry_id}",
+            inquiry_id=inquiry_id,
+            occurred_at=NOW,
+            request_id=request.id,
+            outcome=ReturnedOutcome(
+                attempt_id=attempt.id,
+                route_id=attempt.route.id,
+                external_return=external_return,
+            ),
+        )
     )
-    foreign_outcome = attempt.outcome.model_copy(update={"external_return": foreign_return})
-    foreign_route = attempt.plan.route.model_copy(update={"definition_id": "foreign-route"})
-    foreign_attempt = attempt.model_copy(
-        update={
-            "plan": attempt.plan.model_copy(update={"route": foreign_route}),
-            "outcome": foreign_outcome,
-        }
-    )
-    altered = episode.model_copy(
-        update={"effect": episode.effect.model_copy(update={"attempts": (foreign_attempt,)})}
-    )
-    invalid = sdk.evaluate_capability_episode(altered)
-    assert isinstance(invalid.result, EvaluationProtocolInvalid)
-    assert {"foreign_actor", "foreign_route"} <= set(invalid.result.issue_codes)
-    assert invalid.limitation_candidate is None
-
-
-def test_mismatch_input_permutation_is_byte_stable(tmp_path: Path) -> None:
-    sdk = RCI(tmp_path)
-    consequence_ids = ("false-necessity", "may-must-collapse")
-    forward = _semantic_episode(
-        sdk,
-        consequence_ids,
-        mismatched_ids=frozenset(consequence_ids),
-    )
-    reverse = _semantic_episode(
-        sdk,
-        consequence_ids,
-        mismatched_ids=frozenset(consequence_ids),
-        reverse_mismatches=True,
-    )
-    assert canonical_json_bytes(sdk.evaluate_capability_episode(forward)) == canonical_json_bytes(
-        sdk.evaluate_capability_episode(reverse)
-    )
-
-
-def test_exact_consequence_compares_captured_bytes_not_media_labels(tmp_path: Path) -> None:
-    sdk = RCI(tmp_path)
-    episode = _semantic_episode(sdk, ("answer-valid",))
-    expected = episode.protocol.expectations[0].expected_artifact
+    if outcome == "malformed":
+        sdk.dispatch(
+            RecordDecodeOutcome(
+                event_id=f"event-malformed-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                request_id=request.id,
+                outcome=MalformedDecode(
+                    id=f"decode-{inquiry_id}",
+                    external_return_id=external_return.id,
+                    decoder_id=protocol.decoder_id,
+                    decoder_version=protocol.decoder_version,
+                    diagnostics=_stored(sdk, b"json syntax error"),
+                ),
+            )
+        )
+        return protocol, request.id
+    actual = expected if outcome == "pass" else _stored(sdk, f"wrong:{consequence_id}".encode())
+    if actual_size_delta:
+        actual = actual.model_copy(update={"size": actual.size + actual_size_delta})
     report = build_capability_consequence_report(
-        protocol_id=episode.protocol.id,
+        protocol_id=protocol.id,
         observations=(
             ConsequenceObservation(
-                consequence_id="answer-valid",
-                actual_artifact=expected.model_copy(
-                    update={"media_type": "application/vnd.example.same-bytes"}
-                ),
-                evidence_artifacts=(_stored(sdk, b"same-byte comparison evidence"),),
+                consequence_id=consequence_id,
+                actual_artifact=actual,
+                evidence_artifacts=(_stored(sdk, f"evidence:{consequence_id}".encode()),),
             ),
         ),
     )
@@ -553,65 +531,510 @@ def test_exact_consequence_compares_captured_bytes_not_media_labels(tmp_path: Pa
         media_type="application/vnd.rci.capability-consequence-report+json",
         encoding="utf-8",
     )
-    decoded = episode.effect.decode_outcomes[0]
-    assert isinstance(decoded, Decoded)
-    altered_decode = decoded.model_copy(
-        update={"result": decoded.result.model_copy(update={"semantic_artifact": report_ref})}
+    assert report_ref == capability_report_artifact(report)
+    decoded = Decoded(
+        id=f"decode-{inquiry_id}",
+        external_return_id=external_return.id,
+        decoder_id=protocol.decoder_id,
+        decoder_version=protocol.decoder_version,
+        result=SuccessResult(
+            id=f"result-{inquiry_id}",
+            semantic_artifact=report_ref,
+            operation_id=protocol.operation_id,
+        ),
     )
-    checker = episode.checker_verdict
-    assert checker is not None
-    altered_checker = checker.model_copy(
-        update={
-            "evidence_artifact": report_ref,
-            "proposition_id": f"capability-report:{report.id}",
-        }
+    sdk.dispatch_batch(
+        inquiry_id,
+        (
+            RecordDecodeOutcome(
+                event_id=f"event-decode-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                request_id=request.id,
+                outcome=decoded,
+            ),
+            AcceptEffectResult(
+                event_id=f"event-accept-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                request_id=request.id,
+                decoded_outcome_id=decoded.id,
+            ),
+        ),
     )
-    altered = episode.model_copy(
-        update={
-            "effect": episode.effect.model_copy(update={"decode_outcomes": (altered_decode,)}),
-            "checker_verdict": altered_checker,
-        }
-    )
-    assert isinstance(sdk.evaluate_capability_episode(altered).result, EvaluationPassed)
-
-
-def test_sdk_cli_parity_and_model_prose_is_inert(tmp_path: Path) -> None:
-    sdk = RCI(tmp_path)
-    episode = _semantic_episode(
+    _record_check(
         sdk,
-        ("false-necessity",),
-        mismatched_ids=frozenset({"false-necessity"}),
+        inquiry_id,
+        suffix=f"report-{inquiry_id}",
+        proposition_id=f"capability-report:{report.id}",
+        artifact=report_ref,
+        checker_id=recorded_checker_id,
+        verdict=checker_verdict,
     )
-    record = tmp_path / "episode.json"
-    record.write_bytes(canonical_json_bytes(episode))
+    if outcome == "mismatch":
+        difference = Claim(
+            id=f"difference-{inquiry_id}",
+            role=ClaimRole.CHARACTERIZATION,
+            bound_args=(BoundArgument(name="consequence", value=consequence_id),),
+            payload=actual,
+            scope=obligation.scope,
+            provenance=Provenance(kind="checked-mismatch", source_id=decoded.id),
+        )
+        sdk.dispatch(
+            AdmitClaim(
+                event_id=f"event-difference-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                claim=difference,
+            )
+        )
+        sdk.dispatch(
+            RecordMismatch(
+                event_id=f"event-mismatch-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                mismatch=Mismatch(
+                    id=f"mismatch-{inquiry_id}",
+                    prediction_id=prediction.id,
+                    external_return_id=external_return.id,
+                    decode_outcome_id=decoded.id,
+                    difference_claim_id=difference.id,
+                    scope_fingerprint=obligation.scope.fingerprint,
+                    protected_consequence_changed=True,
+                    classification=f"capability:{consequence_id}",
+                ),
+            )
+        )
+    if late_competing:
+        late_return = ExternalReturn(
+            id=f"return-competing-{inquiry_id}",
+            attempt_id=competing_attempt.id,
+            route_id=competing_attempt.route.id,
+            source_id=actor_id,
+            source_revision=ACTOR_REVISION,
+            capture_boundary="scripted-stdout",
+            capture_encoding="binary",
+            captured_at=NOW,
+            raw_payload=CapturedPayload(
+                kind="bytes", artifact=_stored(sdk, f"late:{outcome}:{consequence_id}".encode())
+            ),
+        )
+        sdk.dispatch(
+            RecordAttemptOutcome(
+                event_id=f"event-return-competing-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                request_id=request.id,
+                outcome=ReturnedOutcome(
+                    attempt_id=competing_attempt.id,
+                    route_id=competing_attempt.route.id,
+                    external_return=late_return,
+                ),
+            )
+        )
+        sdk.dispatch(
+            RecordDecodeOutcome(
+                event_id=f"event-decode-competing-{inquiry_id}",
+                inquiry_id=inquiry_id,
+                occurred_at=NOW,
+                request_id=request.id,
+                outcome=Decoded(
+                    id=f"decode-competing-{inquiry_id}",
+                    external_return_id=late_return.id,
+                    decoder_id=protocol.decoder_id,
+                    decoder_version=protocol.decoder_version,
+                    result=SuccessResult(
+                        id=f"result-competing-{inquiry_id}",
+                        semantic_artifact=report_ref,
+                        operation_id=protocol.operation_id,
+                    ),
+                ),
+            )
+        )
+    return protocol, request.id
+
+
+def test_owned_lifecycle_keeps_six_consequential_outcomes_distinct(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    cases = {
+        "passed": ("answer-valid", "pass"),
+        "necessity": ("false-necessity", "mismatch"),
+        "may_must": ("may-must-collapse", "mismatch"),
+        "malformed": ("answer-malformed", "malformed"),
+        "timeout": ("answer-timeout", "timeout"),
+        "unsupported": ("answer-unsupported", "unsupported"),
+    }
+    results: dict[str, CapabilityEvaluationBundle] = {}
+    for name, (consequence, outcome) in cases.items():
+        inquiry = f"case-{name}"
+        _, request_id = _prepare_owned_request(sdk, inquiry, consequence, outcome=outcome)
+        results[name] = sdk.evaluate_capability_request(inquiry, request_id)
+
+    assert isinstance(results["passed"].result, EvaluationPassed)
+    necessity = results["necessity"]
+    may_must = results["may_must"]
+    assert isinstance(necessity.result, ProtectedMismatchObserved)
+    assert isinstance(may_must.result, ProtectedMismatchObserved)
+    assert necessity.result.violations[0].consequence_id == "false-necessity"
+    assert may_must.result.violations[0].consequence_id == "may-must-collapse"
+    assert necessity.result.violations[0].attack_id != may_must.result.violations[0].attack_id
+    assert (
+        necessity.result.violations[0].downstream_question_id
+        != may_must.result.violations[0].downstream_question_id
+    )
+    assert (
+        necessity.result.violations[0].evidence_artifacts
+        != may_must.result.violations[0].evidence_artifacts
+    )
+    assert necessity.limitation_candidate is not None
+    assert may_must.limitation_candidate is not None
+    assert necessity.localization_frame is not None
+    assert necessity.localization_frame.selected_limitation_kind is None
+    assert necessity.localization_frame.status == "unresolved"
+    assert results["passed"].limitation_candidate is None
+    assert isinstance(results["malformed"].result, DecodeIndeterminateObserved)
+    assert results["malformed"].limitation_candidate is None
+    assert isinstance(results["timeout"].result, OperationalUnknownObserved)
+    assert results["timeout"].result.reason_kind is OperationalUnknownReason.TIMEOUT
+    assert isinstance(results["unsupported"].result, OperationalUnknownObserved)
+    assert (
+        results["unsupported"].result.reason_kind is OperationalUnknownReason.NO_ATTEMPT_UNSUPPORTED
+    )
+    assert results["timeout"].limitation_candidate is None
+    assert results["unsupported"].limitation_candidate is None
+    assert results["malformed"].handoff.failed_decoder_ids == ("capability-report-decoder",)
+    assert results["malformed"].handoff.failed_route_ids == ()
+    assert results["timeout"].handoff.failed_route_ids == (ROUTE,)
+
+
+def test_unattempted_request_and_checker_outcomes_do_not_collapse(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    _, pending_request = _prepare_owned_request(sdk, "pending", "answer-pending", outcome="pending")
+    pending = sdk.evaluate_capability_request("pending", pending_request)
+    assert isinstance(pending.result, OperationalUnknownObserved)
+    assert pending.result.reason_kind is OperationalUnknownReason.PENDING
+
+    for verdict in (
+        CheckerVerdict.INVALID,
+        CheckerVerdict.INDETERMINATE,
+        CheckerVerdict.TIMEOUT,
+        CheckerVerdict.UNSUPPORTED,
+        CheckerVerdict.FAILED,
+    ):
+        inquiry = f"check-{verdict.value}"
+        _, request_id = _prepare_owned_request(
+            sdk,
+            inquiry,
+            "answer-valid",
+            outcome="pass",
+            checker_verdict=verdict,
+        )
+        observed = sdk.evaluate_capability_request(inquiry, request_id)
+        assert isinstance(observed.result, DecodeIndeterminateObserved)
+        assert observed.result.reason_kind == f"checker_{verdict.value}"
+        assert observed.limitation_candidate is None
+
+
+def test_comparison_policy_is_closed_and_duplicate_mismatch_fails_closed(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    protocol, request_id = _prepare_owned_request(
+        sdk, "duplicates", "false-necessity", outcome="mismatch"
+    )
+    with pytest.raises(ValidationError):
+        CapabilityEvaluationProtocol.model_validate(
+            protocol.model_dump(mode="python") | {"comparison_policy_id": "unregistered-policy"},
+            strict=True,
+        )
+    state = sdk.inspect("duplicates")
+    first = state.mismatches[0]
+    duplicate_claim = state.claim_by_id(first.difference_claim_id)
+    assert duplicate_claim is not None
+    second_claim = duplicate_claim.model_copy(update={"id": "difference-duplicate"})
+    sdk.dispatch(
+        AdmitClaim(
+            event_id="event-difference-duplicate",
+            inquiry_id="duplicates",
+            occurred_at=NOW,
+            claim=second_claim,
+        )
+    )
+    sdk.dispatch(
+        RecordMismatch(
+            event_id="event-mismatch-duplicate",
+            inquiry_id="duplicates",
+            occurred_at=NOW,
+            mismatch=first.model_copy(
+                update={"id": "mismatch-duplicate", "difference_claim_id": second_claim.id}
+            ),
+        )
+    )
+    observed = sdk.evaluate_capability_request("duplicates", request_id)
+    assert isinstance(observed.result, EvaluationProtocolInvalid)
+    assert observed.result.issue_codes == ("duplicate_mismatch_classification",)
+
+
+def test_foreign_route_and_actor_fail_closed(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    _, route_request = _prepare_owned_request(
+        sdk,
+        "foreign-route",
+        "answer-valid",
+        outcome="pass",
+        route_id="foreign-route-definition",
+        actor_id="foreign-actor",
+    )
+    foreign = sdk.evaluate_capability_request("foreign-route", route_request)
+    assert isinstance(foreign.result, EvaluationProtocolInvalid)
+    assert {"foreign_actor", "foreign_route"} <= set(foreign.result.issue_codes)
+
+
+def test_context_budget_checker_and_post_return_expectation_fail_closed(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+
+    def issue_for(inquiry: str, request_id: str) -> tuple[str, ...]:
+        observed = sdk.evaluate_capability_request(inquiry, request_id)
+        assert isinstance(observed.result, EvaluationProtocolInvalid)
+        return observed.result.issue_codes
+
+    _, request_id = _prepare_owned_request(
+        sdk,
+        "foreign-binding",
+        "answer-valid",
+        outcome="pass",
+        binding_override="other-binding",
+    )
+    assert "foreign_binding" in issue_for("foreign-binding", request_id)
+    _, request_id = _prepare_owned_request(
+        sdk, "foreign-scope", "answer-valid", outcome="pass", scope_override="f" * 64
+    )
+    assert "foreign_scope" in issue_for("foreign-scope", request_id)
+    _, request_id = _prepare_owned_request(
+        sdk,
+        "foreign-horizon",
+        "answer-valid",
+        outcome="pass",
+        horizon_override="other-horizon",
+    )
+    assert "foreign_horizon" in issue_for("foreign-horizon", request_id)
+    _, request_id = _prepare_owned_request(
+        sdk, "foreign-budget", "answer-valid", outcome="pass", request_timeout_delta=1
+    )
+    assert "foreign_budget" in issue_for("foreign-budget", request_id)
+    _, request_id = _prepare_owned_request(
+        sdk,
+        "foreign-checker",
+        "answer-valid",
+        outcome="pass",
+        recorded_checker_id="other-checker",
+    )
+    assert "checker_missing" in issue_for("foreign-checker", request_id)
+
+    protocol, request_id = _prepare_owned_request(
+        sdk, "immutable-expectation", "answer-valid", outcome="pass"
+    )
+    first = sdk.evaluate_capability_request("immutable-expectation", request_id)
+    replacement = protocol.expectations[0].model_copy(
+        update={"expected_artifact": _stored(sdk, b"rewritten after return")}
+    )
+    with pytest.raises(ValidationError):
+        CapabilityEvaluationProtocol.model_validate(
+            protocol.model_dump(mode="python") | {"expectations": (replacement,)},
+            strict=True,
+        )
+    fields = protocol.model_dump(mode="python", exclude={"id", "schema_version", "policy_version"})
+    fields["expectations"] = (replacement,)
+    rewritten = build_capability_evaluation_protocol(**fields)
+    assert rewritten.id != protocol.id
+    assert sdk.publish_capability_evaluation_protocol(rewritten) != first.handoff.protocol_artifact
+    second = sdk.evaluate_capability_request("immutable-expectation", request_id)
+    assert canonical_json_bytes(first) == canonical_json_bytes(second)
+
+
+def test_conflicting_cas_sizes_fail_at_the_owned_projection(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    _, request_id = _prepare_owned_request(
+        sdk,
+        "cas-size",
+        "answer-valid",
+        outcome="pass",
+        actual_size_delta=1,
+    )
+    observed = sdk.evaluate_capability_request("cas-size", request_id)
+    assert isinstance(observed.result, EvaluationProtocolInvalid)
+    assert observed.result.issue_codes == ("artifact_missing_tampered_or_malformed",)
+
+
+def test_late_competing_return_and_unaccepted_decode_never_replace_acceptance(
+    tmp_path: Path,
+) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    _, request_id = _prepare_owned_request(
+        sdk,
+        "late-competing",
+        "answer-valid",
+        outcome="pass",
+        late_competing=True,
+    )
+    state = sdk.inspect("late-competing")
+    request = state.request_by_id(request_id)
+    assert request is not None
+    assert len(request.attempts) == len(request.decode_outcomes) == 2
+    assert request.accepted_decoded_outcome_id == "decode-late-competing"
+    observed = sdk.evaluate_capability_request("late-competing", request_id)
+    assert isinstance(observed.result, EvaluationProtocolInvalid)
+    assert {"late_or_competing_return", "unaccepted_decode_present"} <= set(
+        observed.result.issue_codes
+    )
+
+
+def test_handoff_is_resolvable_and_enforces_route_reopening(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    protocol, request_id = _prepare_owned_request(
+        sdk, "handoff", "false-necessity", outcome="mismatch"
+    )
+    first = sdk.evaluate_capability_request("handoff", request_id)
+    handoff = first.handoff
+    assert handoff.source_inquiry_id == "handoff"
+    assert handoff.source_sequence == sdk.inspect("handoff").sequence
+    assert handoff.effect_request_id == request_id
+    assert sdk.artifacts.get_bytes(handoff.protocol_artifact)
+    assert sdk.artifacts.get_bytes(handoff.evaluation_result_artifact)
+    assert handoff.localization_frame_artifact is not None
+    assert sdk.artifacts.get_bytes(handoff.localization_frame_artifact)
+    assert handoff.status is HandoffStatus.CONTINUE
+    assert ROUTE in handoff.forbidden_route_ids_until_reopen
+
+    fields = protocol.model_dump(mode="python", exclude={"id", "schema_version", "policy_version"})
+    fields["predecessor_handoff_artifact"] = cognitive_handoff_artifact(handoff)
+    repeated = build_capability_evaluation_protocol(**fields)
+    with pytest.raises(ValueError, match="repeats a failed route"):
+        sdk.publish_capability_evaluation_protocol(repeated)
+    fields["route_definition_id"] = "counterexample-check-route"
+    fields["discriminator_route_ids"] = ("alternate-independent-route",)
+    lawful = build_capability_evaluation_protocol(**fields)
+    sdk.publish_capability_evaluation_protocol(lawful)
+
+
+def test_replay_cli_sdk_and_model_prose_are_inert(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    _, request_id = _prepare_owned_request(sdk, "parity", "false-necessity", outcome="mismatch")
+    first = sdk.evaluate_capability_request("parity", request_id)
+    exported = sdk.export("parity")
+    assert sdk.replay("parity") == sdk.inspect("parity")
+    assert sdk.export("parity") == exported
+    second = sdk.evaluate_capability_request("parity", request_id)
+    assert canonical_json_bytes(first) == canonical_json_bytes(second)
+
     runner = CliRunner()
     evaluated = runner.invoke(
         app,
-        ["project", "evaluate", "--record", str(record), "--root", str(tmp_path)],
+        ["project", "evaluate", "parity", "--request-id", request_id, "--root", str(tmp_path)],
     )
     handed = runner.invoke(
         app,
-        ["project", "handoff", "--record", str(record), "--root", str(tmp_path)],
+        ["project", "handoff", "parity", "--request-id", request_id, "--root", str(tmp_path)],
     )
-    assert evaluated.exit_code == 0, evaluated.output
-    assert handed.exit_code == 0, handed.output
-    assert json.loads(evaluated.stdout) == sdk.evaluate_capability_episode(episode).model_dump(
-        mode="json"
-    )
-    assert json.loads(handed.stdout) == sdk.capability_handoff(episode).model_dump(mode="json")
+    assert evaluated.exit_code == handed.exit_code == 0
+    assert json.loads(evaluated.stdout) == first.model_dump(mode="json")
+    assert json.loads(handed.stdout) == first.handoff.model_dump(mode="json")
     assert "model prose" not in evaluated.stdout
 
 
-def test_bounded_weak_reasoner_improves_exact_conclusions_only() -> None:
-    fixture = run_weak_reasoner_fixture(
-        actor_manifest_digest="3" * 64,
-        evidence_universe_digest="4" * 64,
-        budget_digest="5" * 64,
+def test_public_boundary_requires_an_owned_stream_request(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    _, first_request = _prepare_owned_request(sdk, "owned-first", "answer-valid", outcome="pass")
+    _, second_request = _prepare_owned_request(sdk, "owned-second", "answer-valid", outcome="pass")
+    assert first_request != second_request
+    with pytest.raises(ValueError, match="not owned"):
+        sdk.evaluate_capability_request("owned-first", second_request)
+
+    free_episode = tmp_path / "forged-episode.json"
+    free_episode.write_text('{"caller":"authored"}', encoding="utf-8")
+    rejected = CliRunner().invoke(
+        app,
+        [
+            "project",
+            "evaluate",
+            "owned-first",
+            "--request-id",
+            first_request,
+            "--record",
+            str(free_episode),
+            "--root",
+            str(tmp_path),
+        ],
     )
+    assert rejected.exit_code != 0
+
+
+def test_weak_reasoner_fixture_is_derived_from_two_owned_branches(tmp_path: Path) -> None:
+    sdk = RCI(tmp_path, clock=lambda: NOW)
+    tasks = ("main-power-not-necessary", "may-reach-does-not-imply-must-reach")
+    baseline_protocols: list[CapabilityEvaluationProtocol] = []
+    baseline_bundles: list[CapabilityEvaluationBundle] = []
+    assisted_protocols: list[CapabilityEvaluationProtocol] = []
+    assisted_bundles: list[CapabilityEvaluationBundle] = []
+    circuit = circuit_demonstration()
+    routes = route_demonstration()
+    assert circuit.expected_findings_hold
+    assert circuit.main_power_necessity_attack.witness is not None
+    assert routes.expected_findings_hold
+
+    def scripted_actor(task: str, *, assisted: bool) -> str:
+        if not assisted:
+            return "mismatch"
+        if task == "main-power-not-necessary":
+            return "pass" if circuit.main_power_necessity_attack.witness is not None else "mismatch"
+        if task == "may-reach-does-not-imply-must-reach":
+            return "pass" if routes.expected_findings_hold else "mismatch"
+        raise ValueError("scripted weak reasoner received an unknown task")
+
+    for branch, protocols, bundles in (
+        ("baseline", baseline_protocols, baseline_bundles),
+        ("assisted", assisted_protocols, assisted_bundles),
+    ):
+        for index, task in enumerate(tasks):
+            inquiry = f"{branch}-{index}"
+            outcome = scripted_actor(task, assisted=branch == "assisted")
+            protocol, request_id = _prepare_owned_request(sdk, inquiry, task, outcome=outcome)
+            if branch == "assisted":
+                _record_check(
+                    sdk,
+                    inquiry,
+                    suffix=f"native-{inquiry}",
+                    proposition_id=f"native-check:{task}",
+                    artifact=_stored(sdk, f"checked:{task}".encode()),
+                    checker_id="finite-exhaustive-v1",
+                )
+            protocols.append(protocol)
+            bundles.append(sdk.evaluate_capability_request(inquiry, request_id))
+
+    fixture = run_weak_reasoner_fixture(
+        baseline_states=(sdk.inspect("baseline-0"), sdk.inspect("baseline-1")),
+        assisted_states=(sdk.inspect("assisted-0"), sdk.inspect("assisted-1")),
+        baseline_protocols=tuple(baseline_protocols),
+        assisted_protocols=tuple(assisted_protocols),
+        baseline_bundles=tuple(baseline_bundles),
+        assisted_bundles=tuple(assisted_bundles),
+        actor_manifest_digest="5" * 64,
+        evidence_universe_digest="6" * 64,
+        budget_digest="7" * 64,
+    )
+    permuted = run_weak_reasoner_fixture(
+        baseline_states=(sdk.inspect("baseline-1"), sdk.inspect("baseline-0")),
+        assisted_states=(sdk.inspect("assisted-1"), sdk.inspect("assisted-0")),
+        baseline_protocols=tuple(reversed(baseline_protocols)),
+        assisted_protocols=tuple(reversed(assisted_protocols)),
+        baseline_bundles=tuple(reversed(baseline_bundles)),
+        assisted_bundles=tuple(reversed(assisted_bundles)),
+        actor_manifest_digest="5" * 64,
+        evidence_universe_digest="6" * 64,
+        budget_digest="7" * 64,
+    )
+    assert canonical_json_bytes(fixture) == canonical_json_bytes(permuted)
     assert [item.correct for item in fixture.baseline.conclusions] == [False, False]
     assert [item.correct for item in fixture.assisted.conclusions] == [True, True]
-    assert fixture.baseline.actor_manifest_digest == fixture.assisted.actor_manifest_digest
-    assert fixture.baseline.evidence_universe_digest == fixture.assisted.evidence_universe_digest
-    assert fixture.baseline.budget_digest == fixture.assisted.budget_digest
     assert fixture.baseline.cost.attempts == fixture.assisted.cost.attempts == 2
-    assert fixture.assisted.cost.checks == 2
+    assert fixture.assisted.cost.checks > fixture.baseline.cost.checks
+    assert fixture.baseline.cost.retries == fixture.assisted.cost.retries == 0
+    assert fixture.baseline.cost.context_bytes == fixture.assisted.cost.context_bytes

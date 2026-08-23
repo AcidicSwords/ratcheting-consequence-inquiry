@@ -24,7 +24,7 @@ from rci.backlog import (
 )
 from rci.bindings import circuit_demonstration, route_demonstration
 from rci.compression import validate_order_sensitive_count, validate_unary_parity
-from rci.evaluation import CapabilityEvaluationEpisode, evaluate_cases
+from rci.evaluation import evaluate_cases
 from rci.learning import (
     MemoryPatchCandidate,
     ProbeAdmissionDecision,
@@ -703,24 +703,24 @@ def project_anchor(
 
 @project_app.command("evaluate")
 def project_evaluate(
-    record: Annotated[Path, typer.Option("--record")],
+    inquiry_id: str,
+    request_id: Annotated[str, typer.Option("--request-id")],
     root: Annotated[Path, typer.Option("--root")] = Path("."),
 ) -> None:
     """Derive one consequence-pinned capability evaluation without appending events."""
 
-    episode = CapabilityEvaluationEpisode.model_validate_json(record.read_bytes(), strict=True)
-    typer.echo(_json(_sdk(root).evaluate_capability_episode(episode)))
+    typer.echo(_json(_sdk(root).evaluate_capability_request(inquiry_id, request_id)))
 
 
 @project_app.command("handoff")
 def project_handoff(
-    record: Annotated[Path, typer.Option("--record")],
+    inquiry_id: str,
+    request_id: Annotated[str, typer.Option("--request-id")],
     root: Annotated[Path, typer.Option("--root")] = Path("."),
 ) -> None:
     """Emit the bounded context-reset handoff derived from one exact episode."""
 
-    episode = CapabilityEvaluationEpisode.model_validate_json(record.read_bytes(), strict=True)
-    typer.echo(_json(_sdk(root).capability_handoff(episode)))
+    typer.echo(_json(_sdk(root).capability_handoff(inquiry_id, request_id)))
 
 
 @project_app.command("limitation")
