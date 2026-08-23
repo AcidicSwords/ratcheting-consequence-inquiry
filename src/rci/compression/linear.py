@@ -382,8 +382,8 @@ class LinearKernelReopening(FrozenModel):
             raise ValueError("linear reopening requires a different protected horizon")
         if self.reopened != (self.witness is not None):
             raise ValueError("an exact linear reopening requires its kernel witness")
-        if self.strict_kernel_shrink and not (self.reopened and self.positive_observation_addition):
-            raise ValueError("strict kernel shrink requires a positive observation addition")
+        if self.strict_kernel_shrink and not self.reopened:
+            raise ValueError("strict kernel shrink requires an exact reopening witness")
         if not self.reopened:
             if self.disposition is not LinearReopeningDisposition.NOT_REOPENED:
                 raise ValueError("an unchanged quotient must have the not-reopened disposition")
@@ -932,9 +932,16 @@ def detect_linear_kernel_reopening(
     old_by_id = {item.id: item for item in incumbent_family.observations}
     new_by_id = {item.id: item for item in expanded_family.observations}
     positive_addition = bool(set(new_by_id) - set(old_by_id)) and all(
-        new_by_id.get(identity) == observation for identity, observation in old_by_id.items()
+        (new_observation := new_by_id.get(identity)) is not None
+        and new_observation.operator == observation.operator
+        for identity, observation in old_by_id.items()
     )
-    strict_shrink = positive_addition and witness is not None and expanded.rank > incumbent.rank
+    expanded_kernel_within_incumbent = all(
+        not any(_matvec(incumbent.gram_matrix, vector)) for vector in expanded.kernel_basis
+    )
+    strict_shrink = (
+        witness is not None and expanded_kernel_within_incumbent and expanded.rank > incumbent.rank
+    )
     disposition = (
         LinearReopeningDisposition.NOT_REOPENED
         if witness is None

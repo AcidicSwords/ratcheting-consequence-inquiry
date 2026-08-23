@@ -353,6 +353,46 @@ def test_positive_probe_addition_opens_exact_unknown_for_owned_g3a_resolution() 
         type(unknown).model_validate(substituted_reopening)
 
 
+def test_normalized_support_extension_computes_strict_kernel_shrink_from_subspaces() -> None:
+    old_family = _family(
+        (_observation("probe-x", ((1, 0),)),),
+        scope=LinearEquivalenceScope.FINITE_SUPPORT_ALMOST_SURE,
+        horizon="horizon-x-support",
+    )
+    expanded_family = _family(
+        (
+            _observation("probe-x", ((1, 0),), weight=(1, 2)),
+            _observation("probe-y", ((0, 1),), weight=(1, 2)),
+        ),
+        scope=LinearEquivalenceScope.FINITE_SUPPORT_ALMOST_SURE,
+        horizon="horizon-xy-support",
+    )
+    result = detect_linear_kernel_reopening(
+        incumbent_family=old_family,
+        incumbent=analyze_linear_query_family(old_family),
+        expanded_family=expanded_family,
+        expanded=analyze_linear_query_family(expanded_family),
+    )
+    assert result.reopened
+    assert result.positive_observation_addition
+    assert result.strict_kernel_shrink
+
+    crosscut_family = _family(
+        (_observation("probe-y", ((0, 1),)),),
+        scope=LinearEquivalenceScope.FINITE_SUPPORT_ALMOST_SURE,
+        horizon="horizon-y-support",
+    )
+    crosscut = detect_linear_kernel_reopening(
+        incumbent_family=old_family,
+        incumbent=analyze_linear_query_family(old_family),
+        expanded_family=crosscut_family,
+        expanded=analyze_linear_query_family(crosscut_family),
+    )
+    assert crosscut.reopened
+    assert not crosscut.positive_observation_addition
+    assert not crosscut.strict_kernel_shrink
+
+
 def test_reversed_kernel_inclusion_does_not_fabricate_reopening() -> None:
     x = _observation("probe-x", ((1, 0, 0),))
     y = _observation("probe-y", ((0, 1, 0),))

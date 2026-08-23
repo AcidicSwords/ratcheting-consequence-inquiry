@@ -34,7 +34,10 @@ The binding accepts only finite, explicitly typed rational data:
 - almost-sure conclusions stay almost-sure unless a separate support theorem establishes
   universality;
 - reopening is `ker(old) not-subset-of ker(new)`, and positive added probes may establish
-  strict kernel shrink. The pure binding returns an exact witness with `Unknown`; only the
+  strict kernel shrink. Strict shrink is checked from exact subspace inclusion rather than
+  observation-record equality; finite-support expansion may lawfully renormalize old positive
+  weights while preserving their operators. The pure binding returns an exact witness with
+  `Unknown`; only the
   existing aggregate-owned G3A-H transition may resolve retained residue or a licensed
   reacquisition route.
 
