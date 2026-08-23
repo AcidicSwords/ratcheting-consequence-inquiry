@@ -461,6 +461,20 @@ The selection record is protected at exact main anchor
 `5f48d397030b6a063fdca19e51b70a824096e564`; the earlier SHA remains the immutable
 selection anchor. No successor Goal is active until another governed frontier decision.
 
+### G3V (stopped indeterminate) — bounded review equivalence candidate
+
+G3V began from protected-main anchor
+`b6069c0a58a669eed21005bada407eff1828071a`. Candidate
+`a425f4b0dfa5b2c52a67df87d460f25e4e825518` passed its local and hosted closed-profile
+checks, but fresh semantic review from a context distinct from the developer was
+unavailable. Because the candidate itself forbids `valid_within_profile` from
+substituting for `IndependentReview`, it was stopped indeterminate and was not merged or
+promoted. RCI-079 is accepted as a deferred contract, not a verified capability.
+
+Reopening requires a distinct Goal and fresh independent review, a surviving seeded
+fault, a new reproducible breaker family, or a separately governed review-policy
+comparison. The preserved branch and PR are evidence, not standing implementation.
+
 ### G3A-H (verified)/G3A-L/G3B/G3C — retained state and compression
 
 - G3A-H (verified): explicit carrier roles; binding-derived realized history; exact consequence

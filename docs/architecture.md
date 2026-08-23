@@ -93,6 +93,12 @@ records do not determine the Goal. Codex may still author a Goal manually outsid
 runtime; the new capability makes the project-level derivation replayable and attackable
 rather than pretending the external orchestrator disappeared.
 
+The later G3V experiment tested a finite, model-disconnected review profile. Its
+candidate passed that closed profile but lacked the fresh distinct-context semantic
+review required by G3R, so it was stopped indeterminate and never entered this standing
+architecture. ADR-0015 preserves the boundary: finite seeded-fault coverage may remain
+useful evidence, but it is not an `IndependentReview` and cannot promote itself.
+
 ## Durable authority and logical ownership
 
 The SQLite event ledger and content-addressed artifact store are the only durable

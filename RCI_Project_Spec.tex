@@ -891,6 +891,21 @@ no lawful discriminator, the same blocker recurs three times, evidence is invali
 indeterminate, or progress requires authority outside the active Goal. Recurrence MUST
 NOT relax its own stopping or acceptance rules merely to continue.
 
+\paragraph{RCI-079 --- Bounded review equivalence.}
+A model-disconnected review route MAY establish only
+\texttt{valid\_within\_profile} relative to a closed, versioned fault family and exact
+Goal, candidate-environment, candidate-commit, gate, invariant, evidence, and reproducer
+pins. Every required seeded fault MUST be observed through an independent exact-head
+development return. A surviving seeded fault makes the assessment invalid; missing,
+stale, foreign, malformed, unsupported, or indeterminate evidence makes it
+indeterminate. Passing the profile leaves unbounded semantic review \texttt{Unknown}.
+The assessment MUST NOT be relabelled as an \texttt{IndependentReview}, satisfy a
+fresh-review requirement, warrant a project successor, or authorize promotion.
+Model-generated semantic breakers are strictly parsed inert candidates; malformed model
+output remains indeterminate and cannot weaken the deterministic profile. This
+requirement is accepted semantically but remains unverified after the stopped G3V
+candidate.
+
 \section{Consequence operators retained from prior drafts}
 
 For a typed relation \(R:X\rightsquigarrow Y\) and target predicate
