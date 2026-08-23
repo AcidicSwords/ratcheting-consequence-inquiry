@@ -123,7 +123,7 @@ Status vocabulary:
 | RCI-051 | Correct exact finite linear-family theorem | active G3A-L | exact rational quotient/kernel construction plus independent Fraction checker |
 | RCI-052 | Distributional/vector corollaries with almost-sure scope | active G3A-L | finite positive rational scalar/vector support and uncentered Gram fixtures |
 | RCI-053 | Finite-probe rank and only linear minimality | active G3A-L | exact rational rank, redundant/independent probe, and scope-label tests |
-| RCI-054 | Generic factorization reopening; linear kernel is one instance | verified G3A-H generic; active G3A-L linear | existing generic evidence plus exact old-kernel/new-kernel witness, reversed-inclusion rejection, residue/recovery/Unknown disposition |
+| RCI-054 | Generic factorization reopening; linear kernel is one instance | verified G3A-H generic; active G3A-L linear | existing generic owned resolution plus exact old-kernel/new-kernel witness, reversed-inclusion rejection, and mandatory pure-layer `Unknown` |
 | RCI-055 | Approximate geometry never establishes exact proof | deferred G3B | numerical near-zero/zero-loss non-promotion tests |
 | RCI-056 | Native methods remain isolated adapters | deferred G3C | ADR-0008; container-policy and provenance tests |
 

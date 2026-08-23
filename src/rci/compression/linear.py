@@ -47,8 +47,6 @@ class LinearCheckVerdict(StrEnum):
 
 class LinearReopeningDisposition(StrEnum):
     NOT_REOPENED = "not_reopened"
-    RECOVERABLE = ReopeningOutcome.RECOVERABLE
-    REACQUISITION_REQUIRED = ReopeningOutcome.REACQUISITION_REQUIRED
     UNKNOWN = ReopeningOutcome.UNKNOWN
 
 
@@ -351,8 +349,6 @@ class LinearKernelReopening(FrozenModel):
     positive_observation_addition: bool
     strict_kernel_shrink: bool
     disposition: LinearReopeningDisposition
-    path_residue_id: Identifier | None = None
-    recovery_license_id: Identifier | None = None
 
     @model_validator(mode="after")
     def validate_reopening(self) -> LinearKernelReopening:
@@ -365,19 +361,10 @@ class LinearKernelReopening(FrozenModel):
         if not self.reopened:
             if self.disposition is not LinearReopeningDisposition.NOT_REOPENED:
                 raise ValueError("an unchanged quotient must have the not-reopened disposition")
-            if self.path_residue_id is not None or self.recovery_license_id is not None:
-                raise ValueError("an unchanged quotient cannot consume recovery material")
-        elif self.disposition is LinearReopeningDisposition.RECOVERABLE:
-            if self.path_residue_id is None or self.recovery_license_id is not None:
-                raise ValueError("recoverable linear reopening requires only exact residue")
-        elif self.disposition is LinearReopeningDisposition.REACQUISITION_REQUIRED:
-            if self.recovery_license_id is None or self.path_residue_id is not None:
-                raise ValueError("reacquisition reopening requires only a recovery licence")
-        elif self.disposition is LinearReopeningDisposition.UNKNOWN:
-            if self.path_residue_id is not None or self.recovery_license_id is not None:
-                raise ValueError("Unknown linear reopening cannot claim recovery material")
-        else:
-            raise ValueError("a reopened quotient requires a recovery disposition")
+        elif self.disposition is not LinearReopeningDisposition.UNKNOWN:
+            raise ValueError(
+                "pure linear reopening remains Unknown until aggregate-owned recovery resolution"
+            )
         return self
 
 
@@ -554,6 +541,8 @@ def independently_check_linear_analysis(
         issues.add("rank_mismatch")
     if analysis.minimum_linear_encoder_dimension != len(pivots):
         issues.add("linear_minimum_mismatch")
+    if analysis.minimality_scope != "linear_encoders_only":
+        issues.add("minimality_scope_mismatch")
     if analysis.quotient_basis != _exact_vectors(expected_quotient):
         issues.add("quotient_basis_mismatch")
     if analysis.kernel_basis != _exact_vectors(expected_kernel):
@@ -707,8 +696,6 @@ def detect_linear_kernel_reopening(
     incumbent: ExactLinearAnalysis,
     expanded_family: LinearQueryFamily,
     expanded: ExactLinearAnalysis,
-    path_residue_id: str | None = None,
-    recovery_license_id: str | None = None,
 ) -> LinearKernelReopening:
     if (
         incumbent_family.binding_revision != expanded_family.binding_revision
@@ -735,9 +722,6 @@ def detect_linear_kernel_reopening(
         is not LinearCheckVerdict.VALID
     ):
         raise ValueError("linear reopening requires independently valid exact analyses")
-    if path_residue_id is not None and recovery_license_id is not None:
-        raise ValueError("linear reopening chooses residue or reacquisition, not both")
-
     witness = next(
         (vector for vector in incumbent.kernel_basis if any(_matvec(expanded.gram_matrix, vector))),
         None,
@@ -748,14 +732,11 @@ def detect_linear_kernel_reopening(
         new_by_id.get(identity) == observation for identity, observation in old_by_id.items()
     )
     strict_shrink = positive_addition and witness is not None and expanded.rank > incumbent.rank
-    if witness is None:
-        disposition = LinearReopeningDisposition.NOT_REOPENED
-    elif path_residue_id is not None:
-        disposition = LinearReopeningDisposition.RECOVERABLE
-    elif recovery_license_id is not None:
-        disposition = LinearReopeningDisposition.REACQUISITION_REQUIRED
-    else:
-        disposition = LinearReopeningDisposition.UNKNOWN
+    disposition = (
+        LinearReopeningDisposition.NOT_REOPENED
+        if witness is None
+        else LinearReopeningDisposition.UNKNOWN
+    )
     material = {
         "incumbent": incumbent.fingerprint,
         "expanded": expanded.fingerprint,
@@ -765,8 +746,6 @@ def detect_linear_kernel_reopening(
         "positive_addition": positive_addition,
         "strict_shrink": strict_shrink,
         "disposition": disposition,
-        "path_residue_id": path_residue_id,
-        "recovery_license_id": recovery_license_id,
     }
     return LinearKernelReopening(
         id=f"lrp_{content_fingerprint('rci.linear-kernel-reopening.v1', material)[:24]}",
@@ -779,6 +758,4 @@ def detect_linear_kernel_reopening(
         positive_observation_addition=positive_addition,
         strict_kernel_shrink=strict_shrink,
         disposition=disposition,
-        path_residue_id=path_residue_id,
-        recovery_license_id=recovery_license_id,
     )

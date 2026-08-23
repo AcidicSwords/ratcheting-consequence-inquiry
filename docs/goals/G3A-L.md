@@ -38,8 +38,8 @@ Implement strict, frozen, versioned exact-linear data records and pure operation
 - exact rank, nullspace, row-space/quotient coordinates, consequence equivalence, and the
   minimum dimension among linear encoders only;
 - an independent `fractions.Fraction` checker that does not call the SymPy analyzer;
-- kernel reopening witnesses, with exact residue/recovery disposition and `Unknown` when
-  neither route is licensed;
+- kernel reopening witnesses that remain `Unknown` until the existing aggregate-owned
+  G3A-H path resolves exact residue or a licensed recovery route;
 - a compatibility bridge that supplies exact property evidence to existing G3A-H
   `CompressionValidation` construction without warranting or licensing itself.
 

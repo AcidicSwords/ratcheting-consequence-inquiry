@@ -261,6 +261,11 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
     )
     assert identity_check.verdict is LinearCheckVerdict.INVALID
     assert "analysis_id_mismatch" in identity_check.issue_ids
+    scope_check = independently_check_linear_analysis(
+        family, analysis.model_copy(update={"minimality_scope": "unrestricted"})
+    )
+    assert scope_check.verdict is LinearCheckVerdict.INVALID
+    assert "minimality_scope_mismatch" in scope_check.issue_ids
     with pytest.raises(ValueError, match="counterexample"):
         build_linear_validation_properties(
             invalid,
@@ -269,7 +274,7 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         )
 
 
-def test_positive_probe_addition_reopens_exact_kernel_with_typed_disposition() -> None:
+def test_positive_probe_addition_opens_exact_unknown_for_owned_g3a_resolution() -> None:
     x = _observation("probe-x", ((1, 0, 0),))
     y = _observation("probe-y", ((0, 1, 0),))
     old_family = _family((x,), horizon="horizon-x")
@@ -288,25 +293,8 @@ def test_positive_probe_addition_reopens_exact_kernel_with_typed_disposition() -
     assert unknown.positive_observation_addition
     assert unknown.strict_kernel_shrink
     assert unknown.disposition is LinearReopeningDisposition.UNKNOWN
-
-    recoverable = detect_linear_kernel_reopening(
-        incumbent_family=old_family,
-        incumbent=old,
-        expanded_family=expanded_family,
-        expanded=expanded,
-        path_residue_id="path-residue-y",
-    )
-    assert recoverable.disposition is LinearReopeningDisposition.RECOVERABLE
-    assert recoverable.path_residue_id == "path-residue-y"
-
-    reacquire = detect_linear_kernel_reopening(
-        incumbent_family=old_family,
-        incumbent=old,
-        expanded_family=expanded_family,
-        expanded=expanded,
-        recovery_license_id="recovery-license-y",
-    )
-    assert reacquire.disposition is LinearReopeningDisposition.REACQUISITION_REQUIRED
+    assert not hasattr(unknown, "path_residue_id")
+    assert not hasattr(unknown, "recovery_license_id")
 
 
 def test_reversed_kernel_inclusion_does_not_fabricate_reopening() -> None:
