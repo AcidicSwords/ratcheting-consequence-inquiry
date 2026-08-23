@@ -185,6 +185,11 @@ class LinearQueryFamily(FrozenModel):
             item.operator.row_count != 1 for item in self.observations
         ):
             raise ValueError("scalar linear observations must have exactly one output row")
+        if (
+            self.output_kind is LinearOutputKind.VECTOR
+            and self.equivalence_scope is LinearEquivalenceScope.UNIVERSAL_FINITE_FAMILY
+        ):
+            raise ValueError("G3A-L vector-output families are finite-support almost-sure only")
         weights = tuple(item.weight.as_fraction() for item in self.observations)
         distributional = self.equivalence_scope is LinearEquivalenceScope.FINITE_SUPPORT_ALMOST_SURE
         if distributional and sum(weights, Fraction()) != 1:
@@ -291,6 +296,12 @@ class ExactLinearAnalysis(FrozenModel):
             len(vector.values) != width for vector in (*self.quotient_basis, *self.kernel_basis)
         ):
             raise ValueError("linear basis vectors must inhabit the source carrier")
+        if self.id != _analysis_identity(
+            family_id=self.family_id,
+            family_fingerprint=self.family_fingerprint,
+            gram=self.gram_matrix,
+        ):
+            raise ValueError("exact linear analysis identity must be content-derived")
         return self
 
     @property
@@ -416,14 +427,24 @@ def _from_sympy_vectors(vectors: list[Matrix]) -> tuple[ExactRationalVector, ...
     )
 
 
-def _analysis_id(family: LinearQueryFamily, gram: ExactRationalMatrix) -> str:
+def _analysis_identity(
+    *, family_id: str, family_fingerprint: str, gram: ExactRationalMatrix
+) -> str:
     material = {
-        "family_id": family.id,
-        "family_fingerprint": family.fingerprint,
+        "family_id": family_id,
+        "family_fingerprint": family_fingerprint,
         "gram_matrix": gram,
         "backend": "sympy-exact-rational@1.14.0",
     }
     return f"lin_{content_fingerprint('rci.exact-linear-analysis-fields.v1', material)[:24]}"
+
+
+def _analysis_id(family: LinearQueryFamily, gram: ExactRationalMatrix) -> str:
+    return _analysis_identity(
+        family_id=family.id,
+        family_fingerprint=family.fingerprint,
+        gram=gram,
+    )
 
 
 def analyze_linear_query_family(family: LinearQueryFamily) -> ExactLinearAnalysis:
@@ -527,6 +548,8 @@ def independently_check_linear_analysis(
     query_kernel = _fraction_nullspace(query_rows)
     if analysis.gram_matrix != _exact_matrix(expected_gram):
         issues.add("gram_mismatch")
+    if analysis.id != _analysis_id(family, _exact_matrix(expected_gram)):
+        issues.add("analysis_id_mismatch")
     if analysis.rank != len(pivots):
         issues.add("rank_mismatch")
     if analysis.minimum_linear_encoder_dimension != len(pivots):

@@ -193,6 +193,11 @@ def test_exact_input_contract_rejects_approximation_and_invalid_support() -> Non
         )
     with pytest.raises(ValidationError, match="scalar"):
         _family((_observation("not-scalar", ((1, 0), (0, 1))),))
+    with pytest.raises(ValidationError, match="finite-support almost-sure"):
+        _family(
+            (_observation("universal-vector", ((1, 0), (0, 1))),),
+            output=LinearOutputKind.VECTOR,
+        )
 
 
 def test_zero_probe_has_a_lawful_zero_dimensional_linear_quotient() -> None:
@@ -242,12 +247,20 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
         is ValidationOutcome.NOT_CLAIMED
     )
 
-    tampered_payload = analysis.model_dump(mode="python")
-    tampered_payload["gram_matrix"] = _matrix(((2, 0), (0, 0)))
-    tampered = ExactLinearAnalysis.model_validate(tampered_payload)
+    substituted_identity = analysis.model_dump(mode="python")
+    substituted_identity["id"] = "lin_substituted"
+    with pytest.raises(ValidationError, match="content-derived"):
+        ExactLinearAnalysis.model_validate(substituted_identity)
+
+    tampered = analysis.model_copy(update={"gram_matrix": _matrix(((2, 0), (0, 0)))})
     invalid = independently_check_linear_analysis(family, tampered)
     assert invalid.verdict is LinearCheckVerdict.INVALID
     assert "gram_mismatch" in invalid.issue_ids
+    identity_check = independently_check_linear_analysis(
+        family, analysis.model_copy(update={"id": "lin_substituted"})
+    )
+    assert identity_check.verdict is LinearCheckVerdict.INVALID
+    assert "analysis_id_mismatch" in identity_check.issue_ids
     with pytest.raises(ValueError, match="counterexample"):
         build_linear_validation_properties(
             invalid,
