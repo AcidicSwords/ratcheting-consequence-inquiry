@@ -350,12 +350,51 @@ def test_fraction_checker_rejects_tampered_sympy_candidate_and_bridges_stages() 
             compression_contract_id="compression-contract",
             property_check_references=check_refs,
         )
+    with pytest.raises(ValueError, match="intact candidate check"):
+        build_linear_validation_properties(
+            check.model_copy(update={"verdict": LinearCheckVerdict.INVALID}),
+            compression_contract_id="compression-contract",
+            property_check_references=check_refs,
+            invalid_witness_artifact=ArtifactRef(digest=DIGEST, size=1),
+        )
     with pytest.raises(ValueError, match="each claimed"):
         build_linear_validation_properties(
             check,
             compression_contract_id="compression-contract",
             property_check_references=check_refs[:1],
         )
+    for shared_refs in (
+        (
+            check_refs[0],
+            (ValidationProperty.EXACT_EQUIVALENCE, check_refs[0][1]),
+        ),
+        (
+            check_refs[0],
+            (
+                ValidationProperty.EXACT_EQUIVALENCE,
+                CheckReference(
+                    evidence_id=check_refs[0][1].evidence_id,
+                    checker_verdict_id="other-verdict",
+                ),
+            ),
+        ),
+        (
+            check_refs[0],
+            (
+                ValidationProperty.EXACT_EQUIVALENCE,
+                CheckReference(
+                    evidence_id="other-evidence",
+                    checker_verdict_id=check_refs[0][1].checker_verdict_id,
+                ),
+            ),
+        ),
+    ):
+        with pytest.raises(ValueError, match="distinct evidence"):
+            build_linear_validation_properties(
+                check,
+                compression_contract_id="compression-contract",
+                property_check_references=shared_refs,
+            )
     with pytest.raises(ValueError, match="counterexample"):
         build_linear_validation_properties(
             invalid,

@@ -350,10 +350,12 @@ class ExactLinearCheck(FrozenModel):
         if set(properties) != set(ValidationProperty):
             raise ValueError("linear checks must disposition every exact validation property")
         if self.id != _linear_check_id(
+            schema_version=self.schema_version,
             family_id=self.family_id,
             family_fingerprint=self.family_fingerprint,
             analysis_id=self.analysis_id,
             analysis_fingerprint=self.analysis_fingerprint,
+            verdict=self.verdict,
             property_outcomes=self.property_outcomes,
             issue_ids=self.issue_ids,
             checker_id=self.checker_id,
@@ -615,21 +617,24 @@ def _fraction_nullspace(rows: list[list[Fraction]]) -> list[list[Fraction]]:
 
 def _linear_check_id(
     *,
+    schema_version: int,
     family_id: str,
     family_fingerprint: str,
     analysis_id: str,
     analysis_fingerprint: str,
+    verdict: LinearCheckVerdict,
     property_outcomes: tuple[tuple[ValidationProperty, ValidationOutcome], ...],
     issue_ids: tuple[str, ...],
     checker_id: str,
     standing: str,
 ) -> str:
     material = {
-        "schema_version": 1,
+        "schema_version": schema_version,
         "family_id": family_id,
         "family_fingerprint": family_fingerprint,
         "analysis_id": analysis_id,
         "analysis_fingerprint": analysis_fingerprint,
+        "verdict": verdict,
         "properties": property_outcomes,
         "issues": issue_ids,
         "checker": checker_id,
@@ -732,10 +737,12 @@ def independently_check_linear_analysis(
     )
     issue_ids = tuple(sorted(issues))
     check_id = _linear_check_id(
+        schema_version=1,
         family_id=family.id,
         family_fingerprint=family.fingerprint,
         analysis_id=analysis.id,
         analysis_fingerprint=analysis.fingerprint,
+        verdict=LinearCheckVerdict.INVALID if invalid else LinearCheckVerdict.VALID,
         property_outcomes=property_outcomes,
         issue_ids=issue_ids,
         checker_id="fraction-rref-v1",
@@ -766,22 +773,13 @@ def build_linear_validation_properties(
     resulting ``CompressionValidation``.  This pure adapter grants no warrant or licence.
     """
 
-    if (
-        check.schema_version != 1
-        or check.checker_id != "fraction-rref-v1"
-        or check.standing != "candidate_check_evidence"
-        or check.id
-        != _linear_check_id(
-            family_id=check.family_id,
-            family_fingerprint=check.family_fingerprint,
-            analysis_id=check.analysis_id,
-            analysis_fingerprint=check.analysis_fingerprint,
-            property_outcomes=check.property_outcomes,
-            issue_ids=check.issue_ids,
-            checker_id=check.checker_id,
-            standing=check.standing,
+    try:
+        validated_check = ExactLinearCheck.model_validate(
+            check.model_dump(mode="python", warnings=False)
         )
-    ):
+    except ValueError as exc:
+        raise ValueError("linear validation requires an intact candidate check record") from exc
+    if validated_check != check:
         raise ValueError("linear validation requires an intact candidate check record")
     if check.verdict is LinearCheckVerdict.INVALID and invalid_witness_artifact is None:
         raise ValueError("invalid linear validation requires an exact counterexample artifact")
@@ -797,6 +795,15 @@ def build_linear_validation_properties(
     }
     if set(referenced_properties) != claimed_properties:
         raise ValueError("each claimed linear property requires its own exact check reference")
+    references = tuple(item[1] for item in property_check_references)
+    if (
+        len(set(references)) != len(references)
+        or len({item.evidence_id for item in references}) != len(references)
+        or len({item.checker_verdict_id for item in references}) != len(references)
+    ):
+        raise ValueError(
+            "claimed linear properties require distinct evidence and checker-verdict identities"
+        )
     checks_by_property = dict(property_check_references)
     properties: list[ExactPropertyValidation] = []
     for property_kind, outcome in check.property_outcomes:
