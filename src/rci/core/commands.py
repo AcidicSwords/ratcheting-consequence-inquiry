@@ -18,6 +18,7 @@ from rci.claims.models import (
     Residual,
     Scope,
 )
+from rci.compression.linear import ExactLinearAnalysis, ExactLinearCheck, LinearQueryFamily
 from rci.compression.models import (
     BindingCarrierManifest,
     CompressionApplication,
@@ -382,6 +383,16 @@ class RecordCompressionValidation(CommandBase):
     validation: CompressionValidation
 
 
+class RecordExactLinearCompressionValidation(CommandBase):
+    kind: Literal["record_exact_linear_compression_validation"] = (
+        "record_exact_linear_compression_validation"
+    )
+    family: LinearQueryFamily
+    analysis: ExactLinearAnalysis
+    check: ExactLinearCheck
+    validation: CompressionValidation
+
+
 class GrantExactCompressionLicense(CommandBase):
     kind: Literal["grant_exact_compression_license"] = "grant_exact_compression_license"
     license: ExactCompressionLicense
@@ -554,6 +565,7 @@ DomainCommand = Annotated[
     | RecordRealizedHistoryDerivation
     | RegisterCompressionContract
     | RecordCompressionValidation
+    | RecordExactLinearCompressionValidation
     | GrantExactCompressionLicense
     | RecordCompressionApplication
     | GrantRecoveryLicense

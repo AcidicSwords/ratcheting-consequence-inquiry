@@ -19,7 +19,14 @@ from rci.claims.models import (
     Scope,
     content_fingerprint,
 )
+from rci.compression.linear import (
+    analyze_linear_query_family,
+    build_linear_property_check_records,
+    build_linear_validation_properties,
+    independently_check_linear_analysis,
+)
 from rci.compression.models import (
+    CompressionValidation,
     ExactClaimKind,
     HistoryDerivationStatus,
     ReopeningOutcome,
@@ -66,6 +73,7 @@ from rci.core.commands import (
     RecordDecodeOutcome,
     RecordDevelopmentEvidence,
     RecordEvidence,
+    RecordExactLinearCompressionValidation,
     RecordImplementationGoalCandidate,
     RecordIndependentReview,
     RecordLearnedProbeCandidate,
@@ -234,8 +242,6 @@ from rci.project.models import (
 from rci.project.selection import derive_capability_frontier
 from rci.warrant.checks import checker_verdict_index, evidence_index, resolve_check_reference
 from rci.warrant.models import (
-    CheckerVerdictRecord,
-    Evidence,
     PromotionLink,
     PropositionKind,
     SupportStanding,
@@ -247,88 +253,6 @@ from rci.warrant.policy import (
     decide_evidence_warrant,
     decide_promotion,
 )
-
-_LINEAR_PROPERTY_EVIDENCE_PREFIX = "linear-property-evidence:"
-_LINEAR_PROPERTY_VERDICT_PREFIX = "linear-property-verdict:"
-
-
-def _linear_validation_property(proposition_id: str) -> ValidationProperty:
-    prefix = "compression-property:"
-    if not proposition_id.startswith(prefix):
-        raise InvalidCommandError("exact-linear property evidence must name a compression property")
-    try:
-        return ValidationProperty(proposition_id.rsplit(":", maxsplit=1)[1])
-    except (IndexError, ValueError) as error:
-        raise InvalidCommandError(
-            "exact-linear property evidence names an unknown validation property"
-        ) from error
-
-
-def _require_content_derived_linear_evidence(evidence: Evidence) -> None:
-    """Fail closed for the binding-specific IDs emitted by the exact-linear bridge.
-
-    General G1 evidence identities remain binding-owned.  Only the reserved G3A-L
-    prefixes opt into this stronger content-derived aggregate boundary.
-    """
-
-    if not evidence.id.startswith(_LINEAR_PROPERTY_EVIDENCE_PREFIX):
-        return
-    property_kind = _linear_validation_property(evidence.proposition_id)
-    expected_id = (
-        _LINEAR_PROPERTY_EVIDENCE_PREFIX
-        + content_fingerprint(
-            "rci.exact-linear-property-evidence-record.v1",
-            {
-                "property": property_kind,
-                "kind": evidence.kind,
-                "proposition_id": evidence.proposition_id,
-                "proposition_kind": evidence.proposition_kind,
-                "scope_fingerprint": evidence.scope_fingerprint,
-                "artifact": evidence.artifact,
-                "closed_finite_universe": evidence.closed_finite_universe,
-                "finite_universe_hash": evidence.finite_universe_hash,
-            },
-        )[:24]
-    )
-    if evidence.id != expected_id:
-        raise InvalidCommandError(
-            "exact-linear property evidence identity does not match its artifact"
-        )
-
-
-def _require_content_derived_linear_verdict(
-    evidence: Evidence,
-    verdict: CheckerVerdictRecord,
-) -> None:
-    if not verdict.id.startswith(_LINEAR_PROPERTY_VERDICT_PREFIX):
-        return
-    if not evidence.id.startswith(_LINEAR_PROPERTY_EVIDENCE_PREFIX):
-        raise InvalidCommandError(
-            "exact-linear property verdict requires exact-linear property evidence"
-        )
-    _linear_validation_property(verdict.proposition_id)
-    expected_id = (
-        _LINEAR_PROPERTY_VERDICT_PREFIX
-        + content_fingerprint(
-            "rci.exact-linear-property-verdict-record.v1",
-            {
-                "evidence_id": verdict.evidence_id,
-                "evidence_artifact": verdict.evidence_artifact,
-                "proposition_id": verdict.proposition_id,
-                "proposition_kind": verdict.proposition_kind,
-                "scope_fingerprint": verdict.scope_fingerprint,
-                "checker_id": verdict.checker_id,
-                "checker_version": verdict.checker_version,
-                "verdict": verdict.verdict,
-                "verdict_artifact": verdict.verdict_artifact,
-                "certificate_artifact": verdict.certificate_artifact,
-            },
-        )[:24]
-    )
-    if verdict.id != expected_id:
-        raise InvalidCommandError(
-            "exact-linear property verdict identity does not match its checked record"
-        )
 
 
 def _require_active(state: InquiryState, inquiry_id: str) -> None:
@@ -447,6 +371,196 @@ def _require_g2a_check(
     )
     if not checked:
         raise InvalidCommandError(f"G2A record requires an independent valid check: {reason}")
+
+
+def _require_compression_validation(
+    state: InquiryState,
+    validation: CompressionValidation,
+    *,
+    allow_exact_linear: bool,
+) -> None:
+    validation_contract = next(
+        (item for item in state.compression_contracts if item.id == validation.contract_id),
+        None,
+    )
+    if validation_contract is None:
+        raise InvalidCommandError("compression validation requires an owned contract")
+    if (
+        validation_contract.representation_policy_id == "exact-rational-linear-v1"
+        and not allow_exact_linear
+    ):
+        raise InvalidCommandError(
+            "exact-rational-linear-v1 contracts require binding-specific validation"
+        )
+    expected_fingerprint = sha256_digest(canonical_json_bytes(validation_contract))
+    if validation.contract_fingerprint != expected_fingerprint:
+        raise InvalidCommandError("compression validation does not pin the exact contract")
+    by_property = {item.property: item for item in validation.properties}
+    if validation_contract.representation_policy_id == "exact-rational-linear-v1":
+        if validation.validator_id != "fraction-rref-v1" or validation.validator_version != "1":
+            raise InvalidCommandError("exact-linear validation requires the Fraction checker")
+        for property_kind in (
+            ValidationProperty.CONSEQUENCE_FACTORIZATION,
+            ValidationProperty.EXACT_EQUIVALENCE,
+        ):
+            property_check = by_property[property_kind]
+            if property_check.check is None:
+                raise InvalidCommandError("exact-linear property requires an owned check")
+            evidence = state.evidence_by_id(property_check.check.evidence_id)
+            verdict = state.checker_verdict_by_id(property_check.check.checker_verdict_id)
+            if evidence is None or verdict is None:
+                raise InvalidCommandError("exact-linear property check is not aggregate-owned")
+            expected_evidence_id = (
+                "linear-property-evidence:"
+                + content_fingerprint(
+                    "rci.exact-linear-property-evidence-record.v1",
+                    {
+                        "property": property_kind,
+                        "kind": evidence.kind,
+                        "proposition_id": evidence.proposition_id,
+                        "proposition_kind": evidence.proposition_kind,
+                        "scope_fingerprint": evidence.scope_fingerprint,
+                        "artifact": evidence.artifact,
+                        "closed_finite_universe": evidence.closed_finite_universe,
+                        "finite_universe_hash": evidence.finite_universe_hash,
+                    },
+                )[:24]
+            )
+            expected_verdict_id = (
+                "linear-property-verdict:"
+                + content_fingerprint(
+                    "rci.exact-linear-property-verdict-record.v1",
+                    {
+                        "evidence_id": verdict.evidence_id,
+                        "evidence_artifact": verdict.evidence_artifact,
+                        "proposition_id": verdict.proposition_id,
+                        "proposition_kind": verdict.proposition_kind,
+                        "scope_fingerprint": verdict.scope_fingerprint,
+                        "checker_id": verdict.checker_id,
+                        "checker_version": verdict.checker_version,
+                        "verdict": verdict.verdict,
+                        "verdict_artifact": verdict.verdict_artifact,
+                        "certificate_artifact": verdict.certificate_artifact,
+                    },
+                )[:24]
+            )
+            if evidence.id != expected_evidence_id or verdict.id != expected_verdict_id:
+                raise InvalidCommandError(
+                    "exact-linear validation check records require content-derived identity"
+                )
+            if verdict.checker_id != "fraction-rref-v1" or verdict.checker_version != "1":
+                raise InvalidCommandError("exact-linear property requires the Fraction checker")
+    required = {
+        ValidationProperty.CONSEQUENCE_FACTORIZATION,
+        ValidationProperty.RESIDUE_COMPLETENESS,
+    }
+    if ExactClaimKind.COARSEST_EXACT_QUOTIENT in validation_contract.claim_kinds:
+        required.add(ValidationProperty.EXACT_EQUIVALENCE)
+    if ExactClaimKind.EXECUTABLE_RETAINED_STATE in validation_contract.claim_kinds:
+        required.update(
+            {
+                ValidationProperty.CONTINUATION_COMPATIBILITY,
+                ValidationProperty.RECURSIVE_UPDATE,
+            }
+        )
+    for property_kind in required:
+        if by_property[property_kind].outcome is ValidationOutcome.NOT_CLAIMED:
+            raise InvalidCommandError(
+                f"compression claim requires a disposition for {property_kind.value}"
+            )
+    for property_check in validation.properties:
+        if property_check.outcome is ValidationOutcome.NOT_CLAIMED:
+            continue
+        assert property_check.check is not None
+        assert property_check.proposition_id is not None
+        expected_property_proposition = (
+            f"compression-property:{validation_contract.id}:{property_check.property.value}"
+        )
+        if property_check.proposition_id != expected_property_proposition:
+            raise InvalidCommandError(
+                "compression property check is not bound to its exact contract property"
+            )
+        _require_g2a_check(
+            state,
+            property_check.check,
+            proposition_id=property_check.proposition_id,
+            scope_fingerprint=validation_contract.scope_fingerprint,
+        )
+
+
+def _require_exact_linear_validation(
+    state: InquiryState,
+    command: RecordExactLinearCompressionValidation,
+) -> None:
+    contract = next(
+        (item for item in state.compression_contracts if item.id == command.validation.contract_id),
+        None,
+    )
+    if contract is None:
+        raise InvalidCommandError("exact-linear validation requires an owned contract")
+    if contract.representation_policy_id != "exact-rational-linear-v1":
+        raise InvalidCommandError("binding-specific validation requires an exact-linear contract")
+    expected_analysis = analyze_linear_query_family(command.family)
+    if command.analysis != expected_analysis:
+        raise InvalidCommandError("exact-linear analysis does not match exact construction")
+    expected_check = independently_check_linear_analysis(command.family, command.analysis)
+    if command.check != expected_check:
+        raise InvalidCommandError("exact-linear check does not match independent Fraction checking")
+
+    validation_by_property = {item.property: item for item in command.validation.properties}
+    property_check_records = []
+    supplemental_properties = []
+    invalid_witnesses = set()
+    for property_kind, outcome in command.check.property_outcomes:
+        validation_property = validation_by_property[property_kind]
+        if outcome is ValidationOutcome.NOT_CLAIMED:
+            if validation_property.outcome is not ValidationOutcome.NOT_CLAIMED:
+                supplemental_properties.append(validation_property)
+            continue
+        if validation_property.check is None:
+            raise InvalidCommandError("exact-linear property lacks its exact check reference")
+        evidence = state.evidence_by_id(validation_property.check.evidence_id)
+        verdict = state.checker_verdict_by_id(validation_property.check.checker_verdict_id)
+        expected_evidence, expected_verdict = build_linear_property_check_records(
+            command.family,
+            command.analysis,
+            command.check,
+            contract,
+            property_kind,
+        )
+        if evidence != expected_evidence or verdict != expected_verdict:
+            raise InvalidCommandError(
+                "exact-linear validation requires the exact Fraction-check records"
+            )
+        property_check_records.append((property_kind, evidence, verdict))
+        if outcome is ValidationOutcome.INVALID:
+            if validation_property.witness_artifact is None:
+                raise InvalidCommandError("invalid exact-linear property requires a witness")
+            invalid_witnesses.add(validation_property.witness_artifact)
+    if len(invalid_witnesses) > 1:
+        raise InvalidCommandError("exact-linear invalid properties require one exact witness")
+    invalid_witness = next(iter(invalid_witnesses), None)
+    try:
+        expected_properties = build_linear_validation_properties(
+            command.check,
+            family=command.family,
+            analysis=command.analysis,
+            compression_contract=contract,
+            property_check_records=tuple(property_check_records),
+            supplemental_properties=tuple(supplemental_properties),
+            invalid_witness_artifact=invalid_witness,
+        )
+    except ValueError as error:
+        raise InvalidCommandError(str(error)) from error
+    if command.validation.properties != expected_properties:
+        raise InvalidCommandError(
+            "exact-linear validation properties do not match the binding projection"
+        )
+    _require_compression_validation(
+        state,
+        command.validation,
+        allow_exact_linear=True,
+    )
 
 
 def _require_project_admission_evidence(
@@ -1152,7 +1266,6 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             if existing_evidence == command.evidence:
                 return ()
             raise IdentityConflictError("evidence id was reused")
-        _require_content_derived_linear_evidence(command.evidence)
         return (
             EvidenceRecorded(
                 event_id=command.event_id,
@@ -1174,7 +1287,6 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             or verdict.scope_fingerprint != evidence.scope_fingerprint
         ):
             raise InvalidCommandError("checker verdict does not match the exact evidence record")
-        _require_content_derived_linear_verdict(evidence, verdict)
         existing_verdict = state.checker_verdict_by_id(verdict.id)
         if existing_verdict is not None:
             if existing_verdict == verdict:
@@ -2710,52 +2822,26 @@ def decide(state: InquiryState, command: DomainCommand) -> tuple[DomainEvent, ..
             if existing_compression_validation == validation:
                 return ()
             raise IdentityConflictError("compression-validation identity was reused")
-        validation_contract = next(
-            (item for item in state.compression_contracts if item.id == validation.contract_id),
-            None,
+        _require_compression_validation(state, validation, allow_exact_linear=False)
+        return (
+            CompressionValidationRecorded(
+                event_id=command.event_id,
+                inquiry_id=command.inquiry_id,
+                occurred_at=command.occurred_at,
+                validation=validation,
+            ),
         )
-        if validation_contract is None:
-            raise InvalidCommandError("compression validation requires an owned contract")
-        expected_fingerprint = sha256_digest(canonical_json_bytes(validation_contract))
-        if validation.contract_fingerprint != expected_fingerprint:
-            raise InvalidCommandError("compression validation does not pin the exact contract")
-        by_property = {item.property: item for item in validation.properties}
-        required = {
-            ValidationProperty.CONSEQUENCE_FACTORIZATION,
-            ValidationProperty.RESIDUE_COMPLETENESS,
-        }
-        if ExactClaimKind.COARSEST_EXACT_QUOTIENT in validation_contract.claim_kinds:
-            required.add(ValidationProperty.EXACT_EQUIVALENCE)
-        if ExactClaimKind.EXECUTABLE_RETAINED_STATE in validation_contract.claim_kinds:
-            required.update(
-                {
-                    ValidationProperty.CONTINUATION_COMPATIBILITY,
-                    ValidationProperty.RECURSIVE_UPDATE,
-                }
-            )
-        for property_kind in required:
-            if by_property[property_kind].outcome is ValidationOutcome.NOT_CLAIMED:
-                raise InvalidCommandError(
-                    f"compression claim requires a disposition for {property_kind.value}"
-                )
-        for property_check in validation.properties:
-            if property_check.outcome is ValidationOutcome.NOT_CLAIMED:
-                continue
-            assert property_check.check is not None
-            assert property_check.proposition_id is not None
-            expected_property_proposition = (
-                f"compression-property:{validation_contract.id}:{property_check.property.value}"
-            )
-            if property_check.proposition_id != expected_property_proposition:
-                raise InvalidCommandError(
-                    "compression property check is not bound to its exact contract property"
-                )
-            _require_g2a_check(
-                state,
-                property_check.check,
-                proposition_id=property_check.proposition_id,
-                scope_fingerprint=validation_contract.scope_fingerprint,
-            )
+
+    if isinstance(command, RecordExactLinearCompressionValidation):
+        validation = command.validation
+        existing_compression_validation = next(
+            (item for item in state.compression_validations if item.id == validation.id), None
+        )
+        if existing_compression_validation is not None:
+            if existing_compression_validation == validation:
+                return ()
+            raise IdentityConflictError("compression-validation identity was reused")
+        _require_exact_linear_validation(state, command)
         return (
             CompressionValidationRecorded(
                 event_id=command.event_id,
@@ -4859,16 +4945,36 @@ def evolve(state: InquiryState, event: DomainEvent) -> InquiryState:
         )
 
     if isinstance(event, CompressionValidationRecorded):
-        _require_matching_decision(
-            state,
-            event,
-            RecordCompressionValidation(
-                event_id=event.event_id,
-                inquiry_id=event.inquiry_id,
-                occurred_at=event.occurred_at,
-                validation=event.validation,
+        contract = next(
+            (
+                item
+                for item in state.compression_contracts
+                if item.id == event.validation.contract_id
             ),
+            None,
         )
+        if contract is None:
+            raise InvalidTransitionError("compression validation requires an owned contract")
+        if contract.representation_policy_id == "exact-rational-linear-v1":
+            try:
+                _require_compression_validation(
+                    state,
+                    event.validation,
+                    allow_exact_linear=True,
+                )
+            except DomainError as exc:
+                raise InvalidTransitionError(str(exc)) from exc
+        else:
+            _require_matching_decision(
+                state,
+                event,
+                RecordCompressionValidation(
+                    event_id=event.event_id,
+                    inquiry_id=event.inquiry_id,
+                    occurred_at=event.occurred_at,
+                    validation=event.validation,
+                ),
+            )
         return _advance_domain_state(
             state,
             compression_validations=(*state.compression_validations, event.validation),

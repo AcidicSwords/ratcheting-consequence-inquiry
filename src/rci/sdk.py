@@ -72,6 +72,7 @@ from rci.core.commands import (
     RecordConsolidationCheckpoint,
     RecordDecodeOutcome,
     RecordDevelopmentEvidence,
+    RecordExactLinearCompressionValidation,
     RecordImplementationGoalCandidate,
     RecordIndependentReview,
     RecordLearnedProbeCandidate,
@@ -1774,6 +1775,29 @@ class RCI:
                 event_id=_stable_id("evt", inquiry_id, validation.id, "compression-validation"),
                 inquiry_id=inquiry_id,
                 occurred_at=self.clock(),
+                validation=validation,
+            )
+        )
+
+    def record_exact_linear_compression_validation(
+        self,
+        inquiry_id: str,
+        *,
+        family: LinearQueryFamily,
+        analysis: ExactLinearAnalysis,
+        check: ExactLinearCheck,
+        validation: CompressionValidation,
+    ) -> InquiryState:
+        return self.dispatch(
+            RecordExactLinearCompressionValidation(
+                event_id=_stable_id(
+                    "evt", inquiry_id, validation.id, "exact-linear-compression-validation"
+                ),
+                inquiry_id=inquiry_id,
+                occurred_at=self.clock(),
+                family=family,
+                analysis=analysis,
+                check=check,
                 validation=validation,
             )
         )
